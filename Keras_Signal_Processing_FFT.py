@@ -100,7 +100,7 @@ fftin = np.zeros((1,2*NFFT))
 fftin[:,0::2]=ypn[0:NFFT]
 fftout = model.predict(fftin).flatten()
 fftout = fftout[0::2] + 1j*fftout[1::2]
-plt.plot(xf, 2.0/NFFT * np.abs(fftout[0:NFFT//2]))
+plt.plot(xf, 2.0/NFFT * np.abs(fftout[0:NFFT//2]),'g')
 plt.plot(xf, 2.0/N * np.abs(yf[:N//2]),'r')
 plt.show()
 
