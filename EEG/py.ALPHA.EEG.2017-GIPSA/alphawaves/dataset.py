@@ -138,6 +138,7 @@ class AlphaWaves():
         """return data for a single subject"""
 
         filepath = self.data_path(subject)[0]
+        print("Loading file: ",self.data_path(subject)[0])
         data = loadmat(filepath)
 
         S = data['SIGNAL'][:, 1:17]
