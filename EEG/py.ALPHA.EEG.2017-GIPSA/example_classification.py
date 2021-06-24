@@ -1,3 +1,9 @@
+import pyriemann
+print(pyriemann.__version__)
+del pyriemann
+#Required version of pyriemann is 0.2.7.dev
+#Download from github (and replace in Anaconda if you have older version)
+
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from pyriemann.embedding import Embedding
@@ -7,6 +13,7 @@ from alphawaves.dataset import AlphaWaves
 import matplotlib.pyplot as plt
 import numpy as np
 import mne
+
 """
 =============================
 Classification of the trials
@@ -18,12 +25,12 @@ Riemannian Geometry. The code also creates a figure with the spectral embedding
 of the epochs.
 
 """
-# Authors: Pedro Rodrigues <pedro.rodrigues01@gmail.com>
+# Authors: Pedro Rodrigues <pedro.rodrigues01@gmail.com>, Anton Andreev
 #
 # License: BSD (3-clause)
 
 import warnings
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
 
 
 # define the dataset instance
