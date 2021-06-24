@@ -52,8 +52,9 @@ SNR = 10
 ypn = y + np.random.normal(0,10**(-SNR/20),len(y))
 
 plt.plot(tm[0:100],y[0:100])
-plt.plot(tm[0:100],ypn[0:100],'r') # red one is the noisy signal
+plt.plot(tm[0:100],ypn[0:100],'r')
 plt.show()
+print("Red is the signal with noise.")
 
 # prepare the train_data and train_labels
 dnn_numinputs = 64
@@ -61,7 +62,8 @@ num_train_batch = 0
 train_data = []
 for k in range(num_train_data-dnn_numinputs-1):
   train_data = np.concatenate((train_data,ypn[k:k+dnn_numinputs]));
-  num_train_batch = num_train_batch + 1  
+  num_train_batch = num_train_batch + 1
+  
 train_data = np.reshape(train_data, (num_train_batch,dnn_numinputs))
 train_labels = y[dnn_numinputs:num_train_batch+dnn_numinputs]
 
@@ -70,10 +72,10 @@ model = dnn_keras_tspred_model()
 
 #train model
 EPOCHS = 100
-strt_time = datetime.datetime.now()
-history = model.fit(train_data, train_labels, epochs=EPOCHS,
-                  validation_split=0.2, verbose=0,
-                  callbacks=[])
+
+model.fit(train_data, train_labels, epochs=EPOCHS,
+          validation_split=0.2, verbose=0,
+          callbacks=[])
 
 # test how well DNN predicts now
 num_test_batch = 0
@@ -89,6 +91,8 @@ test_labels = y[strt_idx+dnn_numinputs:strt_idx+num_test_batch+dnn_numinputs]
 #plot result, red is the real date
 dnn_predictions = model.predict(test_data).flatten()
 keras_dnn_err = test_labels - dnn_predictions
-plt.plot(dnn_predictions[0:100])
+plt.plot(dnn_predictions[0:100],'g')
 plt.plot(test_labels[0:100],'r')
 plt.show()
+
+print("Done. Red is the real signal. Green is the predicted.")
