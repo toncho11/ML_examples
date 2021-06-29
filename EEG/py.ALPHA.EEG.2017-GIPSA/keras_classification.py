@@ -5,6 +5,9 @@ import sys
 
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
 
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
@@ -32,9 +35,9 @@ Keras is installed as part of TensorFlow 2
 import warnings
 #warnings.filterwarnings("ignore")
 
-
 # define the dataset instance
 dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
+
 
 # get the data from subject of interest
 subject = dataset.subject_list[0]
@@ -53,11 +56,50 @@ epochs = mne.Epochs(raw, events, event_id, tmin=2.0, tmax=8.0, baseline=None,
                     verbose=False, preload=True)
 epochs.pick_types(eeg=True)
 
-# get trials and labels
-X = epochs.get_data()
-y = events[:, -1]
+# parameters 
+nb_train_samples = 400 
+nb_validation_samples = 100
+epochs = 10
+batch_size = 16
 
-# cross validation
-skf = StratifiedKFold(n_splits=5)
+train_generator = [] #todo
+validation_generator = [] #todo
+#create model
+
+input_shape = (3, img_width, img_height) #todo  
+
+model = Sequential()
+model.add(Conv2D(32, (2, 2), input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+  
+model.add(Conv2D(32, (2, 2)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+  
+model.add(Conv2D(64, (2, 2)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+  
+model.add(Flatten())
+model.add(Dense(64))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+model.add(Dense(1))
+model.add(Activation('sigmoid'))
+
+# compile model
+model.compile(loss='binary_crossentropy',
+              optimizer='rmsprop',
+              metrics=['accuracy'])
+
+# actual traininig
+model.fit(train_generator, 
+    steps_per_epoch = nb_train_samples // batch_size,
+    epochs = epochs, 
+    validation_data = validation_generator,
+    validation_steps = nb_validation_samples // batch_size)
+
+#loss, acc = model.evaluate(x_test,  y_test, verbose=2) #todo
 
 print("Done.")
