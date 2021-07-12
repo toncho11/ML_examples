@@ -18,7 +18,7 @@ import tensorflow as tf
 print("Python version is: ",sys.version)
 print("TensorFlow version is: ", tf.__version__,"\n")
 
-import tensorflow as tf
+import numpy as np
 
 #'tf' can not be used from ... import
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -76,10 +76,14 @@ train_datagen = ImageDataGenerator(
             horizontal_flip = True)
   
 test_datagen = ImageDataGenerator(rescale = 1. / 255)
-  
+
+#classes are detected automatically from the folders using data generators  
+
 train_generator = train_datagen.flow_from_directory(train_data_dir,
                               target_size =(img_width, img_height),
                      batch_size = batch_size, class_mode ='binary')
+
+print("Number of classes detected in training data: ", len(np.unique(train_generator.classes)))
   
 validation_generator = test_datagen.flow_from_directory(
                                     validation_data_dir,

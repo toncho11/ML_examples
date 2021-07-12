@@ -41,24 +41,33 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 
 
 # get the data from subject of interest
-subject = dataset.subject_list[0]
-raw = dataset._get_single_subject_data(subject)
+#subject = dataset.subject_list[0]
+#raw = dataset._get_single_subject_data(subject)
 
-# filter data and resample
-fmin = 3
-fmax = 40
-raw.filter(fmin, fmax, verbose=False)
-raw.resample(sfreq=128, verbose=False)
+epochs = [];
 
-# detect the events and cut the signal into epochs
-events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
-event_id = {'closed': 1, 'open': 2}
-epochs = mne.Epochs(raw, events, event_id, tmin=2.0, tmax=8.0, baseline=None,
+for subject in dataset.subject_list: 
+    raw = dataset._get_single_subject_data(subject)
+    
+    # filter data and resample
+    fmin = 3
+    fmax = 40
+    raw.filter(fmin, fmax, verbose=False)
+    raw.resample(sfreq=128, verbose=False)
+
+    # detect the events and cut the signal into epochs
+    events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
+    event_id = {'closed': 1, 'open': 2}
+    epochs_subject = mne.Epochs(raw, events, event_id, tmin=2.0, tmax=8.0, baseline=None,
                     verbose=False, preload=True)
-epochs.pick_types(eeg=True)
+    epochs_subject.pick_types(eeg=True)
+    
+    mne.Epochs
+    epochs = epochs + epochs_subject
+
 
 #simple check of data
-if epochs[1]._data.shape[1] != 16:
+if epochs[0]._data.shape[1] != 16:
     print("Error: EEG channels are not 16!")
 
 
