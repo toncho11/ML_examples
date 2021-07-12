@@ -8,6 +8,7 @@ from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
+from tensorflow.keras import backend as K
 
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
@@ -18,7 +19,7 @@ import mne
 
 """
 =============================
-Example on how to classify using Deep Learning with Keras
+Classification of EGG signal from two states: eyes open and eyes closed
 =============================
 
 Anaconda 3 2021_05
@@ -56,17 +57,32 @@ epochs = mne.Epochs(raw, events, event_id, tmin=2.0, tmax=8.0, baseline=None,
                     verbose=False, preload=True)
 epochs.pick_types(eeg=True)
 
+#simple check of data
+if epochs[1]._data.shape[1] != 16:
+    print("Error: EEG channels are not 16!")
+
+
+img_width = epochs[0]._data.shape[2]
+img_height = epochs[0]._data.shape[1]
+
+if K.image_data_format() == 'channels_first':
+    input_shape = (1, img_width, img_height)
+else:
+    input_shape = (img_width, img_height, 1)
+    
+#epochs are 10 (5 closed eyes, 5 open eyes)
+
 # parameters 
-nb_train_samples = 400 
-nb_validation_samples = 100
-epochs = 10
-batch_size = 16
+#nb_train_samples = 8 #todo
+#nb_validation_samples = 2 #todo
+#nb_epochs_keras = 16 #number of iterations on the dataset
+#batch_size = 2 #todo
 
 train_generator = [] #todo
 validation_generator = [] #todo
 #create model
 
-input_shape = (3, img_width, img_height) #todo  
+#input_shape = (3, img_width, img_height) #todo  
 
 model = Sequential()
 model.add(Conv2D(32, (2, 2), input_shape=input_shape))
@@ -94,11 +110,18 @@ model.compile(loss='binary_crossentropy',
               metrics=['accuracy'])
 
 # actual traininig
+# model.fit(train_generator, 
+#     steps_per_epoch = nb_train_samples // batch_size,
+#     epochs = nb_epochs_keras, 
+#     validation_data = validation_generator,
+#     validation_steps = nb_validation_samples // batch_size)
+
+#actual traininig
 model.fit(train_generator, 
-    steps_per_epoch = nb_train_samples // batch_size,
-    epochs = epochs, 
+    steps_per_epoch = 5,
+    epochs = 6, 
     validation_data = validation_generator,
-    validation_steps = nb_validation_samples // batch_size)
+    validation_steps = 4)
 
 #loss, acc = model.evaluate(x_test,  y_test, verbose=2) #todo
 
