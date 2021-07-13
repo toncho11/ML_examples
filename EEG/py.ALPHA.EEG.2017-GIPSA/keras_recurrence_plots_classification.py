@@ -51,7 +51,7 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 epochs_all_subjects = [];
 label_all_subjects = [];
 
-for subject in dataset.subject_list.range(0,3):
+for subject in dataset.subject_list[0:5]:
     
     raw = dataset._get_single_subject_data(subject)
     
@@ -80,7 +80,7 @@ for subject in dataset.subject_list.range(0,3):
     
         #add to list
         epochs_all_subjects.append(single_epoch_subject_rp[0,:,:])
-        label_all_subjects.append(list(epochs_subject[i].event_id.values())[0])
+        label_all_subjects.append(list(epochs_subject[i].event_id.values())[0] - 1 ) #from 1..2 to 0..1
 
 
 #sys.exit()
@@ -88,17 +88,18 @@ for subject in dataset.subject_list.range(0,3):
 train_images = np.array(epochs_all_subjects)
 train_labels = np.array(label_all_subjects)
 
-img_size = epochs_all_subjects[0].shape[1]
+img_size = train_images[0].shape[0]
 
 #build model
+
 model = tf.keras.Sequential([
     tf.keras.layers.Flatten(input_shape=(img_size, img_size)), #no parameter learning just transforming from 28 x 28 to 784 pixels
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(10) # Each node contains a score that indicates the current image belongs to one of the 10 classes
+    tf.keras.layers.Dense(2) # Each node contains a score that indicates the current image belongs to one of the 10 classes
 ])
 
 model.compile(optimizer='adam', #This is how the model is updated based on the data it sees and its loss function.
-              loss=tf.keras.losses.BinaryCrossentropy(from_logits=True), #This measures how accurate the model is during training. You want to minimize this function to "steer" the model in the right direction.
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), #This measures how accurate the model is during training. You want to minimize this function to "steer" the model in the right direction.
               metrics=['accuracy']) #Used to monitor the training and testing steps. The following example uses accuracy, the fraction of the images that are correctly classified.
 
 model.fit(train_images, train_labels, epochs=10)
