@@ -51,7 +51,7 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 epochs_all_subjects = [];
 label_all_subjects = [];
 
-for subject in dataset.subject_list:
+for subject in dataset.subject_list.range(0,3):
     
     raw = dataset._get_single_subject_data(subject)
     
@@ -68,18 +68,19 @@ for subject in dataset.subject_list:
                     verbose=False, preload=True)
     epochs_subject.pick_types(eeg=True)
     
-    #get raw epochs for the selected subject 
-    #TODO: currenly only the first one is taken
-    single_epoch_subject = epochs_subject[0]._data[0,:,:]
+    #process raw epochs for the selected subject 
+    for i in range(0, len(epochs_subject)):
+        
+        single_epoch_subject_data = epochs_subject[i]._data[0,:,:]
 
-    #create recurrence plot of a single epoch
-    rp = RecurrencePlot(threshold='point', percentage=20)
-    single_epoch_subject_rp = rp.fit_transform(single_epoch_subject)
-    print(single_epoch_subject_rp.shape)
+        #create recurrence plot of a single epoch
+        rp = RecurrencePlot(threshold='point', percentage=20)
+        single_epoch_subject_rp = rp.fit_transform(single_epoch_subject_data)
+        print(single_epoch_subject_rp.shape)
     
-    #add to list
-    epochs_all_subjects.append(single_epoch_subject_rp[0,:,:]);
-    label_all_subjects.append(list(epochs_subject[0].event_id.values())[0]) #TODO: still epoch 0
+        #add to list
+        epochs_all_subjects.append(single_epoch_subject_rp[0,:,:])
+        label_all_subjects.append(list(epochs_subject[i].event_id.values())[0])
 
 
 #sys.exit()
