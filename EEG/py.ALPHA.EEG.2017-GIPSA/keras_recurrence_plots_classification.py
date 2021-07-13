@@ -48,9 +48,11 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 #subject = dataset.subject_list[0]
 #raw = dataset._get_single_subject_data(subject)
 
-epochs = [];
+epochs_all_subjects = [];
+label_all_subjects = [];
 
-for subject in dataset.subject_list: 
+for subject in dataset.subject_list:
+    
     raw = dataset._get_single_subject_data(subject)
     
     # filter data and resample
@@ -66,81 +68,42 @@ for subject in dataset.subject_list:
                     verbose=False, preload=True)
     epochs_subject.pick_types(eeg=True)
     
-    #get raw data 
-    
-    #create recurrence plot and
+    #get raw epochs for the selected subject 
+    #TODO: currenly only the first one is taken
+    single_epoch_subject = epochs_subject[0]._data[0,:,:]
+
+    #create recurrence plot of a single epoch
+    rp = RecurrencePlot(threshold='point', percentage=20)
+    single_epoch_subject_rp = rp.fit_transform(single_epoch_subject)
+    print(single_epoch_subject_rp.shape)
     
     #add to list
-    #mne.Epochs
-    #epochs = epochs + epochs_subject
+    epochs_all_subjects.append(single_epoch_subject_rp[0,:,:]);
+    label_all_subjects.append(list(epochs_subject[0].event_id.values())[0]) #TODO: still epoch 0
 
 
-#simple check of data
-if epochs[0]._data.shape[1] != 16:
-    print("Error: EEG channels are not 16!")
+#sys.exit()
 
+train_images = np.array(epochs_all_subjects)
+train_labels = np.array(label_all_subjects)
 
-img_width = epochs[0]._data.shape[2]
-img_height = epochs[0]._data.shape[1]
+img_size = epochs_all_subjects[0].shape[1]
 
-if K.image_data_format() == 'channels_first':
-    input_shape = (1, img_width, img_height)
-else:
-    input_shape = (img_width, img_height, 1)
-    
-#epochs are 10 (5 closed eyes, 5 open eyes)
+#build model
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(img_size, img_size)), #no parameter learning just transforming from 28 x 28 to 784 pixels
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(10) # Each node contains a score that indicates the current image belongs to one of the 10 classes
+])
 
-# parameters 
-#nb_train_samples = 8 #todo
-#nb_validation_samples = 2 #todo
-#nb_epochs_keras = 16 #number of iterations on the dataset
-#batch_size = 2 #todo
+model.compile(optimizer='adam', #This is how the model is updated based on the data it sees and its loss function.
+              loss=tf.keras.losses.BinaryCrossentropy(from_logits=True), #This measures how accurate the model is during training. You want to minimize this function to "steer" the model in the right direction.
+              metrics=['accuracy']) #Used to monitor the training and testing steps. The following example uses accuracy, the fraction of the images that are correctly classified.
 
-train_generator = [] #todo
-validation_generator = [] #todo
-#create model
+model.fit(train_images, train_labels, epochs=10)
 
-#input_shape = (3, img_width, img_height) #todo  
-
-model = Sequential()
-model.add(Conv2D(32, (2, 2), input_shape=input_shape))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-  
-model.add(Conv2D(32, (2, 2)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-  
-model.add(Conv2D(64, (2, 2)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-  
-model.add(Flatten())
-model.add(Dense(64))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(1))
-model.add(Activation('sigmoid'))
-
-# compile model
-model.compile(loss='binary_crossentropy',
-              optimizer='rmsprop',
-              metrics=['accuracy'])
-
-# actual traininig
-# model.fit(train_generator, 
-#     steps_per_epoch = nb_train_samples // batch_size,
-#     epochs = nb_epochs_keras, 
-#     validation_data = validation_generator,
-#     validation_steps = nb_validation_samples // batch_size)
-
-#actual traininig
-model.fit(train_generator, 
-    steps_per_epoch = 5,
-    epochs = 6, 
-    validation_data = validation_generator,
-    validation_steps = 4)
-
-#loss, acc = model.evaluate(x_test,  y_test, verbose=2) #todo
+#training results
+#test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+#print('\nTest accuracy:', test_acc)
 
 print("Done.")
