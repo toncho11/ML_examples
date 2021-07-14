@@ -152,7 +152,7 @@ train_labels = np.array(label_all_subjects)
 
 #train_images = tf.expand_dims(train_images, axis=3).shape.as_list()
 
-test_images = np.array(test_epochs_all_subjects)
+test_images = np.array(test_epochs_all_subjects)[:, :, :, np.newaxis]
 test_labels = np.array(test_label_all_subjects)
 
 
