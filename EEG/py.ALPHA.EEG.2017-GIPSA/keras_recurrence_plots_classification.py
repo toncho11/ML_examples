@@ -17,6 +17,7 @@ from alphawaves.dataset import AlphaWaves
 
 import mne
 from pyts.image import RecurrencePlot
+import gc
 
 """
 =============================
@@ -51,7 +52,7 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 epochs_all_subjects = [];
 label_all_subjects = [];
 
-for subject in dataset.subject_list[0:5]:
+for subject in dataset.subject_list[0:20]:
     
     raw = dataset._get_single_subject_data(subject)
     
@@ -79,8 +80,17 @@ for subject in dataset.subject_list[0:5]:
         print(single_epoch_subject_rp.shape)
     
         #add to list
-        epochs_all_subjects.append(single_epoch_subject_rp[0,:,:])
+        epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
         label_all_subjects.append(list(epochs_subject[i].event_id.values())[0] - 1 ) #from 1..2 to 0..1
+        
+        del single_epoch_subject_data
+        del rp
+        del single_epoch_subject_rp    
+        gc.collect();
+    
+    del raw
+    del epochs_subject
+    gc.collect()
 
 
 #sys.exit()
@@ -93,9 +103,9 @@ img_size = train_images[0].shape[0]
 #build model
 
 model = tf.keras.Sequential([
-    tf.keras.layers.Flatten(input_shape=(img_size, img_size)), #no parameter learning just transforming from 28 x 28 to 784 pixels
+    tf.keras.layers.Flatten(input_shape=(img_size, img_size)), #no parameter learning just transforming 1D array
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(2) # Each node contains a score that indicates the current image belongs to one of the 10 classes
+    tf.keras.layers.Dense(2) # Each node contains a score that indicates the current image belongs to one of the classes
 ])
 
 model.compile(optimizer='adam', #This is how the model is updated based on the data it sees and its loss function.
