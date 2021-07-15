@@ -62,7 +62,7 @@ test_label_all_subjects = [];
 
 print("Train data:")
 
-for subject in dataset.subject_list[0:5]: #[0:17]
+for subject in dataset.subject_list[0:17]: #[0:17]
     
     raw = dataset._get_single_subject_data(subject)
     
@@ -105,7 +105,7 @@ for subject in dataset.subject_list[0:5]: #[0:17]
 
 print("Test data:================================================================================================================")
 
-for subject in dataset.subject_list[5:6]: #[17:]
+for subject in dataset.subject_list[17:]: #[17:]
     
     raw = dataset._get_single_subject_data(subject)
     
@@ -185,10 +185,12 @@ model.compile(loss='binary_crossentropy',
               optimizer='rmsprop',
               metrics=['accuracy'])
 
-model.fit(train_images, train_labels, epochs=8)
+#model.fit(train_images, train_labels, epochs=8)
+#model.fit(train_images, train_labels, epochs=8, validation_split=0.2, shuffle=True)
+model.fit(train_images, train_labels, epochs=10, shuffle=True)
 
 #training results
 test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
-print('\nTest accuracy:', test_acc)
+print('\nTest accuracy on unseen data:', test_acc)
 
 print("Done.")
