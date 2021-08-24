@@ -25,6 +25,11 @@ from tensorflow import keras
 
 print("Python version is: ",sys.version)
 print("TensorFlow version is: ", tf.__version__,"\n")
+print("GPU devices: ", len(tf.config.list_physical_devices('GPU')),"\n")
+sys_details = tf.sysconfig.get_build_info()
+cuda_version = sys_details["cuda_version"]
+print(cuda_version)
+
 
 def dnn_keras_tspred_model():
   model = keras.Sequential([
