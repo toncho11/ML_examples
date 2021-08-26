@@ -83,6 +83,9 @@ label_all_subjects = [];
 test_epochs_all_subjects = [];
 test_label_all_subjects = [];
 
+def calculateDistance(i1, i2):
+    return np.sum((i1-i2)**2)
+
 print("Train data:")
 
 for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
