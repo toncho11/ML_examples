@@ -75,7 +75,7 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 2
+n_train_subjects = 17
 
 epochs_all_subjects = [];
 label_all_subjects = [];
@@ -114,8 +114,11 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
         print(X.shape)
     
         #add to list
-        epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
-        label_all_subjects.append(list(epochs_subject[i].event_id.values())[0] - 1 ) #from 1..2 to 0..1
+        label = list(epochs_subject[i].event_id.values())[0] - 1 #from 1..2 to 0..1
+        
+        if label == 0:
+            epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
+            label_all_subjects.append(label) 
         
         del single_epoch_subject_data
         del single_epoch_subject_rp    
@@ -135,4 +138,6 @@ print("Number of samples (train + validation):", len(train_labels))
 #for x in epochs_all_subjects:
 #    plt.imshow(x, cmap='binary', origin='lower')
 
-
+avg_images = np.array(epochs_all_subjects)[:, :, :]
+imave = np.average(avg_images,axis=0)
+plt.imshow(imave, cmap='binary', origin='lower')
