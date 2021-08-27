@@ -2,31 +2,17 @@
 """
 Created on Sun Aug 22 19:54:37 2021
 
-@author: anton
+@author: anton andreev
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-import datetime
-import sys
-
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
-from tensorflow.keras import backend as K
-
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 from alphawaves.dataset import AlphaWaves
 
 import mne
 from pyts.image import RecurrencePlot
 import gc
-from sklearn.utils import shuffle
-import random
 
 """
 =============================
@@ -178,9 +164,15 @@ del rp
 images2 = np.array(epochs_all_subjects)[:, :, :]
 #====================================================================================
 
+#reduce images (it seems the performance is the same)
+#images1 = images1[:,300:400,300:400]
+#images2 = images2[:,300:400,300:400]
+
+# ====================================================================================
 # start classification
 
-iterations = 12
+iterations = 30
+average_train_accuracy = 0;
 average_classification = 0;
 
 for i in range(iterations):
@@ -203,19 +195,30 @@ for i in range(iterations):
     imave1 = np.average(train_images1,axis=0)
     imave2 = np.average(train_images2,axis=0)
     
-    #plt.imshow(imave1, cmap='binary', origin='lower')
-    #plt.imshow(imave2, cmap='binary', origin='lower')
+    #plt.imshow(imave1, cmap='binary', origin='lower') #eyes closed, alpha high
+    #plt.imshow(imave2, cmap='binary', origin='lower') #eyes opened, alpha low
     
-    # for x in images2:
-    #     d1 = calculateDistance(x,imave2)
-    #     d2 = calculateDistance(x,imave1)
-    #     print("Centroid origin class, centroid other class", d1, d2, d1< d2)
+    training_accuracy = 0
+    train_all_N = len(train_images1) + len(train_images2)
+    # training accuracy
+    #print("Class 0 eyes closed")
+    for x in train_images1:
+        d1 = calculateDistance(x,imave1)
+        d2 = calculateDistance(x,imave2)
+        if (d1 < d2 ):
+            training_accuracy = training_accuracy + 1
+
         
-    # for x in images1:
-    #     d1 = calculateDistance(x,imave1)
-    #     d2 = calculateDistance(x,imave2)
-    #     print("Centroid origin class, centroid other class", d1, d2, d1< d2)
-        
+    #print("Class 1 eyes open")            
+    for x in train_images2:
+        d1 = calculateDistance(x,imave2)
+        d2 = calculateDistance(x,imave1)
+        if (d1 < d2 ):
+            training_accuracy = training_accuracy + 1
+    
+    print("Training accuracy: ", training_accuracy / train_all_N)
+    average_train_accuracy = average_train_accuracy + training_accuracy / train_all_N
+    
     # validation test
     correctly_classified = 0;
     valid_all_N = len(valid_images1) + len(valid_images2)
@@ -244,5 +247,7 @@ for i in range(iterations):
             
     print("Cross correlation: ", correctly_classified / valid_all_N)
     average_classification = average_classification + correctly_classified / valid_all_N
-    
+
+print("======================================================================================")
+print("Train average accuracy: ", average_train_accuracy / iterations)
 print("Average classification: ", average_classification / iterations)
