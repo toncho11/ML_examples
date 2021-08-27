@@ -14,6 +14,10 @@ import mne
 from pyts.image import RecurrencePlot
 import gc
 
+#import Image
+#import ImageChops
+from skimage.metrics import structural_similarity as ssim
+
 """
 =============================
 Classification of EGG signal from two states: eyes open and eyes closed.
@@ -46,14 +50,16 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 #start form 0
 electrode = 14 #get the Oz:14
 #electrode = 5 #get the T7:5
-#m = 1
-#tau = 1 
+#m = 5
+#tau = 30 
 m = 5 
-tau = 30 
+tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 n_train_subjects = 19 #max=19
+filter_fmin = 3 #default 3
+filter_fmax = 40 #default 40
 
 epochs_all_subjects = [];
 label_all_subjects = [];
@@ -61,8 +67,18 @@ label_all_subjects = [];
 test_epochs_all_subjects = [];
 test_label_all_subjects = [];
 
-def calculateDistance(i1, i2):
+def calcDist(i1, i2):
     return np.sum((i1-i2)**2)
+
+def calcDistManhattan(i1, i2):
+    return np.sum(abs((i1-i2)))
+
+def calcDistSSIM(i1, i2):
+    return -1 * ssim(i1,i2)
+
+def calculateDistance(i1, i2):
+    return calcDist(i1, i2)
+
 
 print("Train data:")
 
@@ -71,9 +87,7 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
     raw = dataset._get_single_subject_data(subject)
     
     # filter data and resample
-    fmin = 3
-    fmax = 40
-    raw.filter(fmin, fmax, verbose=False)
+    raw.filter(filter_fmin, filter_fmax, verbose=False)
     raw.resample(sfreq=128, verbose=False)
 
     # detect the events and cut the signal into epochs
@@ -121,9 +135,7 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
     raw = dataset._get_single_subject_data(subject)
     
     # filter data and resample
-    fmin = 3
-    fmax = 40
-    raw.filter(fmin, fmax, verbose=False)
+    raw.filter(filter_fmin, filter_fmax, verbose=False)
     raw.resample(sfreq=128, verbose=False)
 
     # detect the events and cut the signal into epochs
@@ -165,8 +177,8 @@ images2 = np.array(epochs_all_subjects)[:, :, :]
 #====================================================================================
 
 #reduce images (it seems the performance is the same)
-#images1 = images1[:,300:400,300:400]
-#images2 = images2[:,300:400,300:400]
+images1 = images1[:,330:370,330:370]
+images2 = images2[:,330:370,330:370]
 
 # ====================================================================================
 # start classification
@@ -194,6 +206,7 @@ for i in range(iterations):
     # build centroids
     imave1 = np.average(train_images1,axis=0)
     imave2 = np.average(train_images2,axis=0)
+    
     
     #plt.imshow(imave1, cmap='binary', origin='lower') #eyes closed, alpha high
     #plt.imshow(imave2, cmap='binary', origin='lower') #eyes opened, alpha low
