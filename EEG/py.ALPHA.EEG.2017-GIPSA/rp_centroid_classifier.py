@@ -80,7 +80,7 @@ def calculateDistance(i1, i2):
     return calcDist(i1, i2)
 
 
-print("Train data:")
+print("Process Class 1 for Train data:")
 
 for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
     
@@ -127,6 +127,9 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
 images1 = np.array(epochs_all_subjects)[:, :, :]
 
 #====================================================================================
+
+print("Process CLass 2 for Train data:")
+
 epochs_all_subjects = []
 label_all_subjects = []
 
