@@ -57,7 +57,7 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 12 #max=19
+n_train_subjects = 14 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
 
@@ -211,6 +211,8 @@ for i in range(iterations):
     #plt.imshow(imave2, cmap='binary', origin='lower') #eyes opened, alpha low
     
     training_accuracy = 0
+    validate_accuracy = 0
+    
     #train_all_N = len(train_images1) + len(train_images2)
     
     # training accuracy =======================================================================
@@ -221,8 +223,60 @@ for i in range(iterations):
     #     d2 = calculateDistance(x,imave2)
     #     if (d1 < d2 ):
     #         training_accuracy = training_accuracy + 1
-    for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
     
+    # for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
+    
+    #     raw = dataset._get_single_subject_data(subject)
+        
+    #     # filter data and resample
+    #     raw.filter(filter_fmin, filter_fmax, verbose=False)
+    #     raw.resample(sfreq=128, verbose=False)
+    
+    #     # detect the events and cut the signal into epochs
+    #     events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
+    #     event_id = {'closed': 1, 'open': 2}
+    #     epochs_subject = mne.Epochs(raw, events, event_id, tmin=2.0, tmax=8.0, baseline=None,
+    #                     verbose=False, preload=True)
+    #     epochs_subject.pick_types(eeg=True)
+        
+    #     channels_N = len(raw.ch_names)-1
+              
+    #     for i in range(0, len(epochs_subject)): #go over all epochs for the selected subject
+            
+    #         #sample (10 per subject in this case)
+    #         sample = epochs_subject[i]._data[0,:,:]   
+            
+    #         distanceEyesClosed = 0;
+    #         distanceEyesOpened = 0;
+            
+    #         for c in range(0, channels_N):
+    #             X = sample[c,:]
+    #             X = np.array([X])
+    #             rp_image = rp.fit_transform(X) #rp for 1 electrode
+                
+    #             distanceEyesClosed = distanceEyesClosed + calculateDistance(centroidsEyesClosed[c], rp_image)
+    #             #print(distanceEyesClosed)
+            
+    #             distanceEyesOpened = distanceEyesOpened + calculateDistance(centroidsEyesOpened[c], rp_image)
+    #             #print(distanceEyesOpened)
+            
+    #         epoch_label = list(epochs_subject[i].event_id.values())[0]
+            
+    #         if distanceEyesClosed < distanceEyesOpened and epoch_label == 1:
+    #             print("Eyes Closed ",i,epoch_label," OK")
+    #             training_accuracy = training_accuracy + 1
+    #         elif distanceEyesClosed > distanceEyesOpened and epoch_label == 2:
+    #             print("Eyes Opened",i,epoch_label," OK")
+    #             training_accuracy = training_accuracy + 1
+                
+    #     #print("Training accuracy: ", training_accuracy / train_all_N)
+    #     print("Training accuracy: ", training_accuracy / len(epochs_subject))
+    #     #average_train_accuracy = average_train_accuracy + training_accuracy / train_all_N
+        
+    #validate 
+        
+    for subject in dataset.subject_list[n_train_subjects:]: #[0:17]
+
         raw = dataset._get_single_subject_data(subject)
         
         # filter data and resample
@@ -260,16 +314,14 @@ for i in range(iterations):
             epoch_label = list(epochs_subject[i].event_id.values())[0]
             
             if distanceEyesClosed < distanceEyesOpened and epoch_label == 1:
-                print("Eyes Closed ",i,epoch_label," OK")
-                training_accuracy = training_accuracy + 1
+                print("Eyes Closed ",i,epoch_label," OK") #alpha
+                validate_accuracy = validate_accuracy + 1
             elif distanceEyesClosed > distanceEyesOpened and epoch_label == 2:
                 print("Eyes Opened",i,epoch_label," OK")
-                training_accuracy = training_accuracy + 1
+                validate_accuracy = validate_accuracy + 1
                 
         #print("Training accuracy: ", training_accuracy / train_all_N)
-        print("Training accuracy: ", training_accuracy / len(epochs_subject))
+        print("validate_accuracy: ", validate_accuracy / (len(dataset.subject_list[n_train_subjects:]) * 10))
         #average_train_accuracy = average_train_accuracy + training_accuracy / train_all_N
-
-
 
 
