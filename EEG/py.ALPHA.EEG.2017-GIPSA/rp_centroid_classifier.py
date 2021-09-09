@@ -216,7 +216,7 @@ for i in range(iterations):
     
     training_accuracy = 0
     train_all_N = len(train_images1) + len(train_images2)
-    # training accuracy
+    # training accuracy =======================================================================
     #print("Class 0 eyes closed")
     for x in train_images1:
         d1 = calculateDistance(x,imave1)
@@ -235,7 +235,7 @@ for i in range(iterations):
     print("Training accuracy: ", training_accuracy / train_all_N)
     average_train_accuracy = average_train_accuracy + training_accuracy / train_all_N
     
-    # validation test
+    # validation test ==========================================================================
     correctly_classified = 0;
     valid_all_N = len(valid_images1) + len(valid_images2)
     

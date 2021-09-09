@@ -57,7 +57,7 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 1 #max=19
+n_train_subjects = 3 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
 
@@ -112,7 +112,7 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
         sample = epochs_subject[i]._data[0,:,:]    
     
         #add to list
-        label = list(epochs_subject[i].event_id.values())[0] - 1 #from 1..2 to 0..1
+        label = list(epochs_subject[i].event_id.values())[0]# - 1 #from 1..2 to 0..1
         
         for c in range(0, channels_N):
             print("elecrode=",c)
@@ -142,26 +142,110 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
 
 print(len(epochs_all_subjects), len(electrodes), len(labels))
 
+print("================================================")
+
 print("Creating centroids:")
 
 
-centroids = np.empty(channels_N, dtype=object) 
+centroidsEyesClosed = np.empty(channels_N, dtype=object) 
+centroidsEyesOpened = np.empty(channels_N, dtype=object) 
 
 #version centroids only for the alpha yese close (state 0)
 for e in range(0, channels_N): # we create a centroid for each electrode
     
+    print("Centroid ",e)
     epochs_single_sentroid=[]
     
+    #only EYES CLOSED
     for l in range(0, len(labels)):
-        if labels[l] == 0: #eyes closed alpha
+        if ((labels[l] == 1) and (electrodes[l] == e)): #eyes closed alpha
             epochs_single_sentroid.append(epochs_all_subjects[l])
-    
+            
     #convert np array
     RP_images = np.array(epochs_single_sentroid)[:, :, :]
+    
     #calculate the average for each centroid
-    centroids[e] = np.average(RP_images,axis=0)
+    centroidsEyesClosed[e] = np.average(RP_images,axis=0) # for single lectrode, single class from all subjects 
+    
+    #only EYES OPENED
+    for l in range(0, len(labels)):
+        if ((labels[l] == 2) and (electrodes[l] == e)): #eyes closed alpha
+            epochs_single_sentroid.append(epochs_all_subjects[l])
             
+    #convert np array
+    RP_images = np.array(epochs_single_sentroid)[:, :, :]
+    
+    #calculate the average for each centroid
+    centroidsEyesOpened[e] = np.average(RP_images,axis=0) # for single lectrode, single class from all subjects 
+    #plt.imshow(centroidsEyesOpened[e], cmap='binary', origin='lower')
+     
+# ====================================================================================
+# start classification
 
+iterations = 1
+average_train_accuracy = 0;
+average_classification = 0;
+
+for i in range(iterations):
+    
+    #np.random.shuffle(images1) #Multi-dimensional arrays are only shuffled along the first axis
+    #np.random.shuffle(images2)
+    
+    #N = len(images1)
+    #N_validation =  N // 5
+    
+    # class 0
+    #train_images1 = images1[:N-N_validation]
+    #valid_images1 = images1[N-N_validation:]
+    
+    # class 1
+    #train_images2 = images2[:N-N_validation]
+    #valid_images2 = images2[N-N_validation:]
+    
+    # build centroids
+    #imave1 = np.average(train_images1,axis=0)
+    #imave2 = np.average(train_images2,axis=0)
+    
+    
+    #plt.imshow(imave1, cmap='binary', origin='lower') #eyes closed, alpha high
+    #plt.imshow(imave2, cmap='binary', origin='lower') #eyes opened, alpha low
+    
+    training_accuracy = 0
+    #train_all_N = len(train_images1) + len(train_images2)
+    
+    # training accuracy =======================================================================
+    
+    #print("Class 0 eyes closed")
+    # for x in train_images1:
+    #     d1 = calculateDistance(x,imave1)
+    #     d2 = calculateDistance(x,imave2)
+    #     if (d1 < d2 ):
+    #         training_accuracy = training_accuracy + 1       
+    for i in range(0, len(epochs_subject)):
+        
+        #sample (10 per subject in this case)
+        sample = epochs_subject[i]._data[0,:,:]   
+        
+        distanceEyesClosed = 0;
+        distanceEyesOpened = 0;
+        
+        for c in range(0, channels_N):
+            X = sample[c,:]
+            X = np.array([X])
+            rp_image = rp.fit_transform(X) #rp for 1 electrode
+            
+            distanceEyesClosed = distanceEyesClosed + calculateDistance(centroidsEyesClosed[c], rp_image)
+            #print(distanceEyesClosed)
+        
+            distanceEyesOpened = distanceEyesOpened + calculateDistance(centroidsEyesOpened[c], rp_image)
+            #print(distanceEyesOpened)
+        
+        epoch_label = list(epochs_subject[i].event_id.values())[0]
+        
+        if distanceEyesClosed < distanceEyesOpened and epoch_label == 1:
+            print("Eyes Closed ",i,epoch_label," OK")
+        if distanceEyesClosed > distanceEyesOpened and epoch_label == 2:
+            print("Eyes Opened",i,epoch_label," OK")
 
 
 
