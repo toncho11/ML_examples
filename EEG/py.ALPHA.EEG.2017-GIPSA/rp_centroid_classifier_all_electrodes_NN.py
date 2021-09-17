@@ -60,7 +60,7 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 5 #max=19
+n_train_subjects = 16 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
 
@@ -200,7 +200,7 @@ for i in range(iterations):
     print("Iteration: ", i)
     
     train_data_X = []
-    labels = []
+    train_labels = []
     
     for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
 
@@ -237,7 +237,7 @@ for i in range(iterations):
                 distEC[c] = calculateDistance(centroidsEyesClosed[c], rp_image)
                 distEO[c] = calculateDistance(centroidsEyesOpened[c], rp_image)
             
-            epoch_label = list(epochs_subject[i].event_id.values())[0]
+            epoch_label = list(epochs_subject[e].event_id.values())[0]
             
             # print("Label ", epoch_label, sum(distEC), sum(distEO))
             # if (epoch_label == 1 and sum(distEO) > sum(distEC)):
@@ -250,23 +250,87 @@ for i in range(iterations):
             # else:
             #     print("NOT OK")
             
-            labels.append(epoch_label)
+            train_labels.append(epoch_label)
             x = distEC
             dist_norm = (x-min(x))/(max(x)-min(x))
             train_data_X.append(dist_norm)
     
-    train_data_X_np =  np.array(train_data_X);
-    labels_np = np.array(labels)
+    train_data_X_np =  np.array(train_data_X)
+    train_labels_np = np.array(train_labels)
     
     clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='adam',random_state=1)
     #clf = svm.SVC()
-    clf.fit(train_data_X_np, labels_np)
+    clf.fit(train_data_X_np, train_labels_np)
     
     print("Training...")
     
     y_pred = clf.predict(train_data_X_np)
-    print(labels_np - y_pred)
+    print(train_labels_np - y_pred)
     #validate 
+    
+    print("Validate ...")
+    
+    validate_data_X = []
+    validate_labels = []
+    
+    for subject in dataset.subject_list[n_train_subjects:n_train_subjects+2]: #[0:17]
+
+        raw = dataset._get_single_subject_data(subject)
+        
+        # filter data and resample
+        raw.filter(filter_fmin, filter_fmax, verbose=False)
+        raw.resample(sfreq=128, verbose=False)
+    
+        # detect the events and cut the signal into epochs
+        events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
+        event_id = {'closed': 1, 'open': 2}
+        epochs_subject = mne.Epochs(raw, events, event_id, tmin=2.0, tmax=8.0, baseline=None,
+                        verbose=False, preload=True)
+        epochs_subject.pick_types(eeg=True)
+        
+        channels_N = len(raw.ch_names)-1
+              
+        for e in range(0, len(epochs_subject)): #go over all epochs for the selected subject
+            
+            #sample (10 per subject in this case)
+            sample = epochs_subject[e]._data[0,:,:]   
+            
+            distanceEyesClosed = 0;
+            distanceEyesOpened = 0;
+            
+            distEC = np.empty(16, dtype=object) 
+            distEO = np.empty(16, dtype=object) 
+            
+            for c in range(0, channels_N): #for all electrodes
+                X = sample[c,:]
+                X = np.array([X])
+                rp_image = rp.fit_transform(X) #rp for 1 electrode
+                distEC[c] = calculateDistance(centroidsEyesClosed[c], rp_image)
+                distEO[c] = calculateDistance(centroidsEyesOpened[c], rp_image)
+            
+            epoch_label = list(epochs_subject[e].event_id.values())[0]
+            
+            # print("Label ", epoch_label, sum(distEC), sum(distEO))
+            # if (epoch_label == 1 and sum(distEO) > sum(distEC)):
+            #     print("OK")
+            # else:
+            #     print("NOT OK")
+                
+            # if (epoch_label == 2 and sum(distEO) < sum(distEC)):
+            #     print("OK")
+            # else:
+            #     print("NOT OK")
+            
+            validate_labels.append(epoch_label)
+            x = distEC
+            dist_norm = (x-min(x))/(max(x)-min(x))
+            validate_data_X.append(dist_norm)
+    
+    validate_data_X_np =  np.array(validate_data_X)
+    validate_labels_np = np.array(validate_labels)
+    
+    y_validate = clf.predict(validate_data_X_np)
+    print(validate_labels_np - y_validate)
     
 print("done")
     
