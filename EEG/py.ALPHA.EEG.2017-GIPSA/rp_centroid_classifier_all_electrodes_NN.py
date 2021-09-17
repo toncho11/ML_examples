@@ -189,7 +189,7 @@ for e in range(0, channels_N): # we create a centroid for each electrode
 
 print("Training using the centroids")
 
-iterations = 1
+iterations = 5
 average_train_accuracy = 0;
 average_classification = 0;
 
@@ -197,7 +197,7 @@ for i in range(iterations):
     
     #train
     
-
+    print("Iteration: ", i)
     
     train_data_X = []
     labels = []
@@ -219,10 +219,10 @@ for i in range(iterations):
         
         channels_N = len(raw.ch_names)-1
               
-        for i in range(0, len(epochs_subject)): #go over all epochs for the selected subject
+        for e in range(0, len(epochs_subject)): #go over all epochs for the selected subject
             
             #sample (10 per subject in this case)
-            sample = epochs_subject[i]._data[0,:,:]   
+            sample = epochs_subject[e]._data[0,:,:]   
             
             distanceEyesClosed = 0;
             distanceEyesOpened = 0;
@@ -258,7 +258,7 @@ for i in range(iterations):
     train_data_X_np =  np.array(train_data_X);
     labels_np = np.array(labels)
     
-    clf = MLPClassifier(hidden_layer_sizes=(150,100,50), max_iter=300, activation = 'relu',solver='adam',random_state=1)
+    clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='adam',random_state=1)
     #clf = svm.SVC()
     clf.fit(train_data_X_np, labels_np)
     
