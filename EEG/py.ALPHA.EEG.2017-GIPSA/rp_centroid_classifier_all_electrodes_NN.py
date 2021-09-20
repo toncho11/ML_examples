@@ -51,7 +51,7 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 #'Fp1','Fp2','Fc5','Fz','Fc6','T7','Cz','T8','P7','P3','Pz','P4','P8','O1','Oz','O2','stim'
 #alpha is at the back of the brain
 #start form 0
-electrode = 14 #get the Oz:14
+#electrode = 14 #get the Oz:14
 #electrode = 5 #get the T7:5
 #m = 5
 #tau = 30 
@@ -60,7 +60,7 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 16 #max=19
+n_train_subjects = 14 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
 
@@ -273,7 +273,7 @@ for i in range(iterations):
     validate_data_X = []
     validate_labels = []
     
-    for subject in dataset.subject_list[n_train_subjects:n_train_subjects+2]: #[0:17]
+    for subject in dataset.subject_list[n_train_subjects:]: #[0:17]
 
         raw = dataset._get_single_subject_data(subject)
         
