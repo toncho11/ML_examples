@@ -189,12 +189,13 @@ for e in range(0, channels_N): # we create a centroid for each electrode
 
 print("Training using the centroids")
 
-iterations = 5
+iterations = 1
 average_train_accuracy = 0;
 average_classification = 0;
 
 for i in range(iterations):
     
+    local_train_accuracy = 0;
     #train
     
     print("Iteration: ", i)
@@ -237,20 +238,9 @@ for i in range(iterations):
                 distEC[c] = calculateDistance(centroidsEyesClosed[c], rp_image)
                 distEO[c] = calculateDistance(centroidsEyesOpened[c], rp_image)
             
-            epoch_label = list(epochs_subject[e].event_id.values())[0]
-            
-            # print("Label ", epoch_label, sum(distEC), sum(distEO))
-            # if (epoch_label == 1 and sum(distEO) > sum(distEC)):
-            #     print("OK")
-            # else:
-            #     print("NOT OK")
-                
-            # if (epoch_label == 2 and sum(distEO) < sum(distEC)):
-            #     print("OK")
-            # else:
-            #     print("NOT OK")
-            
+            epoch_label = list(epochs_subject[e].event_id.values())[0]     
             train_labels.append(epoch_label)
+            
             x = distEC
             dist_norm = (x-min(x))/(max(x)-min(x))
             train_data_X.append(dist_norm)
@@ -258,17 +248,29 @@ for i in range(iterations):
     train_data_X_np =  np.array(train_data_X)
     train_labels_np = np.array(train_labels)
     
-    clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='adam',random_state=1)
-    #clf = svm.SVC()
-    clf.fit(train_data_X_np, train_labels_np)
-    
     print("Training...")
+    #'lbfgs' sover for smaller datasets 
+    #clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='adam',random_state=1)
+    #clf = MLPClassifier(max_iter=300, activation = 'relu',solver='adam',random_state=1)
+    clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='lbfgs',random_state=1)
+    
+    clf.fit(train_data_X_np, train_labels_np)
     
     y_pred = clf.predict(train_data_X_np)
     print(train_labels_np - y_pred)
+    
+    local_train_accuracy =  str(train_labels_np - y_pred).count('0') / len (train_labels_np)
+    average_train_accuracy = average_train_accuracy + local_train_accuracy
+    
+    #SVM
+    clf_svm = svm.SVC()
+    clf_svm.fit(train_data_X_np, train_labels_np)
+    y_pred_svm = clf.predict(train_data_X_np)
+    print("SVM classification accuracy: ", str(train_labels_np - y_pred_svm).count('0') / len (train_labels_np))
+    
     #validate 
     
-    print("Validate ...")
+    print("Classification ...")
     
     validate_data_X = []
     validate_labels = []
@@ -331,7 +333,12 @@ for i in range(iterations):
     
     y_validate = clf.predict(validate_data_X_np)
     print(validate_labels_np - y_validate)
+    local_validate_accuracy = str(validate_labels_np - y_validate).count('0') / len (validate_labels_np)
+    average_classification = average_classification + local_validate_accuracy
     
+
+print("Average train accuracy: ", average_train_accuracy / iterations)  
+print("Average classidfication on unseen data: ", average_classification / iterations)    
 print("done")
     
 
