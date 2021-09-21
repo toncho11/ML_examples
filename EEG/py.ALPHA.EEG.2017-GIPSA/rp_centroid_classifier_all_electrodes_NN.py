@@ -20,6 +20,7 @@ from skimage.metrics import structural_similarity as ssim
 from sklearn.neural_network import MLPClassifier
 import math
 from sklearn import svm
+import random
 
 """
 =============================
@@ -60,7 +61,7 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 14 #max=19
+n_train_subjects = 16 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
 
@@ -86,11 +87,17 @@ def calculateDistance(i1, i2):
 
 channels_N = -1
 
+subjects = dataset.subject_list
+sf_subjects = random.sample(subjects, len(subjects))
+train_subjects = sf_subjects[0:n_train_subjects]
+validate_subjects =  sf_subjects[n_train_subjects:]
+
+
 print("Train data:")
 
 #a = np.zeros((n_train_subjects * 10, 1, 16, 649, 649))
 
-for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
+for subject in train_subjects: #[0:17]
     
     raw = dataset._get_single_subject_data(subject)
     
@@ -203,7 +210,7 @@ for i in range(iterations):
     train_data_X = []
     train_labels = []
     
-    for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
+    for subject in train_subjects: #[0:17]
 
         raw = dataset._get_single_subject_data(subject)
         
@@ -242,6 +249,8 @@ for i in range(iterations):
             train_labels.append(epoch_label)
             
             x = distEC
+            #x = np.concatenate((distEC,distEO))
+            #x = distEO
             dist_norm = (x-min(x))/(max(x)-min(x))
             train_data_X.append(dist_norm)
     
@@ -253,20 +262,22 @@ for i in range(iterations):
     #clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='adam',random_state=1)
     #clf = MLPClassifier(max_iter=300, activation = 'relu',solver='adam',random_state=1)
     clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='lbfgs',random_state=1)
+    #clf = MLPClassifier(hidden_layer_sizes=(64,32,16,8), max_iter=300, activation = 'relu',solver='lbfgs',random_state=1)
     
     clf.fit(train_data_X_np, train_labels_np)
     
     y_pred = clf.predict(train_data_X_np)
-    print(train_labels_np - y_pred)
+    #print(train_labels_np - y_pred)
     
     local_train_accuracy =  str(train_labels_np - y_pred).count('0') / len (train_labels_np)
     average_train_accuracy = average_train_accuracy + local_train_accuracy
+    print("Centroids + NN accuracy (on training data): ", local_train_accuracy)
     
     #SVM
     clf_svm = svm.SVC()
     clf_svm.fit(train_data_X_np, train_labels_np)
-    y_pred_svm = clf.predict(train_data_X_np)
-    print("SVM classification accuracy: ", str(train_labels_np - y_pred_svm).count('0') / len (train_labels_np))
+    y_pred_svm = clf_svm.predict(train_data_X_np)
+    print("SVM classification accuracy (on training data): ", str(train_labels_np - y_pred_svm).count('0') / len (train_labels_np))
     
     #validate 
     
@@ -275,7 +286,7 @@ for i in range(iterations):
     validate_data_X = []
     validate_labels = []
     
-    for subject in dataset.subject_list[n_train_subjects:]: #[0:17]
+    for subject in validate_subjects : #[0:17]
 
         raw = dataset._get_single_subject_data(subject)
         
@@ -324,6 +335,8 @@ for i in range(iterations):
             #     print("NOT OK")
             
             validate_labels.append(epoch_label)
+            #x = np.concatenate((distEC,distEO))
+            #x = distEO
             x = distEC
             dist_norm = (x-min(x))/(max(x)-min(x))
             validate_data_X.append(dist_norm)
@@ -332,13 +345,18 @@ for i in range(iterations):
     validate_labels_np = np.array(validate_labels)
     
     y_validate = clf.predict(validate_data_X_np)
-    print(validate_labels_np - y_validate)
+    #print(validate_labels_np - y_validate)
     local_validate_accuracy = str(validate_labels_np - y_validate).count('0') / len (validate_labels_np)
+    print("Centroids + NN accuracy (unseen data): ", local_validate_accuracy) 
     average_classification = average_classification + local_validate_accuracy
     
+    #SVM
+    y_pred_svm = clf_svm.predict(validate_data_X_np)
+    print("SVM classification accuracy (unseen data): ", str(validate_labels_np - y_pred_svm).count('0') / len (validate_labels_np))
+    
 
-print("Average train accuracy: ", average_train_accuracy / iterations)  
-print("Average classidfication on unseen data: ", average_classification / iterations)    
+print("Average train accuracy Centroids + NN: ", average_train_accuracy / iterations)  
+print("Average classidfication Centroids + NN on unseen data: ", average_classification / iterations)    
 print("done")
     
 
