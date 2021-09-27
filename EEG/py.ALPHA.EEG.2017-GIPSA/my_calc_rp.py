@@ -130,18 +130,19 @@ for subject in subjects: #[0:17]
         #Time window = T
         #delta = 40, the interval T is chpped into epochs of delta elements 
         #T is the time interval to be taken from the epoch sample beginning
-        T = len(X)
+       
         delta = tau#40 
         #points_n = (T // delta) - 1
         points_n = m#
         print(points_n)
         #threshold = 0.5
         percentage = 20
-        
+        T = len(X) - ((m-1) * tau)
+         
         #X_traj = np.zeros((points_n,delta))
-        X_traj = np.zeros((delta,points_n))
+        X_traj = np.zeros((T,points_n))
                 
-        for i in range(0,delta): #delta is number of vectors with  length points_n
+        for i in range(0,T): #delta is number of vectors with  length points_n
             
             for j in range(0,points_n):
                 start_pos = j * delta
@@ -149,11 +150,11 @@ for subject in subjects: #[0:17]
                 X_traj[i,j] = X[pos] #i is the vector, j is indexing isnide the vector 
                 #print(pos)
                 
-        X_dist = np.zeros((delta,delta))
+        X_dist = np.zeros((T,T))
         
         #calculate distances
-        for i in range(0,delta): #i is the vector
-            for j in range(0,delta):
+        for i in range(0,T): #i is the vector
+            for j in range(0,T):
                  v1 = X_traj[i,:]
                  v2 = X_traj[j,:]
                  X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
