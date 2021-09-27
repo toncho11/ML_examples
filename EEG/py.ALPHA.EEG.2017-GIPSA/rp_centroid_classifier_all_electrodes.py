@@ -306,10 +306,10 @@ for i in range(iterations):
                 rp_image = rp.fit_transform(X) #rp for 1 electrode
                 
                 distanceEyesClosed = distanceEyesClosed + calculateDistance(centroidsEyesClosed[c], rp_image)
-                #print(distanceEyesClosed)
+                print(distanceEyesClosed)
             
                 distanceEyesOpened = distanceEyesOpened + calculateDistance(centroidsEyesOpened[c], rp_image)
-                #print(distanceEyesOpened)
+                print(distanceEyesOpened)
             
             epoch_label = list(epochs_subject[i].event_id.values())[0]
             

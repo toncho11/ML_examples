@@ -57,7 +57,7 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 #m = 5
 #tau = 30 
 m = 5 
-tau = 30
+tau = 40
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
