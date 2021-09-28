@@ -85,8 +85,12 @@ def calculateDistance(i1, i2):
     return calcDist(i1, i2)
 
 channels_N = -1
+electrodes = [9,10,11,13,14,15]
 
-def multivariateRP(sample, dimension, time_delay, percentage):
+#sample: rows are channels, columns are the timestamps
+def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
+    
+    channels_N = sample.shape[0]
     
     #Time window = T
     #delta = 40, the interval T is chpped into epochs of delta elements 
@@ -96,7 +100,7 @@ def multivariateRP(sample, dimension, time_delay, percentage):
     points_n = dimension
     print(points_n)
     percentage = 20
-    T = len(X) - ((m-1) * tau)
+    T = sample.shape[1] - ((m-1) * tau)
      
     X_traj = np.zeros((T,points_n * channels_N))
             
@@ -106,7 +110,7 @@ def multivariateRP(sample, dimension, time_delay, percentage):
             start_pos = j * delta
             pos = start_pos + i
             
-            for e in range(0,channels_N):
+            for e in electrodes:
                 #print(e)
                 pos_e = (e * points_n) + j
                 #print(pos_e)
@@ -169,7 +173,7 @@ for subject in subjects: #[0:17]
         X = sample[0,:] #get first electrode
         #B = np.array([X])
         #single_epoch_subject_rp = rp.fit_transform(B)
-        X_rp = multivariateRP(sample, m, tau, 20)
+        X_rp = multivariateRP(sample = sample, electrodes = electrodes, dimension = m, time_delay = tau, percentage = 20)
 
 plt.imshow(X_rp, cmap='binary', origin='lower')
 #plt.imshow(single_epoch_subject_rp[0,:,:], cmap='binary', origin='lower')

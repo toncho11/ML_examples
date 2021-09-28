@@ -48,7 +48,7 @@ dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
 #'Fp1','Fp2','Fc5','Fz','Fc6','T7','Cz','T8','P7','P3','Pz','P4','P8','O1','Oz','O2','stim'
 #alpha is at the back of the brain
 #start form 0
-electrode = 14 #get the Oz:14
+#electrode = 14 #get the Oz:14
 #electrode = 5 #get the T7:5
 #m = 5
 #tau = 30 
@@ -60,6 +60,9 @@ rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percenta
 n_train_subjects = 19 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
+#electrodes = [9,10,11,13,14,15]
+#electrodes = [6,8,12,9,10,11,13,14,15]
+electrodes = list(range(0,16))
 
 epochs_all_subjects = [];
 label_all_subjects = [];
@@ -79,6 +82,51 @@ def calcDistSSIM(i1, i2):
 def calculateDistance(i1, i2):
     return calcDist(i1, i2)
 
+#sample: rows are channels, columns are the timestamps
+def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
+    
+    channels_N = sample.shape[0]
+    
+    #Time window = T
+    #delta = 40, the interval T is chpped into epochs of delta elements 
+    #T is the time interval to be taken from the epoch sample beginning
+       
+    delta = time_delay 
+    points_n = dimension
+    print(points_n)
+    percentage = 20
+    T = sample.shape[1] - ((m-1) * tau)
+     
+    X_traj = np.zeros((T,points_n * channels_N))
+            
+    for i in range(0,T): #delta is number of vectors with  length points_n
+        
+        for j in range(0,points_n):
+            start_pos = j * delta
+            pos = start_pos + i
+            
+            for e in electrodes:
+                #print(e)
+                pos_e = (e * points_n) + j
+                #print(pos_e)
+                #all points first channel, 
+                X_traj[i, pos_e ] = sample[e,pos] #i is the vector, j is indexing isnide the vector 
+            #print(pos)
+            
+    X_dist = np.zeros((T,T))
+    
+    #calculate distances
+    for i in range(0,T): #i is the vector
+        for j in range(0,T):
+             v1 = X_traj[i,:]
+             v2 = X_traj[j,:]
+             X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
+    
+    percents = np.percentile(X_dist,percentage)
+    
+    X_rp = X_dist < percents
+    
+    return X_rp
 
 print("Process Class 1 for Train data:")
 
@@ -107,13 +155,18 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
         
         if label == 0:
             #create recurrence plot of a single epoch        
-            X = single_epoch_subject_data[electrode,:]
-            X = np.array([X])
-            single_epoch_subject_rp = rp.fit_transform(X)
-            print(X.shape)
-            epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
+            # X = single_epoch_subject_data[electrode,:]
+            # X = np.array([X])
+            # single_epoch_subject_rp = rp.fit_transform(X)
+            # print(X.shape)
+            # epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
+            # label_all_subjects.append(label)
+            # del single_epoch_subject_rp  
+            
+            single_epoch_subject_rp = multivariateRP(single_epoch_subject_data, electrodes, m, tau, 20)
+            epochs_all_subjects.append(single_epoch_subject_rp.copy())
             label_all_subjects.append(label)
-            del single_epoch_subject_rp    
+            del single_epoch_subject_rp  
         
         del single_epoch_subject_data
 
@@ -158,11 +211,16 @@ for subject in dataset.subject_list[0:n_train_subjects]: #[0:17]
         
         if label == 1:
             #create recurrence plot of a single epoch        
-            X = single_epoch_subject_data[electrode,:]
-            X = np.array([X])
-            single_epoch_subject_rp = rp.fit_transform(X)
-            print(X.shape)
-            epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
+            # X = single_epoch_subject_data[electrode,:]
+            # X = np.array([X])
+            # single_epoch_subject_rp = rp.fit_transform(X)
+            # print(X.shape)
+            # epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
+            # label_all_subjects.append(label)
+            # del single_epoch_subject_rp
+            
+            single_epoch_subject_rp = multivariateRP(single_epoch_subject_data, electrodes, m, tau, 20)
+            epochs_all_subjects.append(single_epoch_subject_rp.copy())
             label_all_subjects.append(label)
             del single_epoch_subject_rp  
         
@@ -207,8 +265,8 @@ for i in range(iterations):
     valid_images2 = images2[N-N_validation:]
     
     # build centroids
-    imave1 = np.average(train_images1,axis=0)
-    imave2 = np.average(train_images2,axis=0)
+    imave1 = np.average(train_images1,axis=0) #eyes closed, alpha high
+    imave2 = np.average(train_images2,axis=0) #eyes opened, alpha low
     
     
     #plt.imshow(imave1, cmap='binary', origin='lower') #eyes closed, alpha high
