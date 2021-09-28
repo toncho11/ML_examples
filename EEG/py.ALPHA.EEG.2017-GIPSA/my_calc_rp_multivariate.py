@@ -86,6 +86,49 @@ def calculateDistance(i1, i2):
 
 channels_N = -1
 
+def multivariateRP(sample, dimension, time_delay, percentage):
+    
+    #Time window = T
+    #delta = 40, the interval T is chpped into epochs of delta elements 
+    #T is the time interval to be taken from the epoch sample beginning
+       
+    delta = time_delay 
+    points_n = dimension
+    print(points_n)
+    percentage = 20
+    T = len(X) - ((m-1) * tau)
+     
+    X_traj = np.zeros((T,points_n * channels_N))
+            
+    for i in range(0,T): #delta is number of vectors with  length points_n
+        
+        for j in range(0,points_n):
+            start_pos = j * delta
+            pos = start_pos + i
+            
+            for e in range(0,channels_N):
+                #print(e)
+                pos_e = (e * points_n) + j
+                #print(pos_e)
+                #all points first channel, 
+                X_traj[i, pos_e ] = sample[e,pos] #i is the vector, j is indexing isnide the vector 
+            #print(pos)
+            
+    X_dist = np.zeros((T,T))
+    
+    #calculate distances
+    for i in range(0,T): #i is the vector
+        for j in range(0,T):
+             v1 = X_traj[i,:]
+             v2 = X_traj[j,:]
+             X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
+    
+    percents = np.percentile(X_dist,percentage)
+    
+    X_rp = X_dist < percents
+    
+    return X_rp
+        
 subjects = dataset.subject_list[0:1]
 #sf_subjects = random.sample(subjects, len(subjects))
 #train_subjects = sf_subjects[0:n_train_subjects]
@@ -114,9 +157,9 @@ for subject in subjects: #[0:17]
     channels_N = len(raw.ch_names)-1
     
     #process raw epochs for the selected subject 
-    epochs_n =  2 #len(epochs_subject)
+    epochs_n =  1 #len(epochs_subject)
     
-    for i in range(1, epochs_n):
+    for i in range(0, epochs_n):
         
         #processing a single sample for a subject
         
@@ -126,44 +169,7 @@ for subject in subjects: #[0:17]
         X = sample[0,:] #get first electrode
         #B = np.array([X])
         #single_epoch_subject_rp = rp.fit_transform(B)
-        
-        #Time window = T
-        #delta = 40, the interval T is chpped into epochs of delta elements 
-        #T is the time interval to be taken from the epoch sample beginning
-       
-        delta = tau 
-        points_n = m
-        print(points_n)
-        percentage = 20
-        T = len(X) - ((m-1) * tau)
-         
-        X_traj = np.zeros((T,points_n * channels_N))
-                
-        for i in range(0,T): #delta is number of vectors with  length points_n
-            
-            for j in range(0,points_n):
-                start_pos = j * delta
-                pos = start_pos + i
-                
-                for e in range(0,channels_N):
-                    #print(e)
-                    pos_e = (e * points_n) + j
-                    #print(pos_e)
-                    #all points first channel, 
-                    X_traj[i, pos_e ] = sample[e,pos] #i is the vector, j is indexing isnide the vector 
-                #print(pos)
-                
-        X_dist = np.zeros((T,T))
-        
-        #calculate distances
-        for i in range(0,T): #i is the vector
-            for j in range(0,T):
-                 v1 = X_traj[i,:]
-                 v2 = X_traj[j,:]
-                 X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
-        
-        percents = np.percentile(X_dist,percentage)
-        X_rp = X_dist < percents
+        X_rp = multivariateRP(sample, m, tau, 20)
 
 plt.imshow(X_rp, cmap='binary', origin='lower')
 #plt.imshow(single_epoch_subject_rp[0,:,:], cmap='binary', origin='lower')
