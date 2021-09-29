@@ -61,15 +61,14 @@ tau = 40
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 16 #max=19
 filter_fmin = 3 #default 3
 filter_fmax = 40 #default 40
 
 epochs_all_subjects = [];
 labels = [];
-#electrodes = [9,10,11,13,14,15]
+electrodes = [9,10,11,13,14,15]
 #electrodes = [6,8,12,9,10,11,13,14,15]
-electrodes = list(range(0,16))
+#electrodes = list(range(0,16))
 centroids = np.empty(16, dtype=object) 
 
 test_epochs_all_subjects = [];
@@ -136,7 +135,12 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
 channels_N = -1
 
 subjects = dataset.subject_list
-sf_subjects = random.sample(subjects, len(subjects))
+
+length_s = len(subjects)
+#length_s = 2
+n_train_subjects = 16 #max=19 , subjects to participate in train
+
+sf_subjects = random.sample(subjects, length_s)
 train_subjects = sf_subjects[0:n_train_subjects]
 validate_subjects =  sf_subjects[n_train_subjects:]
 
@@ -172,25 +176,22 @@ for subject in train_subjects: #[0:17]
         #add to list
         label = list(epochs_subject[i].event_id.values())[0]
         
-        for c in range(0, channels_N):
-            print("elecrode=",c)
+        # #create recurrence plot of a single epoch/sample        
+        # X = sample[c,:]
+        # X = np.array([X])
+        # single_epoch_subject_rp = rp.fit_transform(X)
+        # #print(single_epoch_subject_rp.shape)
         
-            # #create recurrence plot of a single epoch/sample        
-            # X = sample[c,:]
-            # X = np.array([X])
-            # single_epoch_subject_rp = rp.fit_transform(X)
-            # #print(single_epoch_subject_rp.shape)
-            
-            
-            # epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
-            # labels.append(label)
-            # electrodes.append(c)
-            # #del single_epoch_subject_rp  
-            
-            single_epoch_subject_rp = multivariateRP(sample, electrodes, m, tau, 20)
-            epochs_all_subjects.append(single_epoch_subject_rp.copy())
-            labels.append(label)
-            del single_epoch_subject_rp  
+        
+        # epochs_all_subjects.append(single_epoch_subject_rp[0,:,:].copy())
+        # labels.append(label)
+        # electrodes.append(c)
+        # #del single_epoch_subject_rp  
+        
+        single_epoch_subject_rp = multivariateRP(sample, electrodes, m, tau, 20)
+        epochs_all_subjects.append(single_epoch_subject_rp.copy())
+        labels.append(label)
+        del single_epoch_subject_rp  
         
         #del sample
 
@@ -229,17 +230,17 @@ centroidsEyesClosed = np.average(RP_images,axis=0) # for single lectrode, single
 
 epochs_single_sentroid=[]
 
-#only EYES OPENED
-for l in range(0, len(labels)):
-    if (labels[l] == 2): #eyes closed alpha
-        epochs_single_sentroid.append(epochs_all_subjects[l])
+# #only EYES OPENED
+# for l in range(0, len(labels)):
+#     if (labels[l] == 2): #eyes closed alpha
+#         epochs_single_sentroid.append(epochs_all_subjects[l])
         
-#convert np array
-RP_images = np.array(epochs_single_sentroid)[:, :, :]
+# #convert np array
+# RP_images = np.array(epochs_single_sentroid)[:, :, :]
 
-#calculate the average for each centroid
-centroidsEyesOpened = np.average(RP_images,axis=0) # for single lectrode, single class from all subjects 
-#plt.imshow(centroidsEyesOpened[e], cmap='binary', origin='lower')
+# #calculate the average for each centroid
+# centroidsEyesOpened = np.average(RP_images,axis=0) # for single lectrode, single class from all subjects 
+# #plt.imshow(centroidsEyesOpened[e], cmap='binary', origin='lower')
      
 # ====================================================================================
 # start classification
@@ -260,7 +261,8 @@ for i in range(iterations):
     train_data_X = []
     train_labels = []
     
-    for subject in train_subjects: #[0:17]
+    print("calculate the distances between the train images and the centroids")
+    for subject in train_subjects:
 
         raw = dataset._get_single_subject_data(subject)
         
@@ -282,25 +284,20 @@ for i in range(iterations):
             #sample (10 per subject in this case)
             sample = epochs_subject[e]._data[0,:,:]   
             
-            distanceEyesClosed = 0;
-            distanceEyesOpened = 0;
-            
-            #distEC = np.empty(16, dtype=object) 
-            #distEO = np.empty(16, dtype=object) 
-            
             rp_image = multivariateRP(sample, electrodes, m, tau, 20)
                 
-            distEC = calculateDistance(centroidsEyesClosed[c], rp_image)
-            distEO = calculateDistance(centroidsEyesOpened[c], rp_image)
+            distEC = calculateDistance(centroidsEyesClosed, rp_image)
+            #distEO = calculateDistance(centroidsEyesOpened, rp_image)
 
             epoch_label = list(epochs_subject[e].event_id.values())[0]     
             train_labels.append(epoch_label)
             
-            x = distEC
+            #x = [distEC,distEO]
             #x = np.concatenate((distEC,distEO))
             #x = distEO
-            dist_norm = (x-min(x))/(max(x)-min(x))
-            train_data_X.append(dist_norm)
+            x = distEC
+            #dist_norm = (x-min(x))/(max(x)-min(x))
+            train_data_X.append(x)
     
     train_data_X_np =  np.array(train_data_X)
     train_labels_np = np.array(train_labels)
@@ -309,12 +306,18 @@ for i in range(iterations):
     #'lbfgs' sover for smaller datasets 
     #clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='adam',random_state=1)
     #clf = MLPClassifier(max_iter=300, activation = 'relu',solver='adam',random_state=1)
-    clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='lbfgs',random_state=1)
+    #clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=300, activation = 'relu',solver='lbfgs',random_state=1)
+    clf = MLPClassifier(hidden_layer_sizes=(32,16,8), max_iter=800, activation = 'relu',solver='lbfgs',random_state=1)
     #clf = MLPClassifier(hidden_layer_sizes=(64,32,16,8), max_iter=300, activation = 'relu',solver='lbfgs',random_state=1)
     
-    clf.fit(train_data_X_np, train_labels_np)
+    #add dimension
+    reshaped_train_data = train_data_X_np.reshape(-1, 1)
+    #normalize
+    reshaped_train_data = (reshaped_train_data-min(reshaped_train_data))/(max(reshaped_train_data)-min(reshaped_train_data))
     
-    y_pred = clf.predict(train_data_X_np)
+    clf.fit(reshaped_train_data, train_labels_np)
+    
+    y_pred = clf.predict(reshaped_train_data)
     #print(train_labels_np - y_pred)
     
     local_train_accuracy =  str(train_labels_np - y_pred).count('0') / len (train_labels_np)
@@ -323,8 +326,8 @@ for i in range(iterations):
     
     #SVM
     clf_svm = svm.SVC()
-    clf_svm.fit(train_data_X_np, train_labels_np)
-    y_pred_svm = clf_svm.predict(train_data_X_np)
+    clf_svm.fit(reshaped_train_data, train_labels_np)
+    y_pred_svm = clf_svm.predict(reshaped_train_data)
     print("SVM classification accuracy (on training data): ", str(train_labels_np - y_pred_svm).count('0') / len (train_labels_np))
     
     #validate 
@@ -359,7 +362,7 @@ for i in range(iterations):
             rp_image = multivariateRP(sample, electrodes, m, tau, 20)
                 
             distEC = calculateDistance(centroidsEyesClosed, rp_image)
-            distEO = calculateDistance(centroidsEyesOpened, rp_image)
+            #distEO = calculateDistance(centroidsEyesOpened, rp_image)
             
             epoch_label = list(epochs_subject[e].event_id.values())[0]
             
@@ -374,15 +377,21 @@ for i in range(iterations):
             # else:
             #     print("NOT OK")
             
+            #x = [distEC, distEO]
             validate_labels.append(epoch_label)
             #x = np.concatenate((distEC,distEO))
             #x = distEO
             x = distEC
-            dist_norm = (x-min(x))/(max(x)-min(x))
-            validate_data_X.append(dist_norm)
+            #dist_norm = (x-min(x))/(max(x)-min(x))
+            validate_data_X.append(x)
     
     validate_data_X_np =  np.array(validate_data_X)
     validate_labels_np = np.array(validate_labels)
+    
+    #remove dimension
+    validate_data_X_np = validate_data_X_np.reshape(-1, 1)
+    #normalize
+    validate_data_X_np = (validate_data_X_np-min(validate_data_X_np))/(max(validate_data_X_np)-min(validate_data_X_np))
     
     y_validate = clf.predict(validate_data_X_np)
     #print(validate_labels_np - y_validate)
