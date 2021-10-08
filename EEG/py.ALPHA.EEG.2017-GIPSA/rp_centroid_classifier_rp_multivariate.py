@@ -21,7 +21,7 @@ from skimage.metrics import structural_similarity as ssim
 """
 =============================
 Classification of EGG signal from two states: eyes open and eyes closed.
-Here we use centroid classification based on reccurence plots and 1 electrode.
+Here we use centroid classification based on reccurence plots of many electrodes.
 =============================
 
 Anaconda 3 2021_05
@@ -58,11 +58,11 @@ tau = 30
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 n_train_subjects = 19 #max=19
-filter_fmin = 3 #default 3
-filter_fmax = 40 #default 40
-#electrodes = [9,10,11,13,14,15]
+filter_fmin = 4 #default 3
+filter_fmax = 13 #default 40
+electrodes = [9,10,11,13,14,15]
 #electrodes = [6,8,12,9,10,11,13,14,15]
-electrodes = list(range(0,16))
+#electrodes = list(range(0,16))
 
 epochs_all_subjects = [];
 label_all_subjects = [];
@@ -95,7 +95,7 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
     points_n = dimension
     print(points_n)
     percentage = 20
-    T = sample.shape[1] - ((m-1) * tau)
+    T = sample.shape[1] - ((dimension-1) * time_delay)
      
     X_traj = np.zeros((T,points_n * channels_N))
             
@@ -244,7 +244,7 @@ images2 = np.array(epochs_all_subjects)[:, :, :]
 # ====================================================================================
 # start classification
 
-iterations = 30
+iterations = 5
 average_train_accuracy = 0;
 average_classification = 0;
 
