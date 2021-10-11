@@ -63,13 +63,13 @@ tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 4 #max=19
-length_s = 5
-filter_fmin = 3 #default 3
-filter_fmax = 40 #default 40
-#electrodes = [9,10,11,13,14,15]
+n_train_subjects = 16 #max=19
+length_s = 19
+filter_fmin = 4 #default 3
+filter_fmax = 13 #default 40
+electrodes = [9,10,11,13,14,15]
 #electrodes = [6,8,12,9,10,11,13,14,15]
-electrodes = list(range(0,16))
+#electrodes = list(range(0,16))
 
 #sample: rows are channels, columns are the timestamps
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
@@ -148,7 +148,7 @@ for subject in dataset.subject_list[0:n_train_subjects]: #get train data
         
         single_epoch_subject_data = epochs_subject[i]._data[0,:,:]
 
-        label = list(epochs_subject[i].event_id.values())[0]-1
+        label = list(epochs_subject[i].event_id.values())[0]-1 #sigmoid requires that labels are [0..1]
         #create recurrence plot of a single epoch
         # rp = RecurrencePlot(threshold='point', percentage=20)
         # single_epoch_subject_rp = rp.fit_transform(single_epoch_subject_data)
@@ -196,7 +196,7 @@ for subject in dataset.subject_list[n_train_subjects:length_s]: #get test data
         
         single_epoch_subject_data = epochs_subject[i]._data[0,:,:]
 
-        label = list(epochs_subject[i].event_id.values())[0] - 1 
+        label = list(epochs_subject[i].event_id.values())[0] - 1 #sigmoid requires that labels are [0..1]
         
         single_epoch_subject_rp = multivariateRP(single_epoch_subject_data, electrodes, m, tau, 20)
         test_epochs_all_subjects.append(single_epoch_subject_rp.copy())
