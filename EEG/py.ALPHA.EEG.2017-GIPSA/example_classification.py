@@ -67,23 +67,23 @@ print('subject', subject)
 print('mean accuracy :', scr.mean())
 
 # get the spectral embedding of the epochs
-C = Covariances(estimator='lwf').fit_transform(X)
-emb = Embedding(metric='riemann').fit_transform(C)
+# C = Covariances(estimator='lwf').fit_transform(X)
+# emb = Embedding(metric='riemann').fit_transform(C)
 
-# scatter plot of the embedded points
-fig = plt.figure(facecolor='white', figsize=(5.6, 5.2))
-colors = {1: 'r', 2: 'b'}
-for embi, yi in zip(emb, y):
-    plt.scatter(embi[0], embi[1], s=120, c=colors[yi])
-labels = {1: 'closed', 2: 'open'}
-for yi in np.unique(y):
-    plt.scatter([], [], c=colors[yi], label=labels[yi])
-plt.xticks([-1, -0.5, 0.0, +0.5, 1.0])
-plt.yticks([-1, -0.5, 0.0, +0.5, 1.0])
-plt.legend()
-plt.title(
-    'Spectral embedding of the epochs from subject ' +
-    str(subject),
-    fontsize=10)
+# # scatter plot of the embedded points
+# fig = plt.figure(facecolor='white', figsize=(5.6, 5.2))
+# colors = {1: 'r', 2: 'b'}
+# for embi, yi in zip(emb, y):
+#     plt.scatter(embi[0], embi[1], s=120, c=colors[yi])
+# labels = {1: 'closed', 2: 'open'}
+# for yi in np.unique(y):
+#     plt.scatter([], [], c=colors[yi], label=labels[yi])
+# plt.xticks([-1, -0.5, 0.0, +0.5, 1.0])
+# plt.yticks([-1, -0.5, 0.0, +0.5, 1.0])
+# plt.legend()
+# plt.title(
+#     'Spectral embedding of the epochs from subject ' +
+#     str(subject),
+#     fontsize=10)
 
-plt.show()
+# plt.show()
