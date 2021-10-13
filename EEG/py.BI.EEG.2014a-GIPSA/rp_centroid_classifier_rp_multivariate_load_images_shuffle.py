@@ -8,7 +8,7 @@ Created on Sun Aug 22 19:54:37 2021
 import numpy as np
 import matplotlib.pyplot as plt
 
-from alphawaves.dataset import AlphaWaves
+from braininvaders2014a.dataset import BrainInvaders2014a
 
 import mne
 from pyts.image import RecurrencePlot
@@ -39,7 +39,7 @@ Pyts 0.11 (a Python Package for Time Series Classification,exists in Anaconda, p
 
 
 # define the dataset instance
-dataset = AlphaWaves() # use useMontagePosition = False with recent mne versions
+#dataset = BrainInvaders2014a() # use useMontagePosition = False with recent mne versions
 
 
 # get the data from subject of interest
@@ -66,7 +66,7 @@ filter_fmax = 13 #default 40
 electrodes = [9,10,11,13,14,15]
 #electrodes = [6,8,12,9,10,11,13,14,15]
 #electrodes = list(range(0,16))
-folder = "D:\Work\ML_examples\EEG\py.ALPHA.EEG.2017-GIPSA\multivariate_rp_images"
+folder = "D:\Work\ML_examples\EEG\py.BI.EEG.2014a-GIPSA\multivariate_rp_images"
 epochs_all_subjects = [];
 label_all_subjects = [];
 
@@ -149,7 +149,7 @@ images2 = np.array(train_images2) #[:, :, :]
 # ====================================================================================
 # start classification
 
-iterations = 20
+iterations = 40
 #average_train_accuracy = 0;
 average_classification = 0;
 
@@ -175,8 +175,8 @@ for i in range(iterations):
     all_images_shuffled = all_images[indices]
     labels_shuffled = labels[indices]
     
-    #plt.imshow(imave1, cmap='binary', origin='lower') #eyes closed, alpha high
-    #plt.imshow(imave2, cmap='binary', origin='lower') #eyes opened, alpha low
+    #plt.imshow(imave1, cmap='binary', origin='lower') #NON TARGET
+    #plt.imshow(imave2, cmap='binary', origin='lower') #TARGET
     
     X_train, X_test, y_train, y_test = train_test_split(all_images_shuffled, labels_shuffled, test_size=0.4)
     
