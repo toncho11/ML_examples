@@ -68,7 +68,7 @@ tau = 30
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 n_train_subjects = 20 #max=19
-length_s = 19 #max=19
+length_s = 29 #max=19
 filter_fmin = 4 #default 3
 filter_fmax = 13 #default 40
 electrodes = [9,10,11,13,14,15]
@@ -110,6 +110,7 @@ print("Train images loaded: ", images_loaded)
 
 
 train_images = np.array(train_epochs_all_subjects)[:, :, :, np.newaxis] # we add an extra axis as required by keras
+#train_images = np.array(train_epochs_all_subjects)[:, 200:280, 200:280, np.newaxis]
 train_labels = np.array(train_label_all_subjects)
 
 

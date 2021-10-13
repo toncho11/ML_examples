@@ -68,7 +68,7 @@ tau = 30
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 n_train_subjects = 20 #max=19
-length_s = 19 #max=19
+length_s = 20 #max=19
 filter_fmin = 4 #default 3
 filter_fmax = 13 #default 40
 electrodes = [9,10,11,13,14,15]
@@ -136,18 +136,19 @@ print("Test data:===============================================================
 train_images1 = []
 train_images2 = []
 
+#produce some test results
 for i in range(0,len(train_label_all_subjects)):
-    if train_label_all_subjects[i] == 0:
-        train_images1.append(train_epochs_all_subjects[i][200:280, 200:280])
+    if train_label_all_subjects[i] == 0: # 0 eyes closed = alpha
+        train_images1.append(train_epochs_all_subjects[i])#[200:280, 200:280]
     else:
-        train_images2.append(train_epochs_all_subjects[i][200:280, 200:280])
+        train_images2.append(train_epochs_all_subjects[i])#[200:280, 200:280]
         
 imave1 = np.average(train_images1,axis=0) #eyes closed, alpha high
 imave2 = np.average(train_images2,axis=0) #eyes opened, alpha low
 
 #train_images = np.array(train_epochs_all_subjects)[:, 110:200, 110:200, np.newaxis] # we add an extra axis as required by keras
-#train_images = np.array(train_epochs_all_subjects)[:, 110:200, 150:200, np.newaxis] # we add an extra axis as required by keras
-train_images = np.array(train_epochs_all_subjects)[:, 200:280, 200:280, np.newaxis] # we add an extra axis as required by keras
+train_images = np.array(train_epochs_all_subjects)[:, 110:200, 150:200, np.newaxis] # 0.73 # we add an extra axis as required by keras
+#train_images = np.array(train_epochs_all_subjects)[:, 200:280, 200:280, np.newaxis] # we add an extra axis as required by keras
 
 # train_images1 = np.array(train_epochs_all_subjects)[:, 200:290, 200:290]
 # train_images2 = np.array(train_epochs_all_subjects)[:, 480:570, 480:570]
