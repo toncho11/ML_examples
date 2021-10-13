@@ -108,99 +108,30 @@ for filename in os.listdir(folder):
 
 print("Train images loaded: ", images_loaded)
 
-print("Test data:================================================================================================================")
 
-# images_loaded = 0
-# for filename in os.listdir(folder):
-#     if filename.endswith(".npy"): 
-#         print(os.path.join(folder, filename))
-#         base_name = os.path.basename(filename)
-        
-#         parts = base_name.split("_")
-#         #print(parts)
-#         label = int(parts[4].split(".")[0])
-#         subject = int(parts[1])
-#         print("Subject: ", subject, " Label: ", label)
-        
-#         if (subject >= n_train_subjects):
-#             images_loaded = images_loaded + 1
-#             rp_image=np.load(os.path.join(folder, filename))
-#             test_epochs_all_subjects.append(rp_image)
-#             test_label_all_subjects.append(label)
-
-# print("Test images loaded: ", images_loaded)
-
-#train_images = np.array(train_epochs_all_subjects)[:, :, :, np.newaxis] # we add an extra axis as required by keras
-#train_images = np.array(train_epochs_all_subjects)[:, 0:300, 0:300, np.newaxis] # we add an extra axis as required by keras
-
-train_images1 = []
-train_images2 = []
-
-for i in range(0,len(train_label_all_subjects)):
-    if train_label_all_subjects[i] == 0:
-        train_images1.append(train_epochs_all_subjects[i][200:280, 200:280])
-    else:
-        train_images2.append(train_epochs_all_subjects[i][200:280, 200:280])
-        
-imave1 = np.average(train_images1,axis=0) #eyes closed, alpha high
-imave2 = np.average(train_images2,axis=0) #eyes opened, alpha low
-
-#train_images = np.array(train_epochs_all_subjects)[:, 110:200, 110:200, np.newaxis] # we add an extra axis as required by keras
-#train_images = np.array(train_epochs_all_subjects)[:, 110:200, 150:200, np.newaxis] # we add an extra axis as required by keras
-train_images = np.array(train_epochs_all_subjects)[:, 200:280, 200:280, np.newaxis] # we add an extra axis as required by keras
-
-# train_images1 = np.array(train_epochs_all_subjects)[:, 200:290, 200:290]
-# train_images2 = np.array(train_epochs_all_subjects)[:, 480:570, 480:570]
-
-# train_images = []
-# for i in range(0,len(train_images1)):
-#     train_images.append(np.concatenate((train_images1[i,],train_images2[i,])))
-# train_images = np.array(train_images)[:, :, :, np.newaxis]
-
+train_images = np.array(train_epochs_all_subjects)[:, :, :, np.newaxis] # we add an extra axis as required by keras
 train_labels = np.array(train_label_all_subjects)
 
-#test_images = np.array(test_epochs_all_subjects)[:, :, :, np.newaxis]
-#test_labels = np.array(test_label_all_subjects)
+
+img_size = train_images[0].shape[1]
+n = train_images.shape[0]
+print(img_size)
 
 
-#X_train, X_test, y_train, y_test = train_test_split(train_images, train_labels, test_size=0.4, random_state=0)
-
-
-img_size1 = train_images[0].shape[0]
-img_size2 = train_images[0].shape[1]
-print(img_size1, img_size2)
-
-#build model
+#NN
+train_images = train_images[:,:,:,-1]
+#train_images = train_images.reshape((n,img_size * img_size))
 
 model = Sequential()
-model.add(Conv2D(32, (2, 2), input_shape=(img_size1,img_size2,1)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-  
-model.add(Conv2D(32, (2, 2)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-  
-model.add(Conv2D(64, (2, 2)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-  
-model.add(Flatten())
-model.add(Dense(64))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(1))
-model.add(Activation('sigmoid'))
+model.add( Dense(512, activation='relu', input_shape=(img_size,img_size) ))
+model.add( Dense(384, activation='relu' ))
+model.add( Dense(128, activation='relu' ))
+model.add( Dense(32, activation='relu' ))
+model.add(Dense(1, activation='sigmoid'))
 
-# compile model
-model.compile(loss='binary_crossentropy',
-              optimizer='rmsprop', #adam, rmsprop
-              metrics=['accuracy'])
-
-#model.fit(train_images, train_labels, epochs=8)
-#model.fit(train_images, train_labels, epochs=8, validation_split=0.2, shuffle=True)
-#model.fit(train_images, train_labels, epochs=20, shuffle=True)
-model.fit(train_images, train_labels, epochs=30, validation_split=0.2, shuffle=True)
+# Compile model
+model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+model.fit(train_images, train_labels, epochs=200, validation_split=0.2, shuffle=True)
 
 # #SVM
 # clf_svm = svm.SVC()
