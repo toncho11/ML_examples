@@ -22,6 +22,7 @@ import glob
 import sys
 sys.path.append('.')
 from braininvaders2014a.dataset import BrainInvaders2014a
+from pathlib import Path
 
 """
 =============================
@@ -61,21 +62,20 @@ dataset = BrainInvaders2014a() #https://hal.archives-ouvertes.fr/hal-02171575/do
 #electrode = 5 #get the T7:5
 #m = 5
 #tau = 30 
-m = 5 
-tau = 30
+#m = 5 #max 15 
+#tau = 40
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
-rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
+#rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #n_train_subjects = 1 #max=19
-length_s = 19 # max 60 !!!!!!!!!
-filter_fmin = 1 #default 3
-filter_fmax = 15 #default 40
-electrodes = [6,13,14,15]
+#length_s = 19 # max 60 !!!!!!!!!
+#filter_fmin = 1 #default 3
+#filter_fmax = 20 #default 40
+#electrodes = [6,13,14,15]
 #electrodes = [9,10,11,13,14,15]
 #electrodes = [6,8,12,9,10,11,13,14,15]
 #electrodes = list(range(0,16))
-folder = "D:\Work\ML_examples\EEG\py.BI.EEG.2014a-GIPSA\multivariate_rp_images"
-print(folder)
+
 
 #sample: rows are channels, columns are the timestamps
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
@@ -124,71 +124,175 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
     return X_rp
 
 
-#train_epochs_all_subjects = [];
-#train_label_all_subjects = [];
-
-print("Clean data:")
-
-files = glob.glob(folder + "\\*")
-for f in files:
-    if f.endswith(".npy"):
-        os.remove(f)
+def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
-print("Write rp image data:")
-
-epochs_all_subjects = [];
-label_all_subjects = [];
-
-for subject in range(1,10):
-
-    #load data
-    print("Subject =",subject)
-    sessions = dataset._get_single_subject_data(subject)
-    raw = sessions['session_1']['run_1']
-
-    # filter data and resample
-    fmin = filter_fmin
-    fmax = filter_fmax
-    raw.filter(fmin, fmax, verbose=False)
-
-    # detect the events and cut the signal into epochs
-    events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
-    event_id = {'NonTarget': 1, 'Target': 2}
-    epochs = mne.Epochs(raw, events, event_id, tmin=0.0, tmax=0.8, baseline=None, verbose=False, preload=True)
-    epochs.pick_types(eeg=True)
-
-    # get trials and labels
+    folder = "D:\Work\ML_examples\EEG\py.BI.EEG.2014a-GIPSA\data"
     
-    epochs_subject = epochs
+    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
     
-    epochs_class_1 = 0
-    epochs_class_2 = 0
-    max_epochs_per_subject = 20 #per class
+    print(folder)
     
-    for i in range(0, len(epochs)): 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    print("Clean data:")
+    
+    files = glob.glob(folder + "\\*")
+    for f in files:
+        if f.endswith(".npy"):
+            os.remove(f)
         
-        single_epoch_subject_data = epochs_subject[i]._data[0,:,:] #16 x 769
-
-        label = list(epochs_subject[i].event_id.values())[0]-1 #sigmoid requires that labels are [0..1]
+    print("Write rp image data:")
+    
+    
+    for subject in range(1,n_subjects+1):
+    
+        #load data
+        print("Subject =",subject)
+        sessions = dataset._get_single_subject_data(subject)
+        raw = sessions['session_1']['run_1']
+    
+        # filter data and resample
+        fmin = filter_fmin
+        fmax = filter_fmax
+        raw.filter(fmin, fmax, verbose=False)
+    
+        # detect the events and cut the signal into epochs
+        events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
+        event_id = {'NonTarget': 1, 'Target': 2}
+        epochs = mne.Epochs(raw, events, event_id, tmin=0.0, tmax=0.8, baseline=None, verbose=False, preload=True)
+        epochs.pick_types(eeg=True)
+    
+        # get trials and labels
         
-        #save
-        if (label==0 and epochs_class_1 < max_epochs_per_subject) or (label==1 and epochs_class_2 < max_epochs_per_subject):
-
-            single_epoch_subject_rp = multivariateRP(single_epoch_subject_data, electrodes, m, tau, 20)
+        epochs_subject = epochs
+        
+        epochs_class_1 = 0
+        epochs_class_2 = 0
+        
+        for i in range(0, len(epochs)): 
             
-            filename = "subject_" + str(subject-1) + "_rp_label_" + str(label) + "_epoch_" + str(i)
-            full_filename = folder + "\\" + filename
-            print("Saving: " + full_filename)
-            np.save(full_filename, single_epoch_subject_rp)
+            single_epoch_subject_data = epochs_subject[i]._data[0,:,:] #16 x 769
+    
+            label = list(epochs_subject[i].event_id.values())[0]-1 #sigmoid requires that labels are [0..1]
             
-            if (label==0):
-                epochs_class_1 = epochs_class_1 + 1
+            #save
+            if (label==0 and epochs_class_1 < max_epochs_per_subject) or (label==1 and epochs_class_2 < max_epochs_per_subject):
+    
+                single_epoch_subject_rp = multivariateRP(single_epoch_subject_data, electrodes, m, tau, percentage)
                 
-            if (label==1):
-                epochs_class_2 = epochs_class_2 + 1
+                filename = "subject_" + str(subject-1) + "_rp_label_" + str(label) + "_epoch_" + str(i)
+                full_filename = folder + "\\" + filename
+                print("Saving: " + full_filename)
+                np.save(full_filename, single_epoch_subject_rp)
                 
+                if (label==0):
+                    epochs_class_1 = epochs_class_1 + 1
+                    
+                if (label==1):
+                    epochs_class_2 = epochs_class_2 + 1
 
+#m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject
+                    
+CreateData(5,30,1,20,[6,13,14,15],10,20,20)
+
+CreateData(5,30,1,20,[6,13,14,15],10,20,20)
+CreateData(8,30,1,20,[6,13,14,15],10,20,20)
+CreateData(10,30,1,20,[6,13,14,15],10,20,20)
+CreateData(14,30,1,20,[6,13,14,15],10,20,20)
+
+CreateData(5,10,1,20,[6,13,14,15],10,20,20)
+CreateData(5,40,1,20,[6,13,14,15],10,20,20)
+CreateData(5,50,1,20,[6,13,14,15],10,20,20)
+
+CreateData(8,10,1,20,[6,13,14,15],10,20,20)
+CreateData(3,30,1,20,[6,13,14,15],10,20,20)
+CreateData(10,40,1,20,[6,13,14,15],10,20,20)
+
+#=====================================================
+CreateData(5,30,1,20,list(range(0,16)),10,20,20)
+CreateData(8,30,1,20,list(range(0,16)),10,20,20)
+CreateData(10,30,1,20,list(range(0,16)),10,20,20)
+CreateData(14,30,1,20,list(range(0,16)),10,20,20)
+
+CreateData(5,10,1,20,list(range(0,16)),10,20,20)
+CreateData(5,40,1,20,list(range(0,16)),10,20,20)
+CreateData(5,50,1,20,list(range(0,16)),10,20,20)
+
+CreateData(8,10,1,20,list(range(0,16)),10,20,20)
+CreateData(3,30,1,20,list(range(0,16)),10,20,20)
+CreateData(10,40,1,20,list(range(0,16)),10,20,20)
+
+#=====================================================
+
+CreateData(5,30,1,20,[6,13,14,15],10,15,20)
+
+CreateData(5,30,1,20,[6,13,14,15],10,15,20)
+CreateData(8,30,1,20,[6,13,14,15],10,15,20)
+CreateData(10,30,1,20,[6,13,14,15],10,15,20)
+CreateData(14,30,1,20,[6,13,14,15],10,15,20)
+
+CreateData(5,10,1,20,[6,13,14,15],10,15,20)
+CreateData(5,40,1,20,[6,13,14,15],10,15,20)
+CreateData(5,50,1,20,[6,13,14,15],10,15,20)
+
+CreateData(8,10,1,20,[6,13,14,15],10,15,20)
+CreateData(3,30,1,20,[6,13,14,15],10,15,20)
+CreateData(10,40,1,20,[6,13,14,15],10,15,20)
+
+#==================================================
+
+CreateData(5,30,1,20,[6,13,14,15],10,25,20)
+
+CreateData(5,30,1,20,[6,13,14,15],10,25,20)
+CreateData(8,30,1,20,[6,13,14,15],10,25,20)
+CreateData(10,30,1,20,[6,13,14,15],10,25,20)
+CreateData(14,30,1,20,[6,13,14,15],10,25,20)
+
+CreateData(5,10,1,20,[6,13,14,15],10,25,20)
+CreateData(5,40,1,20,[6,13,14,15],10,25,20)
+CreateData(5,50,1,20,[6,13,14,15],10,25,20)
+
+CreateData(8,10,1,20,[6,13,14,15],10,25,20)
+CreateData(3,30,1,20,[6,13,14,15],10,25,20)
+CreateData(10,40,1,20,[6,13,14,15],10,25,20)
+
+#=====================================================
+
+CreateData(5,30,1,20,[6,13,14,15],10,20,60)
+
+CreateData(5,30,1,20,[6,13,14,15],10,20,60)
+CreateData(8,30,1,20,[6,13,14,15],10,20,60)
+CreateData(10,30,1,20,[6,13,14,15],10,20,60)
+CreateData(14,30,1,20,[6,13,14,15],10,20,60)
+
+CreateData(5,10,1,20,[6,13,14,15],10,20,60)
+CreateData(5,40,1,20,[6,13,14,15],10,20,60)
+CreateData(5,50,1,20,[6,13,14,15],10,20,60)
+
+CreateData(8,10,1,20,[6,13,14,15],10,20,60)
+CreateData(3,30,1,20,[6,13,14,15],10,20,60)
+CreateData(10,40,1,20,[6,13,14,15],10,20,60)
+
+#====================================================
+
+CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+
+CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+CreateData(8,30,1,20,[6,13,14,15],20,20,30)
+CreateData(10,30,1,20,[6,13,14,15],20,20,30)
+CreateData(14,30,1,20,[6,13,14,15],20,20,30)
+
+CreateData(5,10,1,20,[6,13,14,15],20,20,30)
+CreateData(5,40,1,20,[6,13,14,15],20,20,30)
+CreateData(5,50,1,20,[6,13,14,15],20,20,30)
+
+CreateData(8,10,1,20,[6,13,14,15],20,20,30)
+CreateData(3,30,1,20,[6,13,14,15],20,20,30)
+CreateData(10,40,1,20,[6,13,14,15],20,20,30)
+
+#====================================================
 #test save is ok
-rp_image=np.load(full_filename + ".npy")
-plt.imshow(rp_image, cmap='binary', origin='lower')
+#rp_image=np.load(full_filename + ".npy")
+#plt.imshow(rp_image, cmap='binary', origin='lower')
 print("Done.")

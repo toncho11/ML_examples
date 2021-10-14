@@ -126,9 +126,9 @@ train_images2 = []
 #separate classes
 for i in range(0,len(train_label_all_subjects)):
     if train_label_all_subjects[i] == 1: # 0 eyes closed = alpha
-        train_images1.append(train_epochs_all_subjects[i])#[200:280, 200:280]
+        train_images1.append(train_epochs_all_subjects[i])#[100:200, 100:250]
     else:
-        train_images2.append(train_epochs_all_subjects[i])#[200:280, 200:280]
+        train_images2.append(train_epochs_all_subjects[i])#[100:200, 100:250]
         
 print("Process Class 1 for Train data:")
 

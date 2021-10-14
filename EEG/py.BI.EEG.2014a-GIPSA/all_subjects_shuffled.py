@@ -25,7 +25,7 @@ max_epochs_per_subject = 20 #per class
 epochs_all_subjects = [];
 label_all_subjects = [];
 
-for subject in range(1,10):
+for subject in range(1,5):
 
     #load data
     print("Subject =",subject)
