@@ -17,6 +17,10 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder
 
+from sklearn.model_selection import train_test_split
+from sklearn import svm
+from sklearn.model_selection import cross_val_score
+
 scr = {}
 
 dataset = BrainInvaders2014a()
@@ -25,7 +29,7 @@ max_epochs_per_subject = 20 #per class
 epochs_all_subjects = [];
 label_all_subjects = [];
 
-for subject in range(1,5):
+for subject in range(1,11):
 
     #load data
     print("Subject =",subject)
@@ -34,7 +38,7 @@ for subject in range(1,5):
 
     # filter data and resample
     fmin = 1
-    fmax = 15
+    fmax = 20
     raw.filter(fmin, fmax, verbose=False)
 
     # detect the events and cut the signal into epochs
@@ -78,5 +82,12 @@ skf = StratifiedKFold(n_splits=5)
 clf = make_pipeline(ERPCovariances(estimator='lwf', classes=[1]), MDM())
 #scr[subject] = cross_val_score(clf, X, y, cv=skf, scoring = 'roc_auc').mean()
 scr = cross_val_score(clf, X, y, cv=skf)
-print('mean accuracy :', scr.mean())
+print('MDM: mean accuracy :', scr.mean())
+
+#svm
+X_svm = X.reshape(400, X.shape[1] * X.shape[2])
+X_train, X_test, y_train, y_test = train_test_split(X_svm, y, test_size=0.2, random_state=0)
+clf = svm.SVC(kernel='linear', C=1, random_state=42)
+scores = cross_val_score(clf, X_svm, y, cv=5)
+print("SVM: %0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
 
