@@ -88,10 +88,11 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
        
     delta = time_delay 
     points_n = dimension
-    print(points_n)
     percentage = 10
-    T = sample.shape[1] - ((dimension-1) * time_delay)
+    #T = sample.shape[1] - ((dimension-1) * time_delay)
+    T = ((dimension-1) * time_delay)
      
+    print("T=",T)
     X_traj = np.zeros((T,points_n * channels_N))
             
     for i in range(0,T): #delta is number of vectors with  length points_n
@@ -172,7 +173,7 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
         
         for i in range(0, len(epochs)): 
             
-            single_epoch_subject_data = epochs_subject[i]._data[0,:,:] #16 x 769
+            single_epoch_subject_data = epochs_subject[i]._data[0,:,:]
     
             label = list(epochs_subject[i].event_id.values())[0]-1 #sigmoid requires that labels are [0..1]
             
@@ -291,8 +292,16 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 # CreateData(3,30,1,20,[6,13,14,15],20,20,30)
 # CreateData(10,40,1,20,[6,13,14,15],20,20,30)
 
-CreateData(3,30,1,20,[6,13,14,15],10,10,20)
-CreateData(3,30,1,20,[6,13,14,15],10,5,20)
+#CreateData(3,30,1,20,[6,13,14,15],10,10,20)
+#CreateData(3,30,1,20,[6,13,14,15],10,5,20)
+
+#CreateData(3,30,1,20,[6,13,14,15],20,15,20)
+#CreateData(3,30,1,20,[6,13,14,15],20,15,60)
+
+#CreateData(3,30,1,20,[6,13,14,15],20,40,30)
+#CreateData(3,30,1,20,[6,13,14,15],20,40,120)
+
+CreateData(17,22,1,20, list(range(0,16)) ,3,40,20)
 #====================================================
 #test save is ok
 #rp_image=np.load(full_filename + ".npy")

@@ -55,8 +55,8 @@ Pyts 0.11 (a Python Package for Time Series Classification,exists in Anaconda, p
 #electrode = 5 #get the T7:5
 #m = 5
 #tau = 30 
-m = 5 
-tau = 30
+#m = 5 
+#tau = 30
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
 #rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
@@ -66,11 +66,11 @@ tau = 30
 #electrodes = [9,10,11,13,14,15]
 #electrodes = [6,8,12,9,10,11,13,14,15]
 #electrodes = list(range(0,16))
-epochs_all_subjects = [];
-label_all_subjects = [];
+#epochs_all_subjects = [];
+#label_all_subjects = [];
 
-test_epochs_all_subjects = [];
-test_label_all_subjects = [];
+#test_epochs_all_subjects = [];
+#test_label_all_subjects = [];
 
 def calcDist(i1, i2):
     return np.sum((i1-i2)**2)
@@ -118,26 +118,26 @@ def ProcessFolder(folder, n_max_subjects):
     
     print("Train images loaded: ", images_loaded)
     
-    train_images1 = []
-    train_images2 = []
+    # train_images1 = []
+    # train_images2 = []
     
-    #separate classes
-    for i in range(0,len(train_label_all_subjects)):
-        if train_label_all_subjects[i] == 1: # 0 eyes closed = alpha
-            train_images1.append(train_epochs_all_subjects[i])#[100:200, 100:250]
-        else:
-            train_images2.append(train_epochs_all_subjects[i])#[100:200, 100:250]
+    # #separate classes
+    # for i in range(0,len(train_label_all_subjects)):
+    #     if train_label_all_subjects[i] == 1: # 0 eyes closed = alpha
+    #         train_images1.append(train_epochs_all_subjects[i])#[100:200, 100:250]
+    #     else:
+    #         train_images2.append(train_epochs_all_subjects[i])#[100:200, 100:250]
             
-    print("Process Class 1 for Train data:")
+    # print("Process Class 1 for Train data:")
     
-    images1 = np.array(train_images1) #[:, :, :]
+    # images1 = np.array(train_images1) #[:, :, :]
     
-    #====================================================================================
+    # #====================================================================================
     
-    print("Process CLass 2 for Train data:")
+    # print("Process CLass 2 for Train data:")
     
     
-    images2 = np.array(train_images2) #[:, :, :]
+    # images2 = np.array(train_images2) #[:, :, :]
     #====================================================================================
     
     #reduce images (it seems the performance is the same)
@@ -150,15 +150,11 @@ def ProcessFolder(folder, n_max_subjects):
     iterations = 40
     #average_train_accuracy = 0;
     average_classification = 0;
-    
-    # build centroids
-    imave1 = np.average(train_images1,axis=0) #eyes closed, alpha high
-    imave2 = np.average(train_images2,axis=0) #eyes opened, alpha low
-        
-    nn = len(images1)
-    all_images = np.concatenate((images1, images2), axis=0)
-    labels =  np.concatenate((np.zeros(nn)+1, np.ones(nn)+1), axis=0) 
-    print(all_images.shape)
+     
+    # nn = len(images1)
+    # all_images = np.concatenate((images1, images2), axis=0)
+    # labels =  np.concatenate((np.zeros(nn)+1, np.ones(nn)+1), axis=0) 
+    # print(all_images.shape)
         
     for i in range(iterations):
         
@@ -168,20 +164,33 @@ def ProcessFolder(folder, n_max_subjects):
         # all_images_shuffled, labels_shuffled = zip(*c)
         
         #shuffle2
-        indices = np.arange(all_images.shape[0])
+        indices = np.arange(len(train_epochs_all_subjects))
         np.random.shuffle(indices)
-        all_images_shuffled = all_images[indices]
-        labels_shuffled = labels[indices]
+        all_images_shuffled = np.array(train_epochs_all_subjects)[indices]
+        labels_shuffled = np.array(train_label_all_subjects)[indices]
         
-        #plt.imshow(imave1, cmap='binary', origin='lower') #NON TARGET
-        #plt.imshow(imave2, cmap='binary', origin='lower') #TARGET
-        
-        X_train, X_test, y_train, y_test = train_test_split(all_images_shuffled, labels_shuffled, test_size=0.4)
+        #split
+        X_train, X_test, y_train, y_test = train_test_split(all_images_shuffled, labels_shuffled, test_size=0.2)
         
         X_train = np.array(X_train)
         X_test = np.array(X_test)
         y_train = np.array(y_train)
         y_test = np.array(y_test)
+        
+        #separate classes
+        train_images1 = []
+        train_images2 = []
+        for i in range(0,len(X_train)):
+            if y_train[i] == 1:
+                train_images1.append(X_train[i])#[100:200, 100:250]
+            else:
+                train_images2.append(X_train[i])#[100:200, 100:250]
+            
+        # build centroids
+        imave1 = np.average(train_images1,axis=0) #1 NON target 
+        imave2 = np.average(train_images2,axis=0) #2 target
+        #plt.imshow(imave2, cmap='binary', origin='lower')
+        #plt.imshow(imave2-imave1, cmap='binary', origin='lower')
         
         # validation test ==========================================================================
         correctly_classified = 0;
@@ -223,8 +232,10 @@ def ProcessFolder(folder, n_max_subjects):
     
     return average_classification / iterations
 
-# results = []
+
 data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
+
+# results2 = []
 # for x in os.walk(data_folder):
 #     target_folder = x[0]
 #     if (target_folder != data_folder):
@@ -232,7 +243,7 @@ data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 #         score = ProcessFolder(target_folder, 100)
 #         print("======================================================================================")
 #         r = [target_folder,score]
-#         results.append(r)
+#         results2.append(r)
 
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_15_nepo_20', 0.7246875000000002], 
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_20_nepo_20', 0.72734375], 
@@ -240,9 +251,14 @@ data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_25_nepo_20', 0.7320312500000001], 
 
 #for i in range(1,1):
-ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_10_nepo_20",100)
-ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_5_nepo_20",100)
+#more subjects or epochs reduces the performance
+#ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_15_nepo_20",100)
+#ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_15_nepo_60",100)
+#ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_25_nepo_20",100)
+#ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_30",100)
+#ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_120",100)
 
+ProcessFolder(data_folder + "\\rp_m_17_tau_22_f1_1_f2_20_el_16_nsub_3_per_40_nepo_20",100)
 
 
 
