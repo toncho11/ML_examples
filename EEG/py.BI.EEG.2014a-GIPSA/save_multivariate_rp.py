@@ -88,9 +88,8 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
        
     delta = time_delay 
     points_n = dimension
-    percentage = 10
-    #T = sample.shape[1] - ((dimension-1) * time_delay)
-    T = ((dimension-1) * time_delay)
+
+    T = sample.shape[1] - ((dimension-1) * time_delay)
      
     print("T=",T)
     X_traj = np.zeros((T,points_n * channels_N))
