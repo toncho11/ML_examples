@@ -88,10 +88,12 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
        
     delta = time_delay 
     points_n = dimension
-
+    
+    #we need to leave enough space at the end to perform n=dimension jumps over time_delay data
+    #otherwise the vectors will not be filled with the same amount of data
     T = sample.shape[1] - ((dimension-1) * time_delay)
      
-    print("T=",T)
+    print("T=",T, "/", sample.shape[1])
     X_traj = np.zeros((T,points_n * channels_N))
             
     for i in range(0,T): #delta is number of vectors with  length points_n
@@ -276,29 +278,28 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 
 # #====================================================
 
-# CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+CreateData(8,30,1,20,[6,13,14,15],20,20,30)
+CreateData(10,30,1,20,[6,13,14,15],20,20,30)
+CreateData(14,30,1,20,[6,13,14,15],20,20,30)
 
-# CreateData(5,30,1,20,[6,13,14,15],20,20,30)
-# CreateData(8,30,1,20,[6,13,14,15],20,20,30)
-# CreateData(10,30,1,20,[6,13,14,15],20,20,30)
-# CreateData(14,30,1,20,[6,13,14,15],20,20,30)
+CreateData(5,10,1,20,[6,13,14,15],20,20,30)
+CreateData(5,40,1,20,[6,13,14,15],20,20,30)
+CreateData(5,50,1,20,[6,13,14,15],20,20,30)
 
-# CreateData(5,10,1,20,[6,13,14,15],20,20,30)
-# CreateData(5,40,1,20,[6,13,14,15],20,20,30)
-# CreateData(5,50,1,20,[6,13,14,15],20,20,30)
+CreateData(8,10,1,20,[6,13,14,15],20,20,30)
+CreateData(3,30,1,20,[6,13,14,15],20,20,30)
+CreateData(10,40,1,20,[6,13,14,15],20,20,30)
 
-# CreateData(8,10,1,20,[6,13,14,15],20,20,30)
-# CreateData(3,30,1,20,[6,13,14,15],20,20,30)
-# CreateData(10,40,1,20,[6,13,14,15],20,20,30)
+CreateData(3,30,1,20,[6,13,14,15],10,10,20)
+CreateData(3,30,1,20,[6,13,14,15],10,5,20)
 
-#CreateData(3,30,1,20,[6,13,14,15],10,10,20)
-#CreateData(3,30,1,20,[6,13,14,15],10,5,20)
+CreateData(3,30,1,20,[6,13,14,15],20,15,20)
+CreateData(3,30,1,20,[6,13,14,15],20,15,60)
 
-#CreateData(3,30,1,20,[6,13,14,15],20,15,20)
-#CreateData(3,30,1,20,[6,13,14,15],20,15,60)
-
-#CreateData(3,30,1,20,[6,13,14,15],20,40,30)
-#CreateData(3,30,1,20,[6,13,14,15],20,40,120)
+CreateData(3,30,1,20,[6,13,14,15],20,40,30)
+CreateData(3,30,1,20,[6,13,14,15],20,40,120)
 
 CreateData(17,22,1,20, list(range(0,16)) ,3,40,20)
 #====================================================
