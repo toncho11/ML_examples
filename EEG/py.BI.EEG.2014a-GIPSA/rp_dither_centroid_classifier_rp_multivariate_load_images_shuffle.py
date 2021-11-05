@@ -189,8 +189,8 @@ def ProcessFolder(folder, n_max_subjects):
         # build centroids
         imave1 = np.average(train_images1,axis=0) #1 NON target 
         imave2 = np.average(train_images2,axis=0) #2 target
-        #plt.imshow(imave2, cmap='binary', origin='lower')
-        #plt.imshow(imave2-imave1, cmap='binary', origin='lower')
+        plt.imshow(imave1, cmap='binary', origin='lower')
+        plt.imshow(imave2, cmap='binary', origin='lower')
         
         # validation test ==========================================================================
         correctly_classified = 0;
@@ -235,15 +235,15 @@ def ProcessFolder(folder, n_max_subjects):
 
 data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 
-# results2 = []
-# for x in os.walk(data_folder):
-#     target_folder = x[0]
-#     if (target_folder != data_folder):
-#         print("target_folder =",target_folder)
-#         score = ProcessFolder(target_folder, 100)
-#         print("======================================================================================")
-#         r = [target_folder,score]
-#         results2.append(r)
+results2 = []
+for x in os.walk(data_folder):
+    target_folder = x[0]
+    if target_folder != data_folder and "rp_dither_" in target_folder:
+        print("target_folder =",target_folder)
+        score = ProcessFolder(target_folder, 100)
+        print("======================================================================================")
+        r = [target_folder,score]
+        results2.append(r)
 
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_15_nepo_20', 0.7246875000000002], 
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_20_nepo_20', 0.72734375], 
@@ -258,7 +258,7 @@ data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 #ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_30",100)
 #ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_120",100)
 
-ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
+#ProcessFolder(data_folder + "\\rp_m_17_tau_22_f1_1_f2_20_el_16_nsub_3_per_40_nepo_20",100)
 
 
 

@@ -24,6 +24,9 @@ sys.path.append('.')
 from braininvaders2014a.dataset import BrainInvaders2014a
 from pathlib import Path
 
+import cv2
+import Dither
+
 """
 =============================
 Saving multivariate rps 
@@ -119,18 +122,20 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
              v2 = X_traj[j,:]
              X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
     
-    percents = np.percentile(X_dist,percentage)
+    #percents = np.percentile(X_dist,percentage)
     
-    X_rp = X_dist < percents
+    #X_rp = X_dist < percents
     
-    return X_rp
+    out = Dither.dither(X_dist, 'floyd-steinberg', resize=False)
+    
+    return out#X_rp
 
 
 def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
     folder = "D:\Work\ML_examples\EEG\py.BI.EEG.2014a-GIPSA\data"
     
-    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
+    folder = folder + "\\rp_dither_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
     
     print(folder)
     
@@ -185,7 +190,9 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
                 
                 filename = "subject_" + str(subject-1) + "_rp_label_" + str(label) + "_epoch_" + str(i)
                 full_filename = folder + "\\" + filename
+                
                 print("Saving: " + full_filename)
+                #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
                 np.save(full_filename, single_epoch_subject_rp)
                 
                 if (label==0):
@@ -198,7 +205,7 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
                     
 # CreateData(5,30,1,20,[6,13,14,15],10,20,20)
 
-# CreateData(5,30,1,20,[6,13,14,15],10,20,20)
+#CreateData(5,30,1,20,[6,13,14,15],10,-1,20)
 # CreateData(8,30,1,20,[6,13,14,15],10,20,20)
 # CreateData(10,30,1,20,[6,13,14,15],10,20,20)
 # CreateData(14,30,1,20,[6,13,14,15],10,20,20)
@@ -209,10 +216,10 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 
 # CreateData(8,10,1,20,[6,13,14,15],10,20,20)
 # CreateData(3,30,1,20,[6,13,14,15],10,20,20)
-# CreateData(10,40,1,20,[6,13,14,15],10,20,20)
+#CreateData(10,40,1,20,[6,13,14,15],10,-1,20)
 
 # #=====================================================
-# CreateData(5,30,1,20,list(range(0,16)),10,20,20)
+#CreateData(5,30,1,20,list(range(0,16)),10,-1,20)
 # CreateData(8,30,1,20,list(range(0,16)),10,20,20)
 # CreateData(10,30,1,20,list(range(0,16)),10,20,20)
 # CreateData(14,30,1,20,list(range(0,16)),10,20,20)
@@ -263,7 +270,7 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 
 # CreateData(5,30,1,20,[6,13,14,15],10,20,60)
 
-# CreateData(5,30,1,20,[6,13,14,15],10,20,60)
+#CreateData(5,30,1,20,[6,13,14,15],10,-1,60)
 # CreateData(8,30,1,20,[6,13,14,15],10,20,60)
 # CreateData(10,30,1,20,[6,13,14,15],10,20,60)
 # CreateData(14,30,1,20,[6,13,14,15],10,20,60)
@@ -274,13 +281,13 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 
 # CreateData(8,10,1,20,[6,13,14,15],10,20,60)
 # CreateData(3,30,1,20,[6,13,14,15],10,20,60)
-# CreateData(10,40,1,20,[6,13,14,15],10,20,60)
+#CreateData(10,40,1,20,[6,13,14,15],10,-1,60)
 
 # #====================================================
 
 #rp_m_5_tau_30_f1_1_f2_20_el_4_nsub_20_per_20_nepo_30\
     
-# CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+#CreateData(5,30,1,20,[6,13,14,15],20,-1,30)
 # CreateData(5,30,1,20,[6,13,14,15],20,20,30)
 # CreateData(8,30,1,20,[6,13,14,15],20,20,30)
 # CreateData(10,30,1,20,[6,13,14,15],20,20,30)
@@ -305,7 +312,8 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 
 # CreateData(17,22,1,20, list(range(0,16)) ,3,40,20)
 
-CreateData(5,30,1,20,[6,13,14,15],20,20,30)
+#CreateData(5,40,1,20,[6,13,14,15],5,-1,300)
+CreateData(5,40,1,20,[6,13,14,15],10,-1,300)
 #====================================================
 #test save is ok
 #rp_image=np.load(full_filename + ".npy")

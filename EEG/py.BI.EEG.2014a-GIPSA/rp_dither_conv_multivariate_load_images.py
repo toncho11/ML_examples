@@ -162,7 +162,7 @@ def ProcessFolder(folder, n_max_subjects):
         data_to_process = np.array(epochs_all_subjects).astype('float32') #[:, :, :, np.newaxis]
         data_to_process = data_to_process.reshape(data_to_process.shape[0],data_to_process.shape[1],data_to_process.shape[2],1)
         print(data_to_process.shape)
-        history = model.fit(data_to_process,  np.array(label_all_subjects), epochs=epochs, validation_split=0.2, shuffle = True )
+        history = model.fit(data_to_process,  np.array(label_all_subjects), epochs=epochs, validation_split=0.2, shuffle=True )
         
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
@@ -177,18 +177,19 @@ data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 
 results = []
 max_folder = 20;
-i = 20;
+i = 0;
 
-for x in os.walk(data_folder):
-    target_folder = x[0]
-    if (target_folder != data_folder and i >= max_folder):
-        print("target_folder =",target_folder)
-        score = ProcessFolder(target_folder, 100)
-        print("======================================================================================")
-        r = [target_folder,score]
-        results.append(r)
-        i = i + 1
+# for x in os.walk(data_folder):
+#     target_folder = x[0]
+#     if target_folder != data_folder and "rp_dither_" in target_folder and i < max_folder:
+#         print("target_folder =",target_folder)
+#         score = ProcessFolder(target_folder, 100)
+#         print("======================================================================================")
+#         r = [target_folder,score]
+#         results.append(r)
+#         i = i + 1
         
-#ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_15_nepo_20",100)
+#ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
+ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_5_per_-1_nepo_300",100)
     
 print("Done.")
