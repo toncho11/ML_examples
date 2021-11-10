@@ -147,7 +147,7 @@ def ProcessFolder(folder, n_max_subjects):
     # ====================================================================================
     # start classification
     
-    iterations = 40
+    iterations = 5
     #average_train_accuracy = 0;
     average_classification = 0;
      
@@ -166,16 +166,16 @@ def ProcessFolder(folder, n_max_subjects):
         #shuffle2
         indices = np.arange(len(train_epochs_all_subjects))
         np.random.shuffle(indices)
-        all_images_shuffled = np.array(train_epochs_all_subjects)[indices]
-        labels_shuffled = np.array(train_label_all_subjects)[indices]
+        all_images_shuffled = np.asarray(train_epochs_all_subjects, dtype=np.uint8)[indices]
+        labels_shuffled = np.asarray(train_label_all_subjects, dtype=np.uint8)[indices]
         
         #split
         X_train, X_test, y_train, y_test = train_test_split(all_images_shuffled, labels_shuffled, test_size=0.2)
         
-        X_train = np.array(X_train)
-        X_test = np.array(X_test)
-        y_train = np.array(y_train)
-        y_test = np.array(y_test)
+        X_train = np.asarray(X_train, dtype=np.uint8)
+        X_test = np.asarray(X_test, dtype=np.uint8)
+        y_train = np.asarray(y_train, dtype=np.uint8)
+        y_test = np.asarray(y_test, dtype=np.uint8)
         
         #separate classes
         train_images1 = []
@@ -189,8 +189,9 @@ def ProcessFolder(folder, n_max_subjects):
         # build centroids
         imave1 = np.average(train_images1,axis=0) #1 NON target 
         imave2 = np.average(train_images2,axis=0) #2 target
-        plt.imshow(imave1, cmap='binary', origin='lower')
-        plt.imshow(imave2, cmap='binary', origin='lower')
+        #plt.imshow(imave1, cmap='binary', origin='lower')
+        #plt.imshow(imave2, cmap='binary', origin='lower')
+        #plt.imshow(imave1 - imave2, origin='lower')
         
         # validation test ==========================================================================
         correctly_classified = 0;
@@ -235,15 +236,15 @@ def ProcessFolder(folder, n_max_subjects):
 
 data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 
-results2 = []
-for x in os.walk(data_folder):
-    target_folder = x[0]
-    if target_folder != data_folder and "rp_dither_" in target_folder:
-        print("target_folder =",target_folder)
-        score = ProcessFolder(target_folder, 100)
-        print("======================================================================================")
-        r = [target_folder,score]
-        results2.append(r)
+# results2 = []
+# for x in os.walk(data_folder):
+#     target_folder = x[0]
+#     if target_folder != data_folder and "rp_dither_" in target_folder:
+#         print("target_folder =",target_folder)
+#         score = ProcessFolder(target_folder, 100)
+#         print("======================================================================================")
+#         r = [target_folder,score]
+#         results2.append(r)
 
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_15_nepo_20', 0.7246875000000002], 
 #rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_10_per_20_nepo_20', 0.72734375], 
@@ -258,7 +259,8 @@ for x in os.walk(data_folder):
 #ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_30",100)
 #ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_120",100)
 
-#ProcessFolder(data_folder + "\\rp_m_17_tau_22_f1_1_f2_20_el_16_nsub_3_per_40_nepo_20",100)
+folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300"
+ProcessFolder(folder,100)
 
 
 

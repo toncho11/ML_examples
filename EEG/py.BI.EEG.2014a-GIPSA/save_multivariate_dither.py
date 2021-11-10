@@ -313,7 +313,9 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
 # CreateData(17,22,1,20, list(range(0,16)) ,3,40,20)
 
 #CreateData(5,40,1,20,[6,13,14,15],5,-1,300)
-CreateData(5,40,1,20,[6,13,14,15],10,-1,300)
+#CreateData(5,40,1,20,[6,13,14,15],12,-1,300)
+
+CreateData(5,40,1,20,[8,9,10,11,12,13,14,15],12,-1,300)
 #====================================================
 #test save is ok
 #rp_image=np.load(full_filename + ".npy")
