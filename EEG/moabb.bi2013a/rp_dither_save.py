@@ -1,4 +1,3 @@
-#sklearn 23.1 used
 from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
 from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegression
