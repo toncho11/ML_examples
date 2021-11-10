@@ -89,6 +89,9 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
     epochs_all_subjects = [];
     label_all_subjects = [];
     
+    samples_class1_all_subjects = np.zeros(n_max_subjects)
+    samples_class2_all_subjects = np.zeros(n_max_subjects)
+    
     print("Loading data:")
     
     max_samples_class1 = 0;
@@ -108,7 +111,9 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
             #print("Subject: ", subject, " Label: ", label)
             
             #if (subject < n_max_subjects):
-            if (subject in range(0, n_max_subjects) and ((label == 0 and max_samples_class1 < n_max_samples) or (label == 1 and max_samples_class2 < n_max_samples))):
+            #and ((label == 0 and max_samples_class1 < n_max_samples) or (label == 1 and max_samples_class2 < n_max_samples))
+            if (subject in range(0, n_max_subjects) and ((label == 0 and samples_class1_all_subjects[subject] < (n_max_samples-40)) or (label == 1 and samples_class2_all_subjects[subject] < n_max_samples))):
+                
                 images_loaded = images_loaded + 1
                 
                 rp_image=np.load(os.path.join(folder, filename))
@@ -118,10 +123,10 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
                 label_all_subjects.append(label)
                 
                 if label == 0:
-                    max_samples_class1 = max_samples_class1 + 1
+                    samples_class1_all_subjects[subject] = samples_class1_all_subjects[subject] + 1
                     
                 if label == 1:
-                    max_samples_class2 = max_samples_class2 + 1
+                    samples_class2_all_subjects[subject] = samples_class2_all_subjects[subject] + 1
                     
             
         else:
@@ -146,20 +151,20 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
     model = Sequential()
     model.add(Conv2D(32, (2, 2), input_shape=(img_size1,img_size2,1)))
     model.add(Activation('relu'))
-    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
       
     model.add(Conv2D(32, (2, 2)))
     model.add(Activation('relu'))
-    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
       
     model.add(Conv2D(64, (2, 2)))
     model.add(Activation('relu'))
-    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
       
     model.add(Flatten())
     model.add(Dense(64))
     model.add(Activation('relu'))
-    #model.add(Dropout(0.5))
+    model.add(Dropout(0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
     
@@ -197,7 +202,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         print("Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
         print("Class target samples: ", sum(labels_shuffled))
 
-        epochs = 30;
+        epochs = 6;
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
         #history = model.fit(np.array(all_images_shuffled)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -237,7 +242,7 @@ data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_8_nsub_12_per_-1_nepo_300" 
-epochs_all_subjects, label_all_subjects = LoadImages(folder,5,180)
+epochs_all_subjects, label_all_subjects = LoadImages(folder,5,100)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
