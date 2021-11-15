@@ -33,6 +33,7 @@ scorer = make_scorer(balanced_accuracy_score)
 for dataset in datasets:
     for source_i, source in enumerate(dataset.subject_list):
         X, y, _ = paradigm.get_data(dataset=dataset, subjects=dataset.subject_list[:2]) #dataset.subject_list[:10])#
+        print(X.shape)
         y = le.fit_transform(y)
         scores = cross_val_score(pipeline, X, y, cv=5, scoring=scorer, n_jobs=-1)
         print(scores)

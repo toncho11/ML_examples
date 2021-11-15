@@ -48,30 +48,6 @@ https://machinelearningmastery.com/evaluate-performance-deep-learning-models-ker
 import warnings
 #warnings.filterwarnings("ignore")
 
-
-#Parameters
-#10-20 international system
-#'Fp1','Fp2','Fc5','Fz','Fc6','T7','Cz','T8','P7','P3','Pz','P4','P8','O1','Oz','O2','stim'
-#alpha is at the back of the brain
-#start form 0
-#electrode = 14 #get the Oz:14
-#electrode = 5 #get the T7:5
-#m = 5
-#tau = 30 
-m = 5 
-tau = 30
-#rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-#rp = RecurrencePlot(threshold=0.2, dimension = m, time_delay = tau, percentage=20)
-rp = RecurrencePlot(threshold='point', dimension = m, time_delay = tau, percentage=20)
-n_train_subjects = 20 #max=19
-length_s = 20 #max=19
-filter_fmin = 4 #default 3
-filter_fmax = 13 #default 40
-electrodes = [9,10,11,13,14,15]
-#electrodes = [6,8,12,9,10,11,13,14,15]
-#electrodes = list(range(0,16))
-#folder = "D:\Work\ML_examples\EEG\py.ALPHA.EEG.2017-GIPSA\multivariate_rp_images"
-
 def PlotTrainValidAccuracy(epochs, history):
     plt.clf()
     acc = history.history_dict['acc']
@@ -222,7 +198,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         
 #print("Test data:================================================================================================================")
 
-data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
+data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 
 # results = []
 # max_folder = 20;
@@ -241,8 +217,8 @@ data_folder="D:\\Work\\ML_examples\\EEG\\py.BI.EEG.2014a-GIPSA\\data"
 #ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
 
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
-folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_8_nsub_12_per_-1_nepo_300" 
-epochs_all_subjects, label_all_subjects = LoadImages(folder,5,100)
+folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_24_el_8_nsub_2_per_-1_nepo_20" 
+epochs_all_subjects, label_all_subjects = LoadImages(folder,5,800)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")

@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
 from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegression
@@ -5,7 +6,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import balanced_accuracy_score, make_scorer
 
-from moabb.datasets import bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
+from moabb.datasets import bi2013a #, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
 
 import numpy as np
@@ -26,6 +27,8 @@ datasets = [bi2013a()] # , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009
 paradigm = P300()
 
 le = LabelEncoder()
+
+#bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
 
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
     
@@ -97,57 +100,45 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
     print("Write rp image data:")
     
     
-    # for subject in range(1,n_subjects+1):
-    
-    #     #load data
-    #     print("Subject =",subject)
-    #     sessions = dataset._get_single_subject_data(subject)
-    #     raw = sessions['session_1']['run_1']
-    
-    #     # filter data and resample
-    #     fmin = filter_fmin
-    #     fmax = filter_fmax
-    #     raw.filter(fmin, fmax, verbose=False)
-    
-    #     # detect the events and cut the signal into epochs
-    #     events = mne.find_events(raw=raw, shortest_event=1, verbose=False)
-    #     event_id = {'NonTarget': 1, 'Target': 2}
-    #     epochs = mne.Epochs(raw, events, event_id, tmin=0.0, tmax=0.8, baseline=None, verbose=False, preload=True)
-    #     epochs.pick_types(eeg=True)
-    
-    #     # get trials and labels
+    for dataset in datasets:
         
-    #     epochs_subject = epochs
-        
-    #     epochs_class_1 = 0
-    #     epochs_class_2 = 0
-        
-    #     for i in range(0, len(epochs)): 
+        for subject_i, subject in enumerate(dataset.subject_list[0:n_subjects]):
             
-    #         single_epoch_subject_data = epochs_subject[i]._data[0,:,:]
-    
-    #         label = list(epochs_subject[i].event_id.values())[0]-1 #sigmoid requires that labels are [0..1]
+            epochs_class_1 = 0
+            epochs_class_2 = 0
+            print("Loading subject:" , subject)  
+            X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+            y = le.fit_transform(y)
+            print(X.shape) 
+            #0 NonTarget
+            #1 Target       
+            print("Class target samples: ", sum(y))
+            print("Class non-target samples: ", len(y) - sum(y))
             
-    #         #save
-    #         if (label==0 and epochs_class_1 < max_epochs_per_subject) or (label==1 and epochs_class_2 < max_epochs_per_subject):
+            for sample_i,sample in enumerate(X):
+                
+                label = y[sample_i]
+                
+                if (label==0 and epochs_class_1 < max_epochs_per_subject) or (label==1 and epochs_class_2 < max_epochs_per_subject):
     
-    #             single_epoch_subject_rp = multivariateRP(single_epoch_subject_data, electrodes, m, tau, percentage)
-                
-    #             filename = "subject_" + str(subject-1) + "_rp_label_" + str(label) + "_epoch_" + str(i)
-    #             full_filename = folder + "\\" + filename
-                
-    #             print("Saving: " + full_filename)
-    #             #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
-    #             np.save(full_filename, single_epoch_subject_rp)
-                
-    #             if (label==0):
-    #                 epochs_class_1 = epochs_class_1 + 1
+                    single_epoch_subject_rp = multivariateRP(sample, electrodes, m, tau, percentage)
                     
-    #             if (label==1):
-    #                 epochs_class_2 = epochs_class_2 + 1
+                    filename = "subject_" + str(subject-1) + "_rp_label_" + str(label) + "_epoch_" + str(sample_i)
+                    full_filename = folder + "\\" + filename
+                    
+                    print("Saving: " + full_filename)
+                    #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
+                    np.save(full_filename, single_epoch_subject_rp)
+                    
+                    if (label==0):
+                        epochs_class_1 = epochs_class_1 + 1
+                        
+                    if (label==1):
+                        epochs_class_2 = epochs_class_2 + 1
+                
+            print(epochs_class_1, epochs_class_2)
 
-# for dataset in datasets:
-#     for source_i, source in enumerate(dataset.subject_list):
-#         X, y, _ = paradigm.get_data(dataset=dataset, subjects=dataset.subject_list[:2]) #dataset.subject_list[:10])#
-#         y = le.fit_transform(y)
+f1 = paradigm.filters[0][0]
+f2 = paradigm.filters[0][1]
 
+CreateData(5,40,f1,f2,[8,9,10,11,12,13,14,15],5,-1,200)
