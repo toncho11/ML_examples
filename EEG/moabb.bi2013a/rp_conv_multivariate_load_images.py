@@ -86,24 +86,13 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
             subject = int(parts[1])
             #print("Subject: ", subject, " Label: ", label)
             
-            #if (subject < n_max_subjects):
-            #and ((label == 0 and max_samples_class1 < n_max_samples) or (label == 1 and max_samples_class2 < n_max_samples))
-            if (subject in range(0, n_max_subjects) and ((label == 0 and samples_class1_all_subjects[subject] < (n_max_samples-40)) or (label == 1 and samples_class2_all_subjects[subject] < n_max_samples))):
-                
+            if (subject < n_max_subjects):
                 images_loaded = images_loaded + 1
-                
                 rp_image=np.load(os.path.join(folder, filename))
                 
                 epochs_all_subjects.append(rp_image)
                 
                 label_all_subjects.append(label)
-                
-                if label == 0:
-                    samples_class1_all_subjects[subject] = samples_class1_all_subjects[subject] + 1
-                    
-                if label == 1:
-                    samples_class2_all_subjects[subject] = samples_class2_all_subjects[subject] + 1
-                    
             
         else:
             continue
@@ -217,7 +206,7 @@ data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
 
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
-folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_24_el_8_nsub_5_per_-1_nepo_200" 
+folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_5_per_20_nepo_40" 
 epochs_all_subjects, label_all_subjects = LoadImages(folder,5,800)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     

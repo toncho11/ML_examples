@@ -145,7 +145,7 @@ def ProcessFolder(folder, n_max_subjects):
     # ====================================================================================
     # start classification
     
-    iterations = 40
+    iterations = 10
     #average_train_accuracy = 0;
     average_classification = 0;
      
@@ -156,6 +156,7 @@ def ProcessFolder(folder, n_max_subjects):
         
     for i in range(iterations):
         
+        print(i)
         #shuffle1
         # c = list(zip(all_images, labels))
         # random.shuffle(c)
@@ -221,7 +222,7 @@ def ProcessFolder(folder, n_max_subjects):
                 #print("False")
             
                 
-        #print("Cross correlation: ", correctly_classified / valid_all_N)
+        print("Cross correlation: ", correctly_classified / valid_all_N)
         average_classification = average_classification + correctly_classified / valid_all_N
     
     #print("======================================================================================")
@@ -256,7 +257,7 @@ data_folder = "D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_30",100)
 #ProcessFolder(data_folder + "\\rp_m_3_tau_30_f1_1_f2_20_el_4_nsub_20_per_40_nepo_120",100)
 
-ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_24_el_8_nsub_2_per_-1_nepo_20",100)
+ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_24_el_8_nsub_5_per_-1_nepo_200",100)
 
 
 
