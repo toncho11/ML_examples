@@ -40,7 +40,7 @@ if __name__ == '__main__':
     epochs_class_1 = Value('i', 0)
     epochs_class_2 = Value('i', 0)
 
-lock = threading.Lock()
+#lock = threading.Lock()
 print("End declaring Parallel manager")
         
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
@@ -99,7 +99,7 @@ def Process(sample_i, sample, y, folder, subject, m, tau , electrodes, percentag
 
    
     #lock = threading.Lock()
-    lock.acquire()
+   # lock.acquire()
     
     save = False;
     
@@ -113,7 +113,7 @@ def Process(sample_i, sample, y, folder, subject, m, tau , electrodes, percentag
             
         save = True
     
-    lock.release()
+    #lock.release()
     
     if (save):
         
@@ -127,8 +127,8 @@ def Process(sample_i, sample, y, folder, subject, m, tau , electrodes, percentag
 
 def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
-    folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
-    #folder = "r:\\data"
+    #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
+    folder = "h:\\data"
 
     folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
     
@@ -153,10 +153,10 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
         for subject_i, subject in enumerate(dataset.subject_list[0:n_subjects]):
             
 
-            lock.acquire()
+            #lock.acquire()
             epochs_class_1.value = 0
             epochs_class_2.value = 0
-            lock.release();
+            #lock.release();
             print("Loading subject:" , subject)  
             X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
             y = le.fit_transform(y)
@@ -168,7 +168,7 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
             
 
             #def Process(sample_i, X, y, folder, subject, m, tau, electrodes, percentage):
-            Parallel(n_jobs=24, backend = "threading")(delayed(Process)(sample_i, sample, y, folder, subject, m, tau, electrodes, percentage, max_epochs_per_subject) for sample_i, sample in enumerate(X))
+            Parallel(n_jobs=10, backend = "threading")(delayed(Process)(sample_i, sample, y, folder, subject, m, tau, electrodes, percentage, max_epochs_per_subject) for sample_i, sample in enumerate(X))
 
         
 f1 = paradigm.filters[0][0]
