@@ -14,12 +14,19 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 import mne
-from pyts.image import RecurrencePlot
+#from pyts.image import RecurrencePlot
 import gc
 import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 
+#it works with cudnn-11.3-windows-x64-v8.2.1.32 (Cuda 11.3/11.5 and cuddn 8.2)
+if tf.test.gpu_device_name(): 
+
+    print('Default GPU Device:{}'.format(tf.test.gpu_device_name()))
+
+else:
+   print("Please install GPU version of TF")
 """
 =============================
 Classification of EGG signal from two states: eyes open and eyes closed.
@@ -61,18 +68,15 @@ def PlotTrainValidAccuracy(epochs, history):
     plt.show()
     
 def LoadImages(folder, n_max_subjects, n_max_samples):
+
+    epochs_all_subjects = []
+    label_all_subjects = []
     
-    epochs_all_subjects = [];
-    label_all_subjects = [];
-    
-    samples_class1_all_subjects = np.zeros(n_max_subjects)
-    samples_class2_all_subjects = np.zeros(n_max_subjects)
+    samples_class1 = np.zeros(n_max_subjects) #for each subject
+    samples_class2 = np.zeros(n_max_subjects)
     
     print("Loading data:")
-    
-    max_samples_class1 = 0;
-    max_samples_class2 = 0;
-    
+
     images_loaded = 0
     for filename in os.listdir(folder):
         if filename.endswith(".npy"): 
@@ -87,12 +91,20 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
             #print("Subject: ", subject, " Label: ", label)
             
             if (subject < n_max_subjects):
-                images_loaded = images_loaded + 1
-                rp_image=np.load(os.path.join(folder, filename))
-                
-                epochs_all_subjects.append(rp_image)
-                
-                label_all_subjects.append(label)
+
+                if (label == 0 and samples_class1[subject] < n_max_samples) or (label == 1 and samples_class2[subject] < n_max_samples):
+                    images_loaded = images_loaded + 1
+
+                    if label == 0:
+                        samples_class1[subject] = samples_class1[subject] + 1
+                    elif label == 1:
+                        samples_class2[subject] = samples_class2[subject] + 1
+
+                    rp_image=np.load(os.path.join(folder, filename))
+
+                    epochs_all_subjects.append(rp_image)
+
+                    label_all_subjects.append(label)
             
         else:
             continue
@@ -129,6 +141,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
     model.add(Flatten())
     model.add(Dense(64))
     model.add(Activation('relu'))
+    
     model.add(Dropout(0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
@@ -167,7 +180,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         print("Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
         print("Class target samples: ", sum(labels_shuffled))
 
-        epochs = 15;
+        epochs = 20;
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
         #history = model.fit(np.array(all_images_shuffled)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -187,7 +200,15 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         
 #print("Test data:================================================================================================================")
 
-data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
+#data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
+#data_folder="H:\data"
+data_folder="C:\Temp\data"
+
+#configure tensor flow to avoid GPU out memory error
+#https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.compat.v1.Session(config=config)
 
 # results = []
 # max_folder = 20;
@@ -206,8 +227,8 @@ data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
 
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
-folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_5_per_20_nepo_40" 
-epochs_all_subjects, label_all_subjects = LoadImages(folder,5,800)
+folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200" 
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 21 ,800)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
