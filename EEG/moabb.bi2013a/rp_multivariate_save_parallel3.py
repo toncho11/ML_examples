@@ -32,6 +32,9 @@ paradigm = P300()
 
 le = LabelEncoder()
 
+#https://www.researchgate.net/figure/Common-electrode-setup-for-P300-spellers-according-to-8-Eight-EEG-electrodes-are_fig1_221583051
+#Common electrode setup for P300 spellers according to [8]. 
+# Eight EEG electrodes are placed at Fz, Cz, P3, Pz, P4, PO7, Oz and PO8. [3,6,9,10,11,14,15,16] 
 #bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
 
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
@@ -102,6 +105,7 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
 def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
+    #folder = "h:\\data"
     folder = "h:\\data"
 
     folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
@@ -149,7 +153,10 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
                     index_label2.append(idx)
                     epochs_class_2 = epochs_class_2 + 1
             
-            n = 8;
+            print("Selected data target samples: ", epochs_class_1)
+            print("Selected non-target samples: ",  epochs_class_2)
+            
+            n = 10;
             processes = [None] * n
             
             i=0;
@@ -170,7 +177,8 @@ if __name__ == '__main__':
     f1 = paradigm.filters[0][0]
     f2 = paradigm.filters[0][1]
 
-    CreateData(5,40,f1,f2,[8,9,10,11,12,13,14,15],16,20,200)
+    #CreateData(5,40,f1,f2,[8,9,10,11,12,13,14,15],16,20,200) #standard
+    CreateData(5,30,f1,f2,[9,10,11,13,14,15],16,20,200) #a different electrode set
     end = time.time()
     print("Elapsed time (in seconds):",end - start)
     

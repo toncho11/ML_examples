@@ -20,13 +20,42 @@ import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 
-#it works with cudnn-11.3-windows-x64-v8.2.1.32 (Cuda 11.3/11.5 and cuddn 8.2)
-if tf.test.gpu_device_name(): 
+#disable GPU because the memory of the GPU is not enough or some bug
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-    print('Default GPU Device:{}'.format(tf.test.gpu_device_name()))
-
+if tf.test.gpu_device_name():
+    print('GPU found')
 else:
-   print("Please install GPU version of TF")
+    print("No GPU found")
+
+# config = tf.compat.v1.ConfigProto()
+# config.gpu_options.allow_growth = True
+# sess = tf.compat.v1.Session(config=config)
+
+#gpus = tf.config.experimental.list_physical_devices('GPU')
+#tf.config.experimental.set_memory_growth(gpus[0], True)
+
+# config = tf.ConfigProto(
+#         device_count = {'GPU': 0}
+#     )
+# sess = tf.Session(config=config)
+
+#it works with cudnn-11.3-windows-x64-v8.2.1.32 (Cuda 11.3/11.5 and cuddn 8.2)
+
+# def limitgpu(maxmem):
+# 	gpus = tf.config.list_physical_devices('GPU')
+# 	if gpus:
+# 		# Restrict TensorFlow to only allocate a fraction of GPU memory
+# 		try:
+# 			for gpu in gpus:
+# 				tf.config.experimental.set_virtual_device_configuration(gpu,
+# 						[tf.config.experimental.VirtualDeviceConfiguration(memory_limit=maxmem)])
+# 		except RuntimeError as e:
+# 			# Virtual devices must be set before GPUs have been initialized
+# 			print(e)
+
+
+#limitgpu(3000)
 """
 =============================
 Classification of EGG signal from two states: eyes open and eyes closed.
@@ -163,7 +192,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
             
         #shuffle
         for s in range(0,20):
-            print(s)
+            #print(s)
             indices = np.arange(len(all_images_shuffled))
             np.random.shuffle(indices)
             all_images_shuffled = np.array(all_images_shuffled)[indices]
@@ -180,7 +209,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         print("Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
         print("Class target samples: ", sum(labels_shuffled))
 
-        epochs = 20;
+        epochs = 4;
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
         #history = model.fit(np.array(all_images_shuffled)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -202,13 +231,12 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
 #data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #data_folder="H:\data"
-data_folder="C:\Temp\data"
-
+#data_folder="C:\Temp\data"
+data_folder="h:\data"
 #configure tensor flow to avoid GPU out memory error
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.compat.v1.Session(config=config)
+
+
 
 # results = []
 # max_folder = 20;
@@ -227,8 +255,9 @@ sess = tf.compat.v1.Session(config=config)
 #ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
 
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
-folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200" 
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 21 ,800)
+#folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
+folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_12_per_20_nepo_400" 
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 800)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
