@@ -20,7 +20,7 @@ from mne import set_log_level
 set_log_level("CRITICAL")
 
 #datasets = [bi2013a()] # , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
-datasets = [BNCI2015003()]
+datasets = [BNCI2014008()]
 paradigm = P300()
 
 le = LabelEncoder()
@@ -57,7 +57,10 @@ for dataset in datasets:
             print("Samples reduced to: ", n_test_samples_max)
             X1 = X1[:n_test_samples_max,:,:]
             y1 = y1[:n_test_samples_max]
-            
+        
+        print("Total class target samples available: ", sum(y))
+        print("Total class non-target samples available: ", len(y) - sum(y))
+        
         print("Finished loading subject:", source_i)
         print("Samples = ", X1.shape[0], " | Electrodes = ", X1.shape[1], " | Sample length=", X1.shape[2])
         if (X == []):

@@ -32,7 +32,7 @@ from mne.preprocessing import Xdawn
 
 #datasets = [bi2013a() , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
 #used already bi2013a, BNCI2014008
-datasets = [ BNCI2015003()]
+datasets = [ BNCI2014009()]
 paradigm = P300()
 
 le = LabelEncoder()
@@ -112,13 +112,13 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
         # plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
         np.save(full_filename, single_epoch_subject_rp)
 
-def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
+def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject, enableXDAWN):
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
     #folder = "h:\\data"
     folder = "h:\\data"
 
-    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
+    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + datasets[0].__class__.__name__ + "_xdawn_" + ("yes" if enableXDAWN == True else "no")
     
     print(folder)
     
@@ -146,8 +146,6 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
             
             #X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
 
-            enableXDAWN = False
-            
             if (enableXDAWN):
                 X_epochs, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject], return_epochs=True)
                 print("Performing XDawn")
@@ -172,8 +170,8 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
                      
             #0 NonTarget
             #1 Target       
-            print("Class target samples: ", sum(y))
-            print("Class non-target samples: ", len(y) - sum(y))
+            print("Total class target samples available: ", sum(y))
+            print("Total class non-target samples available: ", len(y) - sum(y))
 
             index_label1 = [];
             index_label2 = [];
@@ -187,11 +185,17 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
                     index_label2.append(idx)
                     epochs_class_2 = epochs_class_2 + 1
             
+            
+            #0 NonTarget
+            #1 Target       
+            print("Class target samples to be used: ", epochs_class_2)
+            print("Class non-target samples to be used: ", epochs_class_1)
+            
             print("Processing")
-            n_jobs = 10 
+            n_jobs = 9 
             processes = [None] * n_jobs            
             i=0          
-            parallel = False
+            parallel = True
             
             if (parallel):
             
@@ -209,6 +213,8 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
             else:
                 ProcessSamples(index_label1 + index_label2, X, y, folder, subject, m, tau, electrodes, percentage)
                 
+        print(folder)
+                
                          
 
 if __name__ == '__main__':
@@ -222,7 +228,15 @@ if __name__ == '__main__':
     #CreateData(6,40,f1,f2,[8,9,10,11,12,13,14,15],3,20,50) #a different electrode set
     
     #CreateData(11,20,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],10,20,800) #BNCI2014008
-    CreateData(7,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7],10,20,800) #BNCI2015003()
+    #CreateData(2,20,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7],10,20,800) #BNCI2015003()
+    
+    #CreateData(2,20,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8],10 ,20 ,800, False) #BNCI2015003(), 8 electrodes
+    
+    #BNCI2014009
+    CreateData(2,20,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False)
+    CreateData(5,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False)
+    CreateData(5,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, True) 
+    CreateData(6,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False) 
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)
