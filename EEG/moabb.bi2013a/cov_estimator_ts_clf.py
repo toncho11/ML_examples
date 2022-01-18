@@ -30,8 +30,8 @@ ts = TangentSpace()
 clf = LogisticRegression(solver="liblinear")
 pipeline = make_pipeline(cov_estimator, ts, clf)
 
-n_test_subjects_max = 8;
-n_test_samples_max = 500;
+n_test_subjects_max = 10;
+n_test_samples_max = 1000; #max per class and per subject
     
 scorer = make_scorer(balanced_accuracy_score)
 
@@ -44,6 +44,7 @@ for dataset in datasets:
     
     #load data
     #iterate over the subjects
+    #for source_i, source in enumerate(dataset.subject_list[4:9]): #EPFLP300 to get only the healthy subjects
     for source_i, source in enumerate(dataset.subject_list[:n_test_subjects_max]):
         print("Loading subject:", source_i, " id = ", source)
         #X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=dataset.subject_list[:n_test_subjects_max]) #dataset.subject_list[:10])#

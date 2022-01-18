@@ -261,9 +261,9 @@ data_folder="h:\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_6_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_800_set_BNCI2014009_xdawn_no" 
+folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_10_per_25_nepo_1000_set_BNCI2014008_xdawn_yes" 
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 800)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 5000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
