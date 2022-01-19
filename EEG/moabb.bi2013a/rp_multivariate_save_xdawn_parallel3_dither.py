@@ -88,13 +88,9 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
              v2 = X_traj[j,:]
              X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
     
-    percents = np.percentile(X_dist,percentage)
+    out = Dither.dither(X_dist, 'floyd-steinberg', resize=True)
     
-    X_rp = X_dist < percents
-    
-    #out = Dither.dither(X_dist, 'floyd-steinberg', resize=False)
-    
-    return X_rp #out
+    return out
 
 def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percentage):
 
@@ -116,9 +112,9 @@ def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subject
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
     #folder = "h:\\data"
-    folder = "h:\\data"
+    folder = "c:\\temp\\data"
 
-    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + ( "all" if electrodes == [] else str(len(electrodes)) ) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ + "_xdawn_" + ("yes" if enableXDAWN == True else "no")
+    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + ( "all" if electrodes == [] else str(len(electrodes)) ) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ + "_xdawn_" + ("yes" if enableXDAWN == True else "no") + "_dither"
     
     print(folder)
     
@@ -244,8 +240,8 @@ if __name__ == '__main__':
     #CreateData(5,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, True) 
     #CreateData(6,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False) 
     
-    Subjects = 8;
-    SamplesPerClass = 300; #default 1000
+    Subjects = 10;
+    SamplesPerClass = 1000; #default 1000
     
     #table
     #CreateData( BNCI2014009(), 6, 30, f1, f2, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], Subjects , 20 , SamplesPerClass, False) 
@@ -264,13 +260,9 @@ if __name__ == '__main__':
     #CreateData( BNCI2014008(), 6, 40, f1, f2, [], Subjects , 25 , SamplesPerClass, True) 
     #CreateData( BNCI2014008(), 7, 20, f1, f2, [], Subjects , 25 , SamplesPerClass, True) 
     
-    #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, False) #0.6364
-    #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True) #0.666
-    CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 25 , SamplesPerClass, False) #0.6468
-    #CreateData( bi2013a(), 7, 20, f1, f2, [9,10,11,13,14,15], Subjects , 20 , SamplesPerClass, False)
-    #CreateData( bi2013a(), 7, 20, f1, f2, [9,10,11,13,14,15], Subjects , 20 , SamplesPerClass, True)
-    #CreateData( bi2013a(), 7, 20, f1, f2, [10,13,14,15], Subjects , 20 , SamplesPerClass, False)
-    #CreateData( bi2013a(), 7, 20, f1, f2, [10,13,14,15], Subjects , 20 , SamplesPerClass, True)
+    #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, False) #0.6900
+    
+    CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, False)
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)

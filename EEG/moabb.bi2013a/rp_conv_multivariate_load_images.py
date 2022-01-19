@@ -235,8 +235,8 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
 #data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #data_folder="H:\data"
-#data_folder="C:\Temp\data"
-data_folder="h:\data"
+data_folder="C:\Temp\data"
+#data_folder="h:\data"
 #configure tensor flow to avoid GPU out memory error
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
 
@@ -261,7 +261,7 @@ data_folder="h:\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_10_per_25_nepo_1000_set_BNCI2014008_xdawn_yes" 
+folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_all_nsub_10_per_20_nepo_1000_set_bi2013a_xdawn_no_dither" 
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
 epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 5000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
