@@ -244,8 +244,8 @@ if __name__ == '__main__':
     #CreateData(5,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, True) 
     #CreateData(6,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False) 
     
-    Subjects = 8;
-    SamplesPerClass = 300; #default 1000
+    Subjects = 5;
+    SamplesPerClass = 10000; #default 1000
     
     #table
     #CreateData( BNCI2014009(), 6, 30, f1, f2, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], Subjects , 20 , SamplesPerClass, False) 
@@ -266,11 +266,14 @@ if __name__ == '__main__':
     
     #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, False) #0.6364
     #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True) #0.666
-    CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 25 , SamplesPerClass, False) #0.6468
+    #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 25 , SamplesPerClass, False) #0.6468
     #CreateData( bi2013a(), 7, 20, f1, f2, [9,10,11,13,14,15], Subjects , 20 , SamplesPerClass, False)
     #CreateData( bi2013a(), 7, 20, f1, f2, [9,10,11,13,14,15], Subjects , 20 , SamplesPerClass, True)
     #CreateData( bi2013a(), 7, 20, f1, f2, [10,13,14,15], Subjects , 20 , SamplesPerClass, False)
     #CreateData( bi2013a(), 7, 20, f1, f2, [10,13,14,15], Subjects , 20 , SamplesPerClass, True)
+    
+    #CreateData( bi2013a(), 3, 30, f1, f2, [], Subjects , 25 , SamplesPerClass, False)
+    CreateData( bi2013a(), 3, 30, f1, f2, [], Subjects , 25 , SamplesPerClass, False) #0.67 xdawn + dither
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)

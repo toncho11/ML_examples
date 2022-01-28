@@ -196,7 +196,7 @@ def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subject
         n_jobs = 9
         processes = [None] * n_jobs            
         i=0          
-        parallel = True
+        parallel = False
         
         if (parallel):
         
@@ -240,8 +240,8 @@ if __name__ == '__main__':
     #CreateData(5,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, True) 
     #CreateData(6,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False) 
     
-    Subjects = 10;
-    SamplesPerClass = 1000; #default 1000
+    Subjects = 5; #default 10
+    SamplesPerClass = 800; #default 1000
     
     #table
     #CreateData( BNCI2014009(), 6, 30, f1, f2, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], Subjects , 20 , SamplesPerClass, False) 
@@ -262,7 +262,9 @@ if __name__ == '__main__':
     
     #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, False) #0.6900
     
-    CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, False)
+    #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True)
+    
+    CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True)
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)

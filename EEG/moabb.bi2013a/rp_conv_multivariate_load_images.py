@@ -9,9 +9,11 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
 from tensorflow.keras import backend as K
+from tensorflow.keras import optimizers
 
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import balanced_accuracy_score
 
 import mne
 #from pyts.image import RecurrencePlot
@@ -143,19 +145,8 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
     
     print("Images loaded: ", images_loaded)
     return epochs_all_subjects, label_all_subjects
-  
-def ProcessFolder(epochs_all_subjects, label_all_subjects):
-    
-    #build model
-    
-    #to prevent overfitting
-    # - adjust the number of epochs
-    # - smaller model
-    # - regularizing L1, L2 or both
-    # - dropout layers
 
-    img_size1, img_size2 = np.array(epochs_all_subjects[0]).shape
-    print("Image size: ", img_size1, img_size2)
+def Model1(img_size1, img_size2):
     
     model = Sequential()
     model.add(Conv2D(32, (2, 2), input_shape=(img_size1,img_size2,1)))
@@ -181,9 +172,71 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
     model.compile(loss='binary_crossentropy',
                   optimizer='adam', #adam, rmsprop
                   metrics=['accuracy'])
+    return model
+
+def Model2(img_size1, img_size2):
+    
+    t = 4
+    model = Sequential()
+    model.add(Conv2D(32, (t, t), input_shape=(img_size1,img_size2,1)))
+    model.add(Activation('relu'))
+    
+    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+      
+    model.add(Conv2D(64, (t, t)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+      
+    model.add(Conv2D(128, (t, t)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+    
+    model.add(Conv2D(128, (t, t)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+      
+    model.add(Flatten())
+    model.add(Dropout(0.5))
+    
+    model.add(Dense(1))
+    model.add(Activation('sigmoid'))
+    
+    model.compile(loss='binary_crossentropy',
+                  optimizer=optimizers.RMSprop(learning_rate=1e-4),
+                  metrics=['accuracy'])
+    return model
+
+def Evaluate(model, x_test, y_test):
+    
+    actual = y_test
+    print("=====================================================")
+    
+    results = model.evaluate(x_test, y_test)
+    print("Evaluate on test data (never seen): test acc:", results[1])
+    
+    y_pred =  model.predict(x_test)
+    y_pred_bin = np.round_(y_pred).astype(int)
+    ba = balanced_accuracy_score(actual, y_pred_bin)
+    print("Evaluate on test data (never seen): balanced accuracy:", ba)
+    
+def ProcessFolder(epochs_all_subjects, label_all_subjects):
+    
+    #build model
+    
+    #to prevent overfitting
+    # - adjust the number of epochs
+    # - smaller model
+    # - regularizing L1, L2 or both
+    # - dropout layers
+
+    img_size1, img_size2 = np.array(epochs_all_subjects[0]).shape
+    print("Image size: ", img_size1, img_size2)
+    
+    model = Model1(img_size1, img_size2)
 
     iterations = 1
     average_classification = 0;
+    test_n = 400
         
     for i in range(iterations):
         
@@ -208,11 +261,9 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         # X_test = np.array(X_test)[:, :, :, np.newaxis]
         # y_train = np.array(y_train)
         # y_test = np.array(y_test)
-        
-        print("Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
-        print("Class target samples: ", sum(labels_shuffled))
 
-        epochs = 25;
+
+        epochs = 60;
         
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -221,13 +272,37 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         data_to_process = np.array(all_images_shuffled).astype('float32') #[:, :, :, np.newaxis]
         data_to_process = data_to_process.reshape(data_to_process.shape[0],data_to_process.shape[1],data_to_process.shape[2],1)
         print(data_to_process.shape)
-        print("Start model fit")
-        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=True )
         
+        l1 = []
+        l2 = []
+        for k in range(len(data_to_process)):
+            if (labels_shuffled[k] == 0):
+                l1.append(data_to_process[k])
+            elif (labels_shuffled[k] == 1): 
+                l2.append(data_to_process[k])
+        
+        imave1 = np.average(l1,axis=0) #non target
+        imave2 = np.average(l2,axis=0) #target
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
         
-        print("Validation accuracy = ", history.history['val_accuracy'][epochs-1])
+        #get test data
+        test_x = data_to_process[0:test_n]
+        test_y = labels_shuffled[0:test_n]
+        data_to_process = data_to_process[test_n:]
+        labels_shuffled = labels_shuffled[test_n:]
+        print("Test: Class non-target samples: ", len(test_y) - sum(test_y))
+        print("Test: Class target samples: ", sum(test_y))
+        
+        print("Train: Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
+        print("Train: Class target samples: ", sum(labels_shuffled))
+        
+        print("Start model fit")
+        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=True )
+
+        print("Last validation accuracy = ", history.history['val_accuracy'][epochs-1])
+        
+        Evaluate(model, test_x, test_y)
         return history.history['val_accuracy'][epochs-1]
         
         
@@ -261,9 +336,9 @@ data_folder="C:\Temp\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_all_nsub_10_per_20_nepo_1000_set_bi2013a_xdawn_no_dither" 
+folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_5_per_20_nepo_800_set_bi2013a_xdawn_yes_dither" 
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 5000)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
