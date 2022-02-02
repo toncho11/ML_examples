@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb  1 16:45:03 2022
+
+@author: antona
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
@@ -14,6 +21,7 @@ from tensorflow.keras import optimizers
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import balanced_accuracy_score
+from PIL import Image as im
 
 import mne
 #from pyts.image import RecurrencePlot
@@ -21,6 +29,8 @@ import gc
 import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
+
+import cv2
 
 #disable GPU because the memory of the GPU is not enough or some bug
 disableGPU = True
@@ -218,6 +228,15 @@ def Evaluate(model, x_test, y_test):
     y_pred_bin = np.round_(y_pred).astype(int)
     ba = balanced_accuracy_score(actual, y_pred_bin)
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
+
+def calcDist(i1, i2):
+    return np.sum((i1-i2)**2)
+
+def calcDistManhattan(i1, i2):
+    return np.sum(abs((i1-i2)))
+
+def calculateDistance(i1, i2):
+    return calcDist(i1, i2)
     
 def ProcessFolder(epochs_all_subjects, label_all_subjects):
     
@@ -281,29 +300,85 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
             elif (labels_shuffled[k] == 1): 
                 l2.append(data_to_process[k])
         
-        imave1 = np.average(l1,axis=0) #non target
-        imave2 = np.average(l2,axis=0) #target
-        #sample = data_to_process[4]   
-        #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
-        
-        #get test data
+        #prepare data
         test_x = data_to_process[0:test_n]
         test_y = labels_shuffled[0:test_n]
         data_to_process = data_to_process[test_n:]
         labels_shuffled = labels_shuffled[test_n:]
+        
+        #calculate average images
+        imave1 = np.average(l1,axis=0) #non target
+        imave2 = np.average(l2,axis=0) #target
+        
+        norm_image1 = cv2.normalize(imave1[:,:,0], None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        norm_image2 = cv2.normalize(imave2[:,:,0], None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        
+        #sample = data_to_process[4]   
+        #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
+        img1Average = im.fromarray(norm_image1)
+        img2Average = im.fromarray(norm_image2)
+        
+        img1AverageRotated = img1Average#.rotate(-45)
+        img2AverageRotated = img2Average#.rotate(-45)
+        
+        #data.save('gfg_dummy_pic.png')
+        #data.save('gfg_dummy_pic.png')
+        img1AverageRotated.convert("L").save('c:\\temp\\img1AverageRotated.png')
+        img2AverageRotated.convert("L").save('c:\\temp\\img2AverageRotated.png')
+        #end calculate average images
+       
+        
         print("Test: Class non-target samples: ", len(test_y) - sum(test_y))
         print("Test: Class target samples: ", sum(test_y))
         
         print("Train: Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
         print("Train: Class target samples: ", sum(labels_shuffled))
         
-        print("Start model fit")
-        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=True )
-
-        print("Last validation accuracy = ", history.history['val_accuracy'][epochs-1])
+        accuracy = 0;
+        #train model
         
-        Evaluate(model, test_x, test_y)
-        return history.history['val_accuracy'][epochs-1]
+        histogram1, bin_edges1 = np.histogram(imave1, bins=256, range=(0, 1))
+        histogram2, bin_edges2 = np.histogram(imave2, bins=256, range=(0, 1))
+        
+        class0 = 0
+        class1 = 0
+        pred=[]
+        
+        for k in range(len(test_x)):
+        
+            img = test_x[k,:,:]
+            #hist, bin_edges = np.histogram(img, bins=256, range=(0, 1))
+            
+            diff1 =  (img - imave1)
+            diff2 =  (img - imave2)
+            
+            m_norm1 = np.linalg.norm(diff1)
+            m_norm2 = np.linalg.norm(diff2)
+            
+            if (m_norm1 < m_norm2):
+                pred.append(0)
+            else:
+                pred.append(1)
+                
+            # if (m_norm1 > m_norm2 and test_y[k] == 0):
+            #     accuracy = accuracy + 1
+            #     class0 = class0 + 1
+            
+            # else:#if (m_norm1 <= m_norm2 and test_y[k] == 1):
+            #     accuracy = accuracy + 1
+            #     class1 = class1 + 1
+        
+        #print("Class0: ", class0) #non target
+        #print("Class1: ", class1) #target
+        #print(pred)
+        
+        #print("Accuracy: ", accuracy / len(test_x))
+        
+        ba = balanced_accuracy_score(test_y, pred)
+        print("Evaluate on test data (never seen): balanced accuracy:", ba)
+        
+        #Evaluate(model, test_x, test_y)
+        #return history.history['val_accuracy'][epochs-1]
         
         
 #print("Test data:================================================================================================================")
@@ -338,7 +413,7 @@ data_folder="C:\Temp\data"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
 folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_5_per_20_nepo_800_set_bi2013a_xdawn_yes_dither" 
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 10, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")

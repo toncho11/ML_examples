@@ -116,7 +116,8 @@ def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subject
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
     #folder = "h:\\data"
-    folder = "h:\\data"
+    #folder = "h:\\data"
+    folder = "c:\\temp\\data"
 
     folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + ( "all" if electrodes == [] else str(len(electrodes)) ) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ + "_xdawn_" + ("yes" if enableXDAWN == True else "no")
     
@@ -245,7 +246,7 @@ if __name__ == '__main__':
     #CreateData(6,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False) 
     
     Subjects = 5;
-    SamplesPerClass = 10000; #default 1000
+    SamplesPerClass = 800; #default 1000
     
     #table
     #CreateData( BNCI2014009(), 6, 30, f1, f2, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], Subjects , 20 , SamplesPerClass, False) 

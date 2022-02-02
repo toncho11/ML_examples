@@ -1,3 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Feb  2 10:17:03 2022
+
+@author: antona
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb  1 16:45:03 2022
+
+@author: antona
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
@@ -14,6 +28,7 @@ from tensorflow.keras import optimizers
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import balanced_accuracy_score
+from PIL import Image as im
 
 import mne
 #from pyts.image import RecurrencePlot
@@ -21,6 +36,9 @@ import gc
 import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
+from numpy import asarray
+
+import cv2
 
 #disable GPU because the memory of the GPU is not enough or some bug
 disableGPU = True
@@ -218,6 +236,15 @@ def Evaluate(model, x_test, y_test):
     y_pred_bin = np.round_(y_pred).astype(int)
     ba = balanced_accuracy_score(actual, y_pred_bin)
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
+
+def calcDist(i1, i2):
+    return np.sum((i1-i2)**2)
+
+def calcDistManhattan(i1, i2):
+    return np.sum(abs((i1-i2)))
+
+def calculateDistance(i1, i2):
+    return calcDist(i1, i2)
     
 def ProcessFolder(epochs_all_subjects, label_all_subjects):
     
@@ -263,7 +290,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         # y_test = np.array(y_test)
 
 
-        epochs = 130;
+        epochs = 64;
         
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -281,23 +308,58 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
             elif (labels_shuffled[k] == 1): 
                 l2.append(data_to_process[k])
         
+        #prepare data
+        test_x = data_to_process[0:test_n,:,:]
+        test_y = labels_shuffled[0:test_n]
+        data_to_process = data_to_process[test_n:,:,:]
+        labels_shuffled = labels_shuffled[test_n:]
+        
+        #calculate average images
         imave1 = np.average(l1,axis=0) #non target
         imave2 = np.average(l2,axis=0) #target
+        
+        norm_image1 = cv2.normalize(imave1[:,:,0], None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        norm_image2 = cv2.normalize(imave2[:,:,0], None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
+        img1Average = im.fromarray(norm_image1)
+        img2Average = im.fromarray(norm_image2)
         
-        #get test data
-        test_x = data_to_process[0:test_n]
-        test_y = labels_shuffled[0:test_n]
-        data_to_process = data_to_process[test_n:]
-        labels_shuffled = labels_shuffled[test_n:]
+        img1AverageRotated = img1Average#.rotate(-45)
+        img2AverageRotated = img2Average#.rotate(-45)
+        
+        #data.save('gfg_dummy_pic.png')
+        #data.save('gfg_dummy_pic.png')
+        img1AverageRotated.convert("L").save('c:\\temp\\img1AverageRotated.png')
+        img2AverageRotated.convert("L").save('c:\\temp\\img2AverageRotated.png')
+        #end calculate average images
+        
+        image = im.open('c:\\temp\\diff2\\Thresh.png')
+        
+        diff = asarray(image)
+        diff = (diff / 255) * -1
+        diff = diff + 1
+        
+        for t in range(len(data_to_process)):
+            oldimage = data_to_process[t,:,:,:]
+            newimage = tf.math.multiply(data_to_process[t,:,:,:] , diff[..., None])  #None adds an extra dimension
+            data_to_process[t,:,:,:] = newimage
+        #data_to_process = data_to_process * diff
+        #test_x = test_x * diff
+        
+        for t in range(len(test_x)):
+            oldimage = test_x[t,:,:,:]
+            newimage = tf.math.multiply(test_x[t,:,:,:] , diff[..., None])  #None adds an extra dimension
+            test_x[t,:,:,:] = newimage
+        
         print("Test: Class non-target samples: ", len(test_y) - sum(test_y))
         print("Test: Class target samples: ", sum(test_y))
         
         print("Train: Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
         print("Train: Class target samples: ", sum(labels_shuffled))
         
-        print("Start model fit")
+        print("Start model fit DL")
         history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=True )
 
         print("Last validation accuracy = ", history.history['val_accuracy'][epochs-1])
@@ -336,9 +398,11 @@ data_folder="C:\Temp\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_5_per_20_nepo_800_set_bi2013a_xdawn_yes_dither" 
+#folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_5_per_20_nepo_800_set_bi2013a_xdawn_yes_dither" 
+
+folder = data_folder + "\\rp_m_3_tau_30_f1_1_f2_24_el_all_nsub_5_per_25_nepo_800_set_bi2013a_xdawn_no"
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 10, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
