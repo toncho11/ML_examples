@@ -219,7 +219,39 @@ def Evaluate(model, x_test, y_test):
     y_pred_bin = np.round_(y_pred).astype(int)
     ba = balanced_accuracy_score(actual, y_pred_bin)
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
+
+def Normalize(data_x,data_y, imave1, imave2):
     
+    calculate_mean = False
+    if (imave1 is None and imave2 is None):
+        calculate_mean = True
+    
+    #choose indexes for both classes
+    if (calculate_mean):
+        l1 = []
+        l2 = []
+        for k in range(len(data_x)):
+            if (data_y[k] == 0):
+                l1.append(data_x[k])
+            elif (data_y[k] == 1): 
+                l2.append(data_x[k])
+    
+        imave1 = np.average(l1,axis=0) #non target
+        imave2 = np.average(l2,axis=0) #target
+    
+    #normalize
+    for k in range(len(data_x)):
+        
+        if (data_y[k] == 0):
+            data_x[k] -= imave1
+        elif (data_y[k] == 1): 
+            data_x[k] -= imave2
+            
+        data_x[k] *= 1.0/data_x[k].max()
+        data_x[k][np.isnan(data_x[k])] = 0
+        
+    return data_x, imave1, imave2
+
 def ProcessFolder(epochs_all_subjects, label_all_subjects):
     
     #build model
@@ -264,7 +296,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         # y_test = np.array(y_test)
 
 
-        epochs = 25;
+        epochs = 10;
         
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -288,23 +320,18 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
         
-        #normalize
-        for k in range(len(data_to_process)):
-            
-            if (labels_shuffled[k] == 0):
-                data_to_process[k] -= imave1
-            elif (labels_shuffled[k] == 1): 
-                data_to_process[k] -= imave2
-                
-            data_to_process[k] *= 1.0/data_to_process[k].max()
-            data_to_process[k][np.isnan(data_to_process[k])] = 0
-            #data_to_process[k] = scale(data_to_process[k], axis=0, with_mean=True, with_std=True, copy=False )
-        
         #get test data
         test_x = data_to_process[0:test_n]
         test_y = labels_shuffled[0:test_n]
         data_to_process = data_to_process[test_n:]
         labels_shuffled = labels_shuffled[test_n:]
+        
+        #Nozmalize
+        normalize = True
+        if (normalize):
+            data_to_process,m1,m2 = Normalize(data_to_process,labels_shuffled, None, None)
+            test_x, m1, m2 = Normalize(test_x,test_y, m1, m2)
+        
         print("Test: Class non-target samples: ", len(test_y) - sum(test_y))
         print("Test: Class target samples: ", sum(test_y))
         
