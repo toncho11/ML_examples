@@ -246,9 +246,19 @@ def Normalize(data_x,data_y, imave1, imave2):
             data_x[k] -= imave1
         elif (data_y[k] == 1): 
             data_x[k] -= imave2
+        
+        # minn = data_x[k].min()
+        # if minn < 0:
+        #     print("Negative detected",minn)
+        #     data_x[k] += (minn + 1)
+        #     if data_x[k].min() < 0:
+        #         print("Still negative",data_x[k].min())
             
-        data_x[k] *= 1.0/data_x[k].max()
-        data_x[k][np.isnan(data_x[k])] = 0
+        # #data_x[k] *= 1.0/data_x[k].max()
+        # data_x[k] /= data_x[k].max()/255.0
+        # data_x[k][np.isnan(data_x[k])] = 0
+        data = data_x[k]
+        data_x[k] = (data - np.min(data)) / (np.max(data) - np.min(data))
         
     return data_x, imave1, imave2
 
@@ -377,7 +387,8 @@ data_folder="h:\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_1_per_20_nepo_800" 
+folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_6_per_20_nepo_800" #good results on BNCI2014008
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_4_per_20_nepo_800"
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
 epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
