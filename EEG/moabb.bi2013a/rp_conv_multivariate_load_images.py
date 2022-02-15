@@ -21,6 +21,7 @@ import gc
 import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import scale
 
 #disable GPU because the memory of the GPU is not enough or some bug
 disableGPU = True
@@ -263,7 +264,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         # y_test = np.array(y_test)
 
 
-        epochs = 130;
+        epochs = 25;
         
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -273,6 +274,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         data_to_process = data_to_process.reshape(data_to_process.shape[0],data_to_process.shape[1],data_to_process.shape[2],1)
         print(data_to_process.shape)
         
+        #choose indexes for both classes
         l1 = []
         l2 = []
         for k in range(len(data_to_process)):
@@ -285,6 +287,18 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         imave2 = np.average(l2,axis=0) #target
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
+        
+        #normalize
+        for k in range(len(data_to_process)):
+            
+            if (labels_shuffled[k] == 0):
+                data_to_process[k] -= imave1
+            elif (labels_shuffled[k] == 1): 
+                data_to_process[k] -= imave2
+                
+            data_to_process[k] *= 1.0/data_to_process[k].max()
+            data_to_process[k][np.isnan(data_to_process[k])] = 0
+            #data_to_process[k] = scale(data_to_process[k], axis=0, with_mean=True, with_std=True, copy=False )
         
         #get test data
         test_x = data_to_process[0:test_n]
@@ -310,8 +324,8 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
 #data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #data_folder="H:\data"
-data_folder="C:\Temp\data"
-#data_folder="h:\data"
+#data_folder="C:\Temp\data"
+data_folder="h:\data"
 #configure tensor flow to avoid GPU out memory error
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
 
@@ -336,7 +350,7 @@ data_folder="C:\Temp\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_5_per_20_nepo_800_set_bi2013a_xdawn_yes_dither" 
+folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_1_per_20_nepo_800" 
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
 epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)

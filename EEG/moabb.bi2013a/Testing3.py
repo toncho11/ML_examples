@@ -347,6 +347,9 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
             data_to_process[t,:,:,:] = newimage
         #data_to_process = data_to_process * diff
         #test_x = test_x * diff
+        #plt.imshow(oldimage)
+        #plt.imshow(newimage)
+        #plt.imshow(diff)
         
         for t in range(len(test_x)):
             oldimage = test_x[t,:,:,:]
