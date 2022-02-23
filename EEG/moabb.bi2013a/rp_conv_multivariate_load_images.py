@@ -219,7 +219,39 @@ def Evaluate(model, x_test, y_test):
     y_pred_bin = np.round_(y_pred).astype(int)
     ba = balanced_accuracy_score(actual, y_pred_bin)
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
+    
+    #y_out_prob=model.predict(input_fn=x_test,predict_keys="probabilities")
+    #print("Predictions probability: ", y_out_prob)
 
+def Evaluate2(model, x_test, y_test, m1, m2):
+    
+    x_test1 = x_test - m1
+    x_test1 = Normalize2(x_test1)
+    x_test2 = x_test - m2
+    x_test2 = Normalize2(x_test2)
+    
+    y_pred1 =  model.predict(x_test1)
+    y_pred2 =  model.predict(x_test2)
+
+def Evaluate3(model, x_test, y_test,m):
+    
+    #normalize
+    for k in range(len(x_test)):
+
+        data = x_test[k] - m
+        x_test[k] = (data - np.min(data)) / (np.max(data) - np.min(data))
+        
+    actual = y_test
+    print("=====================================================")
+    
+    results = model.evaluate(x_test, y_test)
+    print("Evaluate on test data (never seen): test acc:", results[1])
+    
+    y_pred =  model.predict(x_test)
+    y_pred_bin = np.round_(y_pred).astype(int)
+    ba = balanced_accuracy_score(actual, y_pred_bin)
+    print("Evaluate on test data (never seen): balanced accuracy:", ba)
+    
 def Normalize(data_x,data_y, imave1, imave2):
     
     calculate_mean = False
@@ -261,6 +293,33 @@ def Normalize(data_x,data_y, imave1, imave2):
         data_x[k] = (data - np.min(data)) / (np.max(data) - np.min(data))
         
     return data_x, imave1, imave2
+
+def GetMeans(data_x,data_y):
+   
+    l1 = []
+    l2 = []
+    for k in range(len(data_x)):
+        if (data_y[k] == 0):
+            l1.append(data_x[k])
+        elif (data_y[k] == 1): 
+            l2.append(data_x[k])
+
+    imave1 = np.average(l1,axis=0) #non target
+    imave2 = np.average(l2,axis=0) #target
+       
+    return imave1, imave2
+
+def Normalize2(data_x):
+
+    mean = np.average(data_x,axis=0)
+    
+    #normalize
+    for k in range(len(data_x)):
+
+        data = data_x[k] - mean
+        data_x[k] = (data - np.min(data)) / (np.max(data) - np.min(data))
+        
+    return data_x, mean
 
 def ProcessFolder(epochs_all_subjects, label_all_subjects):
     
@@ -306,7 +365,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         # y_test = np.array(y_test)
 
 
-        epochs = 10;
+        epochs = 30;
         
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -339,8 +398,12 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         #Nozmalize
         normalize = True
         if (normalize):
-            data_to_process,m1,m2 = Normalize(data_to_process,labels_shuffled, None, None)
-            test_x, m1, m2 = Normalize(test_x,test_y, m1, m2)
+            data_to_process, m = Normalize2(data_to_process)
+            #_, m1, m2 = Normalize(data_to_process,labels_shuffled, None, None)
+            #test_x, m1, m2 = Normalize(test_x,test_y, m1, m2)
+            #test_x = Normalize2(test_x,test_y)
+        
+        m1 ,m2 = GetMeans(data_to_process,labels_shuffled)
         
         print("Test: Class non-target samples: ", len(test_y) - sum(test_y))
         print("Test: Class target samples: ", sum(test_y))
@@ -353,7 +416,8 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
         print("Last validation accuracy = ", history.history['val_accuracy'][epochs-1])
         
-        Evaluate(model, test_x, test_y)
+        #Evaluate2(model, test_x, test_y, m1, m2)
+        Evaluate3(model, test_x, test_y, m)
         return history.history['val_accuracy'][epochs-1]
         
         
@@ -361,8 +425,8 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
 #data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #data_folder="H:\data"
-#data_folder="C:\Temp\data"
-data_folder="h:\data"
+data_folder="C:\Temp\data"
+#data_folder="h:\data"
 #configure tensor flow to avoid GPU out memory error
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
 
@@ -387,7 +451,9 @@ data_folder="h:\data"
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
-folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_6_per_20_nepo_800" #good results on BNCI2014008
+
+folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_5_per_20_nepo_800_set_bi2013a" #good results on BNCI2014008
+
 #folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_4_per_20_nepo_800"
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
 epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
