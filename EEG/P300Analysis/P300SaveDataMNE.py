@@ -2,34 +2,23 @@
 """
 Created on Wed Feb 23 15:58:35 2022
 
-@author: antona
+@author: Anton Andreev
 """
 
 #This script ..............................................................
 
 import matplotlib.pyplot as plt
-from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
-from pyriemann.tangentspace import TangentSpace
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import balanced_accuracy_score, make_scorer
-
 from moabb.datasets import bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
-
 import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
-import Dither
 import os
 import glob
 import time
 
-from joblib import Parallel, delayed
-from multiprocessing import Process
-from scipy.spatial.distance import cdist, mahalanobis
+from DatasetHelper import *
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -64,7 +53,7 @@ le = LabelEncoder()
 #         # plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
 #         np.save(full_filename, single_epoch_subject_rp)
 
-def CreateData(dataset, P300_channel, n_subjects, max_epochs_per_subject):
+def CreateData(dataset, channels, n_subjects, max_epochs_per_subject):
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
     #folder = "h:\\data"
@@ -101,8 +90,8 @@ def CreateData(dataset, P300_channel, n_subjects, max_epochs_per_subject):
         print(X.shape) 
         #0 NonTarget
         #1 Target       
-        print("Class target samples: ", sum(y))
-        print("Class non-target samples: ", len(y) - sum(y))
+        print("All class target samples: ", sum(y))
+        print("All class non-target samples: ", len(y) - sum(y))
 
         index_label1 = [];
         index_label2 = [];
@@ -116,20 +105,24 @@ def CreateData(dataset, P300_channel, n_subjects, max_epochs_per_subject):
                 index_label2.append(idx)
                 epochs_class_2 = epochs_class_2 + 1
         
-        imave1 = np.average(X[index_label1][P300_channel],axis=0)
-        imave2 = np.average(X[index_label2][P300_channel],axis=0)
+        print("Using class target samples: ", epochs_class_2)
+        print("Using class non-target samples: ", epochs_class_1)
         
-        filename = "subject_" + str(subject_i) + "_ch_" + str(P300_channel) + '_class_NonTarget'
-        full_filename = folder + "\\" + filename
-        print("Saving: " + full_filename)
-        #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
-        np.save(full_filename, imave1)
-        
-        filename = "subject_" + str(subject_i) + "_ch_" + str(P300_channel) + "_class_Target"
-        full_filename = folder + "\\" + filename
-        print("Saving: " + full_filename)
-        #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
-        np.save(full_filename, imave2)
+        for P300_channel in channels:
+            imave1 = np.average(X[index_label1][P300_channel],axis=0)
+            imave2 = np.average(X[index_label2][P300_channel],axis=0)
+            
+            filename = "subject_" + str(subject_i) + "_ch_" + str(P300_channel) + '_class_NonTarget'
+            full_filename = folder + "\\" + filename
+            print("Saving: " + full_filename)
+            #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
+            np.save(full_filename, imave1)
+            
+            filename = "subject_" + str(subject_i) + "_ch_" + str(P300_channel) + "_class_Target"
+            full_filename = folder + "\\" + filename
+            print("Saving: " + full_filename)
+            #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
+            np.save(full_filename, imave2)
         
         
 
@@ -138,20 +131,16 @@ if __name__ == '__main__':
     start = time.time()
     f1 = paradigm.filters[0][0]
     f2 = paradigm.filters[0][1]
-
-    #CreateData(5,40,f1,f2,[8,9,10,11,12,13,14,15],16,20,200) #standard
-    #CreateData(5,30,f1,f2,[9,10,11,13,14,15],1,20,800) #a different electrode set
-    #CreateData(5,30,f1,f2,[9,10,11,13,14,15],1,20,800) #a different electrode set
-    #CreateData(5,30,f1,f2,[6,7],1,20,800) #a different electrode set
-    #CreateData(BNCI2014008(), 5,30,f1,f2,[4,5,7],3,20,800) #good results
+ 
+    channel = 6
+    sub_max = 30
+    d = bi2013a()
     
-    #bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
-    #CreateData(bi2013a(), 5,30,f1,f2,[13,14,15], 5, 20, 800)
+    CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, 400)
     
-    channel = 1
-    sub_max = 16
-    
-    CreateData(BNCI2014008(), channel, sub_max, 400)
+    #the idea is to have data from both MNE and Zenodo
+    #to compare the average P300 for all datasets (4 MNE + 4 Zenodo) and display it
+    #to  generate datasets that are correct
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)

@@ -2,7 +2,7 @@
 """
 Created on Fri Feb 25 11:56:34 2022
 
-@author: antona
+@author: Anton Andreev
 """
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,7 +47,7 @@ def ShowPerSubjectDataset(dataset, channel, subject_show):
     
     plt.legend(loc="upper left")
 
-#use data from all subjects for a single channel
+#use data from all subjects (that is previously generated) and for a single channel
 def ShowPerDataset(dataset, channel):
     
     if (subject_show >= GetSubjectsCount(dataset)):
@@ -92,11 +92,12 @@ def ShowPerDataset(dataset, channel):
     plt.legend(loc="upper left")
 
 #main block - select what you need
-subject_show = 3
+subject_show = 6
 channel = 14
-dataset = "BNCI2014008"
+dataset = "bi2013a"
 
 #ShowPerSubjectDataset(dataset, ElectrodeByName(dataset,"CZ"), subject_show)
+#ShowPerSubjectDataset(dataset, 1, subject_show)
 ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"))
 
 
