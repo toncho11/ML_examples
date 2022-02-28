@@ -9,6 +9,7 @@ import numpy as np
 import os
 from glob import glob
 from os import walk
+import sys
 
 from DatasetHelper import *
 
@@ -48,7 +49,7 @@ def ShowPerSubjectDataset(dataset, channel, subject_show):
     plt.legend(loc="upper left")
 
 #use data from all subjects (that is previously generated) and for a single channel
-def ShowPerDataset(dataset, channel):
+def ShowPerDataset(dataset, channel, show_plot):
     
     if (subject_show >= GetSubjectsCount(dataset)):
         print("Error: Non exisitng subject")
@@ -74,6 +75,10 @@ def ShowPerDataset(dataset, channel):
     files = next(walk(folder), (None, None, []))[2]
     
     count = len(files)
+    if (count == 0):
+        print("Error: no files detected!")
+        sys.exit()
+    
     length = len(np.load(folder + files[0]))
     summTarget = np.zeros(length)
     summNonTarget = np.zeros(length)
@@ -87,18 +92,61 @@ def ShowPerDataset(dataset, channel):
     averageNonTarget = summNonTarget / count
     averagetarget = summTarget / count
     
-    plt.plot(averageNonTarget, "-b", label="Non Target")
-    plt.plot(averagetarget, "-r", label="Target")
-    plt.legend(loc="upper left")
+    if show_plot:
+        plt.plot(averageNonTarget, "-b", label="Non Target")
+        plt.plot(averagetarget, "-r", label="Target")
+        plt.legend(loc="upper left")
+    else:
+        return averagetarget, averageNonTarget
 
+def PlotDataSets():
+    fig, axs = plt.subplots(2,2) #rows, columns
+    fig.set_size_inches(18.5, 10.5)
+    plt.rc('font', size=8)
+    plt.rc('axes', titlesize=8)
+    
+    dataset = "BNCI2014008"
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    axs[0,0].set_title(dataset)
+    axs[0,0].plot(averageNonTarget, "-b", label="Non Target")
+    axs[0,0].plot(averagetarget, "-r", label="Target")
+    axs[0,0].legend(loc="upper left")
+    
+    dataset = "bi2013a"
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    axs[0,1].set_title(dataset)
+    axs[0,1].plot(averageNonTarget, "-b", label="Non Target")
+    axs[0,1].plot(averagetarget, "-r", label="Target")
+    axs[0,1].legend(loc="upper left")
+    
+    dataset = "BNCI2015003"
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    axs[1,0].set_title(dataset)
+    axs[1,0].plot(averageNonTarget, "-b", label="Non Target")
+    axs[1,0].plot(averagetarget, "-r", label="Target")
+    axs[1,0].legend(loc="upper left")
+    
+    dataset = "BNCI2014009"
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    axs[1,1].set_title(dataset)
+    axs[1,1].plot(averageNonTarget, "-b", label="Non Target")
+    axs[1,1].plot(averagetarget, "-r", label="Target")
+    axs[1,1].legend(loc="upper left")
+    
+    
 #main block - select what you need
 subject_show = 6
 channel = 14
 dataset = "BNCI2014009"
 
+PlotDataSets()
+
 #ShowPerSubjectDataset(dataset, ElectrodeByName(dataset,"CZ"), subject_show)
 #ShowPerSubjectDataset(dataset, 1, subject_show)
-ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"))
+#ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),True)
+
+
+
 
 
 

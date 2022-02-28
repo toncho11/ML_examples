@@ -101,7 +101,16 @@ def CreateData(dataset, channels, n_subjects, max_epochs_per_subject):
             #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
             np.save(full_filename, imave2)
         
-        
+#generate all data
+def GenerateAllData():
+       datasets = [BNCI2014008(), bi2013a(), BNCI2015003(), BNCI2014009()]
+       
+       sub_max = 30
+       epochs_max_per_subject = 400
+       
+       for d in datasets:
+           CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, epochs_max_per_subject)
+           
 
 if __name__ == '__main__':
 
@@ -111,9 +120,12 @@ if __name__ == '__main__':
  
     channel = 6
     sub_max = 30
-    d = BNCI2014009()
+    epochs_max_per_subject = 400
     
-    CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, 400)
+    GenerateAllData()
+    #genearte 
+    #d = BNCI2014009()    
+    #CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, epochs_max_per_subject)
     
     #the idea is to have data from both MNE and Zenodo
     #to compare the average P300 for all datasets (4 MNE + 4 Zenodo) and display it
