@@ -94,7 +94,7 @@ def ShowPerDataset(dataset, channel):
 #main block - select what you need
 subject_show = 6
 channel = 14
-dataset = "bi2013a"
+dataset = "BNCI2014009"
 
 #ShowPerSubjectDataset(dataset, ElectrodeByName(dataset,"CZ"), subject_show)
 #ShowPerSubjectDataset(dataset, 1, subject_show)

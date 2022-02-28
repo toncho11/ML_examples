@@ -28,30 +28,7 @@ set_log_level("CRITICAL")
 
 #datasets = [BNCI2014008()] # , bi2013a(), EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
 paradigm = P300()
-
 le = LabelEncoder()
-
-#https://www.researchgate.net/figure/Common-electrode-setup-for-P300-spellers-according-to-8-Eight-EEG-electrodes-are_fig1_221583051
-#Common electrode setup for P300 spellers according to [8]. 
-# Eight EEG electrodes are placed at Fz, Cz, P3, Pz, P4, PO7, Oz and PO8. [3,6,9,10,11,14,15,16] 
-#bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
-
-
-# def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percentage):
-
-#     for sample_i in samples:
-#         print("Process Sample:",sample_i)
-#         label = y[sample_i]
-#         sample = X[sample_i]
-    
-#         single_epoch_subject_rp = multivariateRP(sample, electrodes, m, tau, percentage)
-    
-#         filename = "subject_" + str(subject - 1) + "_rp_label_" + str(label) + "_epoch_" + str(sample_i)
-#         full_filename = folder + "\\" + filename
-    
-#         print("Saving: " + full_filename)
-#         # plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
-#         np.save(full_filename, single_epoch_subject_rp)
 
 def CreateData(dataset, channels, n_subjects, max_epochs_per_subject):
     
@@ -134,7 +111,7 @@ if __name__ == '__main__':
  
     channel = 6
     sub_max = 30
-    d = bi2013a()
+    d = BNCI2014009()
     
     CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, 400)
     
