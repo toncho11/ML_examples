@@ -62,7 +62,8 @@ def CreateData(dataset, channels, n_subjects, max_epochs_per_subject):
         epochs_class_2 = 0
         
         print("Loading subject:" , subject)  
-        X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+        #X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+        X, y = FilterNautilus(dataset, subject, 800, []) #["Cz", "Pz", "Oz"]
         y = le.fit_transform(y)
         print(X.shape) 
         #0 NonTarget
@@ -85,17 +86,17 @@ def CreateData(dataset, channels, n_subjects, max_epochs_per_subject):
         print("Using class target samples: ", epochs_class_2)
         print("Using class non-target samples: ", epochs_class_1)
         
-        for P300_channel in channels:
-            imave1 = np.average(X[index_label1][P300_channel],axis=0)
-            imave2 = np.average(X[index_label2][P300_channel],axis=0)
+        for ch in channels:
+            imave1 = np.average(X[index_label1][ch],axis=0)
+            imave2 = np.average(X[index_label2][ch],axis=0)
             
-            filename = "subject_" + str(subject_i) + "_ch_" + str(P300_channel) + '_class_NonTarget'
+            filename = "subject_" + str(subject_i) + "_ch_" + str(ch) + '_class_NonTarget'
             full_filename = folder + "\\" + filename
             print("Saving: " + full_filename)
             #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
             np.save(full_filename, imave1)
             
-            filename = "subject_" + str(subject_i) + "_ch_" + str(P300_channel) + "_class_Target"
+            filename = "subject_" + str(subject_i) + "_ch_" + str(ch) + "_class_Target"
             full_filename = folder + "\\" + filename
             print("Saving: " + full_filename)
             #plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
@@ -111,6 +112,50 @@ def GenerateAllData():
        for d in datasets:
            CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, epochs_max_per_subject)
            
+def FilterNautilus(dataset, subject, time_ms, electrodes):
+    
+    ds_str = GetDatasetNameAsString(dataset)
+    
+    X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+    y = le.fit_transform(y)
+    
+    #select the electrodes requested
+    
+    #calculate the length to take from time
+    electrodes_num = []
+    
+    if (electrodes == []):
+        electrodes_num = list(range(0,X.shape[1]))
+    else:
+        for el in electrodes:
+            print(el)
+            electrodes_num.append(GetElectrodeByName(ds_str, el))
+       
+        if (len(electrodes) != len(electrodes_num)):
+            print("Error: could not select all the electrodes requested!")
+    
+    electrodes_num.sort()
+    
+    old_length = GetEpochLength(ds_str) #length of epoch
+    freq = GetFrequency(ds_str)
+    new_length = int ((time_ms * freq) / 1000 )
+    
+    if (new_length > old_length):
+        print("Error: new length of epoch is incorrect")
+    else:
+        print("New epoch length: ", new_length, "/", old_length)
+    
+    X_new = np.zeros((X.shape[0], int(len(electrodes_num)), new_length))
+    
+    if (X_new.shape[1] != len(electrodes_num)):
+        print("Error: could not select eclectrodes")
+        
+    for i in range(len(X)):
+        X_new[i] = X[i, electrodes_num, 0:new_length]
+        
+    #remove data that is not good (which one) ?????????????????
+    
+    return X_new, y
 
 if __name__ == '__main__':
 
@@ -130,6 +175,8 @@ if __name__ == '__main__':
     #the idea is to have data from both MNE and Zenodo
     #to compare the average P300 for all datasets (4 MNE + 4 Zenodo) and display it
     #to  generate datasets that are correct
+    
+    #s1 = FilterNautilus(BNCI2014009() , 1, 300, ["Cz", "Pz", "Oz"])
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)

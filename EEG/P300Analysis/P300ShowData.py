@@ -84,10 +84,15 @@ def ShowPerDataset(dataset, channel, show_plot):
     summNonTarget = np.zeros(length)
     
     for f in files:
-        if f.endswith("_NonTarget.npy"):
-            summNonTarget = summNonTarget + np.load(folder + f)
-        elif f.endswith("_Target.npy"):
-            summTarget = summTarget + np.load(folder + f)
+        if f.find("_ch_" + str(channel)) != -1:
+            if f.endswith("_NonTarget.npy"):
+                summNonTarget = summNonTarget + np.load(folder + f)
+            elif f.endswith("_Target.npy"):
+                summTarget = summTarget + np.load(folder + f)
+    
+    if (sum(summTarget) == 0 or sum(summNonTarget) == 0):
+        print("Error: no files for this channel")
+        sys.exit()
         
     averageNonTarget = summNonTarget / count
     averagetarget = summTarget / count
@@ -105,31 +110,33 @@ def PlotDataSets():
     plt.rc('font', size=8)
     plt.rc('axes', titlesize=8)
     
+    #["Cz", "Pz", "Oz"]
+    ch = "Oz"
     dataset = "BNCI2014008"
-    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, GetElectrodeByName(dataset, ch), False)
     axs[0,0].set_title(dataset)
-    axs[0,0].plot(averageNonTarget, "-b", label="Non Target")
+    #axs[0,0].plot(averageNonTarget, "-b", label="Non Target")
     axs[0,0].plot(averagetarget, "-r", label="Target")
     axs[0,0].legend(loc="upper left")
     
     dataset = "bi2013a"
-    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, GetElectrodeByName(dataset, ch), False)
     axs[0,1].set_title(dataset)
-    axs[0,1].plot(averageNonTarget, "-b", label="Non Target")
+    #axs[0,1].plot(averageNonTarget, "-b", label="Non Target")
     axs[0,1].plot(averagetarget, "-r", label="Target")
     axs[0,1].legend(loc="upper left")
     
     dataset = "BNCI2015003"
-    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, GetElectrodeByName(dataset, ch), False)
     axs[1,0].set_title(dataset)
-    axs[1,0].plot(averageNonTarget, "-b", label="Non Target")
+    #axs[1,0].plot(averageNonTarget, "-b", label="Non Target")
     axs[1,0].plot(averagetarget, "-r", label="Target")
     axs[1,0].legend(loc="upper left")
     
     dataset = "BNCI2014009"
-    averagetarget, averageNonTarget = ShowPerDataset(dataset, ElectrodeByName(dataset,"CZ"),False)
+    averagetarget, averageNonTarget = ShowPerDataset(dataset, GetElectrodeByName(dataset, ch), False)
     axs[1,1].set_title(dataset)
-    axs[1,1].plot(averageNonTarget, "-b", label="Non Target")
+    #axs[1,1].plot(averageNonTarget, "-b", label="Non Target")
     axs[1,1].plot(averagetarget, "-r", label="Target")
     axs[1,1].legend(loc="upper left")
     

@@ -54,7 +54,7 @@ def GetSubjectsCount(dataset):
         print("Error: Could not get subjects count!")
 
 #if "Cz" is provided then it will return an integer for this electrode
-def ElectrodeByName(dataset, electrode_name):   
+def GetElectrodeByName(dataset, electrode_name):   
     i = 0
     for e in GetChannelNames(dataset):
         if e.lower() == electrode_name.lower():
@@ -93,3 +93,4 @@ def GetFrequency(dataset): #in Hz
         return 256
     else:
         print("Error: Could not get the epoch frequency!")
+    
