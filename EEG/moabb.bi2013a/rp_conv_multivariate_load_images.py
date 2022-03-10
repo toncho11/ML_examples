@@ -252,7 +252,7 @@ def Evaluate3(model, x_test, y_test,m):
     ba = balanced_accuracy_score(actual, y_pred_bin)
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
     
-def Normalize(data_x,data_y, imave1, imave2):
+def Normalize(data_x,data_y, imave1, imave2): #removes the mean per class and puts in the [0..1] range
     
     calculate_mean = False
     if (imave1 is None and imave2 is None):
@@ -309,14 +309,14 @@ def GetMeans(data_x,data_y):
        
     return imave1, imave2
 
-def Normalize2(data_x):
+def Normalize2(data_x): #removes the mean and puts in the interval [0..1] range
 
     mean = np.average(data_x,axis=0)
     
     #normalize
     for k in range(len(data_x)):
 
-        data = data_x[k] - mean
+        data = data_x[k] #- mean
         data_x[k] = (data - np.min(data)) / (np.max(data) - np.min(data))
         
     return data_x, mean
@@ -343,18 +343,21 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
     for i in range(iterations):
         
         print("Iteration: ",i)
-        indices = np.arange(len(epochs_all_subjects))
+        N = len(epochs_all_subjects);
+        indices = np.arange(N)
         np.random.shuffle(indices)
-        all_images_shuffled = np.array(epochs_all_subjects)[indices]
-        labels_shuffled = np.array(label_all_subjects)[indices]
+        #indices = np.random.choice(N, N, replace=False)
+        all_images_shuffled = np.array(epochs_all_subjects).astype('float32')[indices]
+        labels_shuffled = np.array(label_all_subjects)[indices].astype(int)
             
-        #shuffle
-        for s in range(0,20):
-            #print(s)
-            indices = np.arange(len(all_images_shuffled))
+        # extra shuffle
+        for s in range(0,3):
+            print("Shuffle: ",s)
+            indices = np.arange(N)
             np.random.shuffle(indices)
-            all_images_shuffled = np.array(all_images_shuffled)[indices]
-            labels_shuffled = np.array(labels_shuffled)[indices]
+            indices = np.random.choice(N, N, replace=False)
+            all_images_shuffled = all_images_shuffled[indices]
+            labels_shuffled = labels_shuffled[indices]
         
         #split
         # X_train, X_test, y_train, y_test = train_test_split(all_images_shuffled, labels_shuffled, test_size=0.2)
@@ -397,13 +400,14 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         
         #Nozmalize
         normalize = True
+        print("Normalize")
         if (normalize):
             data_to_process, m = Normalize2(data_to_process)
             #_, m1, m2 = Normalize(data_to_process,labels_shuffled, None, None)
             #test_x, m1, m2 = Normalize(test_x,test_y, m1, m2)
-            #test_x = Normalize2(test_x,test_y)
+            test_x = Normalize2(test_x)
         
-        m1 ,m2 = GetMeans(data_to_process,labels_shuffled)
+        #m1 ,m2 = GetMeans(data_to_process,labels_shuffled)
         
         print("Test: Class non-target samples: ", len(test_y) - sum(test_y))
         print("Test: Class target samples: ", sum(test_y))
@@ -456,7 +460,7 @@ folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_5_per_20_nepo_800_s
 
 #folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_4_per_20_nepo_800"
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 1, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
