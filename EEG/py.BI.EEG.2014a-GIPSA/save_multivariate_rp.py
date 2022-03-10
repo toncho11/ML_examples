@@ -14,7 +14,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 import mne
-from pyts.image import RecurrencePlot
+#from pyts.image import RecurrencePlot
 import gc
 
 import os

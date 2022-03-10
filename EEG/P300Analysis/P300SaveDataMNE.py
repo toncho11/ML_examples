@@ -107,7 +107,7 @@ def GenerateAllData():
        datasets = [BNCI2014008(), bi2013a(), BNCI2015003(), BNCI2014009()]
        
        sub_max = 30
-       epochs_max_per_subject = 400
+       epochs_max_per_subject = 2000
        
        for d in datasets:
            CreateData(d, GetChannelRangeInt(GetDatasetNameAsString(d)), sub_max, epochs_max_per_subject)
