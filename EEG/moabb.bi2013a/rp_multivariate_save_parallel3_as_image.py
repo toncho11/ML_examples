@@ -13,6 +13,10 @@ import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
+import sys
+sys.path.append('C:\\Work\\PythonCode\\ML_examples\\EEG\\P300Analysis\\')
+from DatasetHelper import *
+
 import Dither
 import os
 import glob
@@ -114,7 +118,7 @@ def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subject
     #folder = "h:\\data"
     folder = "h:\\data"
 
-    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ 
+    folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ + "_as_image"
    
     print(folder)
     
@@ -190,8 +194,12 @@ if __name__ == '__main__':
     f1 = paradigm.filters[0][0]
     f2 = paradigm.filters[0][1]
 
-    #CreateData(5,40,f1,f2,[8,9,10,11,12,13,14,15],16,20,200) #standard
-    CreateData(BNCI2014008(), 5,30,f1,f2,[4,5,7], 1, 20, 20)
+    db = BNCI2014008()
+    
+    db_bame = GetDatasetNameAsString(db)
+    electrodes = [GetElectrodeByName(db_bame,"Fz"), GetElectrodeByName(db_bame,"Cz"), GetElectrodeByName(db_bame,"Pz"), GetElectrodeByName(db_bame,"Oz") ]
+    
+    CreateData(db, 5, 30 , f1 ,f2 , [4,5,7], 1, 20, 600)
     end = time.time()
     print("Elapsed time (in seconds):",end - start)
     
