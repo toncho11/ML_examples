@@ -68,10 +68,10 @@ def BuildEmbeddings(folder, n_max_subjects, n_max_samples):
     samples_class1 = np.zeros(n_max_subjects) #for each subject
     samples_class2 = np.zeros(n_max_subjects)
     
-    print("Loading data:")
+    print("Loading data and generating embeddings ...")
 
     embedding_pipeline = pipeline('image-embedding')
-     
+    
     images_loaded = 0
     for filename in os.listdir(folder):
         if filename.endswith(".jpeg"): 
@@ -88,22 +88,26 @@ def BuildEmbeddings(folder, n_max_subjects, n_max_samples):
             if (subject < n_max_subjects):
 
                 if (label == 0 and samples_class1[subject] < n_max_samples) or (label == 1 and samples_class2[subject] < n_max_samples):
+                    
                     images_loaded = images_loaded + 1
+                    file_path = os.path.join(folder, filename)
+                    print(file_path)
 
                     if label == 0:
                         samples_class1[subject] = samples_class1[subject] + 1
                     elif label == 1:
                         samples_class2[subject] = samples_class2[subject] + 1
 
-                    file_path = os.path.join(folder, filename)
-                    
                     embedding = embedding_pipeline(file_path)
                     
-                    print(embedding[0])
+                    #print(embedding[0])
 
                     epochs_all_subjects.append(embedding[0])
 
                     label_all_subjects.append(label)
+                    
+                    
+                    print(images_loaded)
             
         else:
             continue
@@ -114,7 +118,13 @@ def BuildEmbeddings(folder, n_max_subjects, n_max_samples):
 def StoreEmbeddingsIntoMulvis(embeddings, labels):
     connections.connect("default", host="localhost", port="19530")
     
-    X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=0.2)
+    #shuffle
+    indices = np.arange(len(labels))
+    np.random.shuffle(indices)
+    embeddings = embeddings[indices]
+    labels = labels[indices]
+    
+    X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=0.2, shuffle = True)
     
     has = utility.has_collection("rp_images_embeddings")
     
@@ -157,7 +167,7 @@ def StoreEmbeddingsIntoMulvis(embeddings, labels):
     return rp_images_embeddings, X_test, y_test
     
     
-def ClassifyUsingMulvis(collection, test_x, test_y):
+def ClassifyUsingMulvis(collection, test_x, test_y, limit, metric_type):
     
     print("Start loading")
     collection.load()
@@ -171,22 +181,58 @@ def ClassifyUsingMulvis(collection, test_x, test_y):
     vectors_to_search = test_x
     
     search_params = {
-        "metric_type": "l2",
+        "metric_type": metric_type,
         "params": {"nprobe": 10},
     }
 
     #start_time = time.time()
-    result = collection.search(vectors_to_search, "embeddings", search_params, limit=3, output_fields=["label"])
+    result = collection.search(vectors_to_search, "embeddings", search_params, limit=limit, output_fields=["label"])
     #end_time = time.time()
-
+    
+    accuracy = 0
+    
     for i, hits in enumerate(result):
-        print("label test_x", test_y[i])
+        
+        #print("label test_x", test_y[i])
+        
+        ones = 0
+        
         for hit in hits:
-            print(f"hit: {hit}, label: {hit.entity.get('label')}")
-        print("========================================")
+            
+            ones = ones + hit.entity.get('label')
+            
+            #print(f"hit: {hit}, label: {hit.entity.get('label')}")
+            
+        if (test_y[i] == 1 and ones >= (limit // 2) + 1):
+            accuracy = accuracy + 1
+        elif (test_y[i] == 0 and ones < (limit // 2) + 1):
+            accuracy = accuracy + 1
+            
+        #print("========================================")
+    
+    print("Accuracy: ", str(accuracy / len(test_y) ) )
     #print(search_latency_fmt.format(end_time - start_time))
 
-
+def ProcessFolder(folder, limit , metric_type):
+    print(folder)
+    print("Limit", limit)
+    print("Metric type", metric_type)
+    embeddings, labels = BuildEmbeddings(folder, 20, 1000)
+    rp_images_embeddings, X_test, y_test = StoreEmbeddingsIntoMulvis(embeddings, labels)
+    ClassifyUsingMulvis(rp_images_embeddings, X_test, y_test, limit , metric_type)
+    print("==============================================")
+    
+def ProcessDataSet(folder, dataset):
+    
+    dirs = [x[0] for x in os.walk(folder)]
+    
+    for d in dirs:
+        if  d.find(dataset) != -1 :
+            ProcessFolder(d, 1 ,  "L2")
+            ProcessFolder(d, 13 , "L2")
+            ProcessFolder(d, 51 , "L2")
+            ProcessFolder(d, 101 ,"L2")
+    
         
 #main
 
@@ -200,10 +246,30 @@ data_folder="H:\data"
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
 
 
-folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_1_per_20_nepo_20_set_BNCI2014008_as_image"
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_1_per_20_nepo_600_set_BNCI2014008_as_image" # 0.7
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_1_per_20_nepo_600_set_BNCI2014008_as_image"  #
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_3_per_20_nepo_400_set_BNCI2014008_as_image"
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_1_per_20_nepo_600_set_BNCI2014008_as_image"
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_3_per_20_nepo_400_set_BNCI2014008_as_image"
 
-embeddings, labels = BuildEmbeddings(folder, 20, 10000)
-rp_images_embeddings, X_test, y_test = StoreEmbeddingsIntoMulvis(embeddings, labels)
-ClassifyUsingMulvis(rp_images_embeddings, X_test, y_test)
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_1_per_20_nepo_600_set_BNCI2014008_as_image")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_3_per_20_nepo_400_set_BNCI2014008_as_image")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_1_per_20_nepo_600_set_BNCI2014008_as_image")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_3_per_20_nepo_400_set_BNCI2014008_as_image")
+
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 13, "L2") #0.56
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 3, "L2") #0.52
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 1, "L2")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 51, "L2") #0.56
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 1, "IP")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 3, "IP")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 13, "IP")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 51, "IP")
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 101, "L2") #0.57
+
+ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 101, "L2") #0.56
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 13, "L2") #0.56
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 51, "L2") #0.56
+#ProcessDataSet(data_folder, "BNCI2014009")
 
 print("Done.")

@@ -170,7 +170,7 @@ def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subject
             n_jobs = 9
             processes = [None] * n_jobs            
             i=0          
-            parallel = False
+            parallel = True
             
             if (parallel):
             
@@ -194,12 +194,23 @@ if __name__ == '__main__':
     f1 = paradigm.filters[0][0]
     f2 = paradigm.filters[0][1]
 
-    db = BNCI2014008()
+    db = BNCI2014009()#BNCI2014008()
     
     db_bame = GetDatasetNameAsString(db)
+    
     electrodes = [GetElectrodeByName(db_bame,"Fz"), GetElectrodeByName(db_bame,"Cz"), GetElectrodeByName(db_bame,"Pz"), GetElectrodeByName(db_bame,"Oz") ]
     
-    CreateData(db, 5, 30 , f1 ,f2 , [4,5,7], 1, 20, 600)
+    #CreateData(db, 5, 30 , f1 ,f2 , electrodes, 1, 20, 600)
+    #CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 1, 20, 600)
+    
+    #CreateData(db, 5, 30 , f1 ,f2 , electrodes, 3, 20, 400)
+    #CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 3, 20, 400)
+    
+    #CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10, 20, 400)
+    #CreateData(db, 5, 30 , f1 ,f2 , electrodes, 10, 20, 400)
+    
+    CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10, 20, 800)
+    
     end = time.time()
     print("Elapsed time (in seconds):",end - start)
     
