@@ -344,7 +344,10 @@ def ProcessSVM(train_x, train_y, test_x, test_y):
     #clf = svm.SVC()
     #scores = cross_val_score(clf, dd, train_y, cv = 5)
     svclassifier = SVC(kernel='linear')
+    print("SVM train ...")
     svclassifier.fit(train_xx, train_y)
+    
+    print("SVM predict ...")
     y_pred = svclassifier.predict(test_x)
     
     ba = balanced_accuracy_score(test_y, y_pred)
