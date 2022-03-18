@@ -24,6 +24,7 @@ import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
+import random
 
 from pymilvus import (
     connections,
@@ -116,13 +117,27 @@ def BuildEmbeddings(folder, n_max_subjects, n_max_samples):
     return epochs_all_subjects, label_all_subjects
     
 def StoreEmbeddingsIntoMulvis(embeddings, labels):
-    connections.connect("default", host="localhost", port="19530")
+    
+    connections.connect(
+        alias="default", 
+        host='127.0.0.1', 
+        port='19530')
     
     #shuffle
-    indices = np.arange(len(labels))
-    np.random.shuffle(indices)
-    embeddings = embeddings[indices]
-    labels = labels[indices]
+    #indices = np.arange(len(labels))
+    #np.random.shuffle(indices)
+    
+    c = list(zip(embeddings, labels))
+    
+    random.shuffle(c)
+    random.shuffle(c)
+    random.shuffle(c)
+
+    embeddings, labels = zip(*c)
+    
+    #if numpy array is used it changes the inferred type from int32 to in 64 and thus exception !!!!!!
+    #embeddings =  np.array(embeddings)[indices]
+    #labels =  np.array(labels)[indices]
     
     X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=0.2, shuffle = True)
     
@@ -138,13 +153,13 @@ def StoreEmbeddingsIntoMulvis(embeddings, labels):
     fields = [
         FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
         FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=embedding_len),
-        FieldSchema(name="label", dtype=DataType.INT64),
+        FieldSchema(name="label", dtype=DataType.INT64), #if 64 then it does not work
     ]
 
     schema = CollectionSchema(fields, "Schema data stores embeddinigs")
 
     #print(fmt.format("Create collection `hello_milvus`"))
-    rp_images_embeddings = Collection("rp_images_embeddings", schema, consistency_level="Strong")
+    rp_images_embeddings_col = Collection("rp_images_embeddings", schema, consistency_level="Strong")
 
     print("Start inserting ...")
     
@@ -152,7 +167,7 @@ def StoreEmbeddingsIntoMulvis(embeddings, labels):
     
     entities = [ [i for i in range(len(X_train))], X_train, y_train]
 
-    insert_result = rp_images_embeddings.insert(entities)
+    insert_result = rp_images_embeddings_col.insert(entities)
     
     print("Create index")
     
@@ -162,9 +177,9 @@ def StoreEmbeddingsIntoMulvis(embeddings, labels):
         "params": {"nlist": 128},
     }
 
-    rp_images_embeddings.create_index("embeddings", index)
+    rp_images_embeddings_col.create_index("embeddings", index)
     
-    return rp_images_embeddings, X_test, y_test
+    return rp_images_embeddings_col, X_test, y_test
     
     
 def ClassifyUsingMulvis(collection, test_x, test_y, limit, metric_type):
@@ -218,6 +233,7 @@ def ProcessFolder(folder, limit , metric_type):
     print("Limit", limit)
     print("Metric type", metric_type)
     embeddings, labels = BuildEmbeddings(folder, 20, 1000)
+    #embeddings, labels = BuildEmbeddings(folder, 1, 20)
     rp_images_embeddings, X_test, y_test = StoreEmbeddingsIntoMulvis(embeddings, labels)
     ClassifyUsingMulvis(rp_images_embeddings, X_test, y_test, limit , metric_type)
     print("==============================================")
@@ -229,9 +245,13 @@ def ProcessDataSet(folder, dataset):
     for d in dirs:
         if  d.find(dataset) != -1 :
             ProcessFolder(d, 1 ,  "L2")
+            ProcessFolder(d, 3 ,  "L2")
+            ProcessFolder(d, 5 ,  "L2")
             ProcessFolder(d, 13 , "L2")
+            ProcessFolder(d, 27 , "L2")
             ProcessFolder(d, 51 , "L2")
             ProcessFolder(d, 101 ,"L2")
+            ProcessFolder(d, 201 ,"L2")
     
         
 #main
@@ -239,8 +259,8 @@ def ProcessDataSet(folder, dataset):
 #print("Test data:================================================================================================================")
 
 #data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
-data_folder="H:\data"
-#data_folder="C:\Temp\data"
+#data_folder="H:\data"
+data_folder="C:\Temp\data"
 #data_folder="h:\data"
 #configure tensor flow to avoid GPU out memory error
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
@@ -267,9 +287,12 @@ data_folder="H:\data"
 #ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 51, "IP")
 #ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_4_nsub_10_per_20_nepo_400_set_BNCI2014008_as_image", 101, "L2") #0.57
 
-ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 101, "L2") #0.56
+#use all data 7400 images that was possible before
+#ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 101, "L2") #0.56
 #ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 13, "L2") #0.56
 #ProcessFolder(data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_400_set_BNCI2014009_as_image", 51, "L2") #0.56
-#ProcessDataSet(data_folder, "BNCI2014009")
+ProcessDataSet(data_folder, "BNCI2014009")
+
+#test svm or linear regression on the vector enbeddings
 
 print("Done.")

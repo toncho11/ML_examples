@@ -22,6 +22,9 @@ import os
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
+from sklearn import svm, datasets
+from sklearn.model_selection import cross_val_score
+from sklearn.svm import SVC
 
 #disable GPU because the memory of the GPU is not enough or some bug
 disableGPU = True
@@ -137,7 +140,9 @@ def LoadImages(folder, n_max_subjects, n_max_samples):
 
                     rp_image=np.load(os.path.join(folder, filename))
 
-                    epochs_all_subjects.append(rp_image)
+                    epochs_all_subjects.append(rp_image[0:40,0:40]) #y,x
+                    #epochs_all_subjects.append(rp_image[0:40,0:80])
+                    #epochs_all_subjects.append(np.concatenate((rp_image[0:30,60:85], rp_image[50:80,0:25]), axis=0))
 
                     label_all_subjects.append(label)
             
@@ -152,21 +157,21 @@ def Model1(img_size1, img_size2):
     model = Sequential()
     model.add(Conv2D(32, (2, 2), input_shape=(img_size1,img_size2,1)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
       
     model.add(Conv2D(32, (2, 2)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
       
     model.add(Conv2D(64, (2, 2)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
       
     model.add(Flatten())
     model.add(Dense(64))
     model.add(Activation('relu'))
     
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
     
@@ -181,47 +186,58 @@ def Model2(img_size1, img_size2):
     model = Sequential()
     model.add(Conv2D(32, (t, t), input_shape=(img_size1,img_size2,1)))
     model.add(Activation('relu'))
-    
-    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+    #model.add(MaxPooling2D(pool_size=(t/2, t/2)))
       
     model.add(Conv2D(64, (t, t)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+    #model.add(MaxPooling2D(pool_size=(t/2, t/2)))
       
     model.add(Conv2D(128, (t, t)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+    #model.add(MaxPooling2D(pool_size=(t/2, t/2)))
     
     model.add(Conv2D(128, (t, t)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(t/2, t/2)))
+    #model.add(MaxPooling2D(pool_size=(t/2, t/2)))
       
     model.add(Flatten())
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
     
     model.compile(loss='binary_crossentropy',
-                  optimizer=optimizers.RMSprop(learning_rate=1e-4),
+                  optimizer='adam',#optimizers.RMSprop(learning_rate=1e-4),
                   metrics=['accuracy'])
     return model
 
+def Print(message):
+    l = len(message)
+    for i in range(l+2):
+        print("-", end = '')
+    print("")
+    print("|", end = '')
+    print(message, end = '')
+    print("|")
+    for i in range(l+2):
+        print("-", end = '')
+    print()
+    
 def Evaluate(model, x_test, y_test):
     
-    actual = y_test
-    print("=====================================================")
+    Print("Deep Learning")
     
     results = model.evaluate(x_test, y_test)
     print("Evaluate on test data (never seen): test acc:", results[1])
     
     y_pred =  model.predict(x_test)
     y_pred_bin = np.round_(y_pred).astype(int)
-    ba = balanced_accuracy_score(actual, y_pred_bin)
+    ba = balanced_accuracy_score(y_test, y_pred_bin)
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
     
     #y_out_prob=model.predict(input_fn=x_test,predict_keys="probabilities")
     #print("Predictions probability: ", y_out_prob)
+    print("=====================================================")
 
 def Evaluate2(model, x_test, y_test, m1, m2):
     
@@ -233,17 +249,15 @@ def Evaluate2(model, x_test, y_test, m1, m2):
     y_pred1 =  model.predict(x_test1)
     y_pred2 =  model.predict(x_test2)
 
-def Evaluate3(model, x_test, y_test,m):
+def Evaluate3(model, x_test, y_test):
     
     #normalize
     for k in range(len(x_test)):
 
-        data = x_test[k] - m
+        data = x_test[k]
         x_test[k] = (data - np.min(data)) / (np.max(data) - np.min(data))
         
     actual = y_test
-    print("=====================================================")
-    
     results = model.evaluate(x_test, y_test)
     print("Evaluate on test data (never seen): test acc:", results[1])
     
@@ -321,6 +335,22 @@ def Normalize2(data_x): #removes the mean and puts in the interval [0..1] range
         
     return data_x, mean
 
+def ProcessSVM(train_x, train_y, test_x, test_y):
+    
+    Print("SVM results")
+    train_xx = train_x.reshape(train_x.shape[0], train_x.shape[1] * train_x.shape[2])
+    test_x   = test_x.reshape(test_x.shape[0], test_x.shape[1] * test_x.shape[2])
+    
+    #clf = svm.SVC()
+    #scores = cross_val_score(clf, dd, train_y, cv = 5)
+    svclassifier = SVC(kernel='linear')
+    svclassifier.fit(train_xx, train_y)
+    y_pred = svclassifier.predict(test_x)
+    
+    ba = balanced_accuracy_score(test_y, y_pred)
+    print("Evaluate on test data (never seen): balanced accuracy:", ba)
+    print("======================================")
+
 def ProcessFolder(epochs_all_subjects, label_all_subjects):
     
     #build model
@@ -334,7 +364,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
     img_size1, img_size2 = np.array(epochs_all_subjects[0]).shape
     print("Image size: ", img_size1, img_size2)
     
-    model = Model1(img_size1, img_size2)
+    model = Model2(img_size1, img_size2)
 
     iterations = 1
     average_classification = 0;
@@ -368,7 +398,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         # y_test = np.array(y_test)
 
 
-        epochs = 30;
+        epochs = 5;
         
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -393,13 +423,13 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
         
         #get test data
-        test_x = data_to_process[0:test_n]
+        test_x = data_to_process[0:test_n] #getting random samples, but not saying how much per class
         test_y = labels_shuffled[0:test_n]
         data_to_process = data_to_process[test_n:]
         labels_shuffled = labels_shuffled[test_n:]
         
         #Nozmalize
-        normalize = True
+        normalize = False
         print("Normalize")
         if (normalize):
             data_to_process, m = Normalize2(data_to_process)
@@ -416,13 +446,14 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         print("Train: Class target samples: ", sum(labels_shuffled))
         
         print("Start model fit")
-        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=True )
+        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2)
 
-        print("Last validation accuracy = ", history.history['val_accuracy'][epochs-1])
+        #print("Last validation accuracy = ", history.history['val_accuracy'][epochs-1])
         
         #Evaluate2(model, test_x, test_y, m1, m2)
-        Evaluate3(model, test_x, test_y, m)
-        return history.history['val_accuracy'][epochs-1]
+        ProcessSVM(data_to_process, np.array(labels_shuffled), test_x, test_y)
+        Evaluate(model, test_x, test_y)
+        #return history.history['val_accuracy'][epochs-1]
         
         
 #print("Test data:================================================================================================================")
@@ -456,11 +487,11 @@ data_folder="C:\Temp\data"
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
 
-folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_5_per_20_nepo_800_set_bi2013a" #good results on BNCI2014008
+folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_12_per_40_nepo_1200_set_BNCI2014009_as_image" #good results on BNCI2014008
 
 #folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_4_per_20_nepo_800"
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 1, 10000)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")

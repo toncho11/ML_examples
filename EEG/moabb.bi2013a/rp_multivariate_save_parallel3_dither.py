@@ -83,13 +83,18 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
              v2 = X_traj[j,:]
              X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
     
-    percents = np.percentile(X_dist,percentage)
+    #percents = np.percentile(X_dist,percentage)
     
-    X_rp = X_dist < percents
+    #X_rp = X_dist < percentage #needs to be disabled for dither
     
-    #out = Dither.dither(X_dist, 'floyd-steinberg', resize=False)
+    #in which sense the treshholding should be done ??????????????????
     
-    return X_rp #out
+    out = Dither.dither(X_dist, 'floyd-steinberg', resize=False)
+    
+    #out = X_dist
+    
+    #return X_rp #out
+    return out
 
 def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percentage):
 
@@ -105,17 +110,19 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
     
         print("Saving: " + full_filename)
         # plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
-        #np.save(full_filename, single_epoch_subject_rp)
+        np.save(full_filename, single_epoch_subject_rp)
         
         #save as image
-        im = Image.fromarray(single_epoch_subject_rp)
-        im.save(full_filename + ".jpeg")
+        #im = Image.fromarray(single_epoch_subject_rp)
+        #im.rotate(90)
+        #im.save(full_filename + ".jpeg")
 
 def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
     #folder = "h:\\data"
-    folder = "h:\\data"
+    #folder = "h:\\data"
+    folder = "c:\\temp\data"
 
     folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ + "_as_image"
    
@@ -133,7 +140,9 @@ def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subject
         
     print("Write rp image data:")
     
-      
+    
+    #for dataset in datasets:
+        
     for subject_i, subject in enumerate(dataset.subject_list[0:n_subjects]):
         
         epochs_class_1 = 0
@@ -191,11 +200,22 @@ if __name__ == '__main__':
     f1 = paradigm.filters[0][0]
     f2 = paradigm.filters[0][1]
 
+    #[BNCI2014009] #bi2013a()  , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
     db = BNCI2014009()#BNCI2014008()
     
     db_bame = GetDatasetNameAsString(db)
     
-    electrodes = [GetElectrodeByName(db_bame,"Fz"), GetElectrodeByName(db_bame,"Cz"), GetElectrodeByName(db_bame,"Pz"), GetElectrodeByName(db_bame,"Oz") ]
+    #PO7, PO8, P3, and P4
+    #4009:"Fz", "FCz", "Cz", "CPz", "Pz", "Oz", "F3", "F4", "C3", "C4", "CP3", "CP4", "P3", "P4", "PO7", "PO8"
+    electrodes = [GetElectrodeByName(db_bame,"Fz"), 
+                  GetElectrodeByName(db_bame,"Cz"), 
+                  GetElectrodeByName(db_bame,"Pz"), 
+                  GetElectrodeByName(db_bame,"Oz"),
+                  GetElectrodeByName(db_bame,"PO7"),
+                  GetElectrodeByName(db_bame,"PO8"),
+                  GetElectrodeByName(db_bame,"P3"),
+                  GetElectrodeByName(db_bame,"P4")
+                  ]
     
     #CreateData(db, 5, 30 , f1 ,f2 , electrodes, 1, 20, 600)
     #CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 1, 20, 600)
@@ -206,7 +226,13 @@ if __name__ == '__main__':
     #CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10, 20, 400)
     #CreateData(db, 5, 30 , f1 ,f2 , electrodes, 10, 20, 400)
     
-    CreateData(db, 5, 30 , f1 ,f2 , [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10, 20, 800)
+    #CreateData(db, 2, 30 , f1 ,f2 , electrodes, 1, 40, 800) 0.81
+    CreateData(db, 5, 30 , f1 ,f2 , electrodes, 12, 40, 1200)
+    #CreateData(db, 2, 40 , f1 ,f2 , electrodes, 2, 40, 800)
+    #CreateData(db, 2, 5 , f1 ,f2 , electrodes, 2, 40, 800)
+    #CreateData(db, 7, 30 , f1 ,f2 , electrodes, 2, 40, 800)
+    #CreateData(db, 7, 20 , f1 ,f2 , electrodes, 2, 40, 800)
+    #CreateData(db, 7, 5 , f1 ,f2 , electrodes, 2, 40, 800)
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)
