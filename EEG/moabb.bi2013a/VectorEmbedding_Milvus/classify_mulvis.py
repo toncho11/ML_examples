@@ -37,10 +37,10 @@ from pymilvus import (
 =============================
 Classification of EGG signal for P300 classification. 
 It loads previously generated images.
-Next it uses a processing pipeline from towhee with pre-trained CNN (par example ResNet-50) to generate embedding vectors.
-The embedding vectors are stored in Milvus database.
+Next it uses a processing pipeline from towhee with pre-trained CNN (for example ResNet-50) to generate embedding vectors.
+The embedding vectors are stored in the Milvus database.
 Milvus is used for classification. The first 3,5 or 51 vectors are used for AKNN.
-If most of the closests vectors are of class C0 then the current samples labeled as C0.
+If most of the closests vectors are of class C0 then the current samples is labeled as C0.
 =============================
 
 Python 3.8.8
