@@ -1,6 +1,7 @@
 #source https://machinelearningmastery.com/random-forest-ensemble-in-python/
 
-# evaluate random forest algorithm for classification
+# Random forest ensemble is an ensemble of decision trees and a natural extension of bagging.
+
 from numpy import mean
 from numpy import std
 from sklearn.datasets import make_classification
