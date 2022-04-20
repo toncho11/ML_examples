@@ -5,6 +5,13 @@ GradientBoostingClassifier
 source 1: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html
 source 2: https://towardsdatascience.com/gradient-boosting-classification-explained-through-python-60cc980eeb3d
 
+Boosting:
+- Adaptive Boosting (also called AdaBoost)
+- Gradient Boosting (shown here)
+
+Comparison:
+https://analyticsindiamag.com/adaboost-vs-gradient-boosting-a-comparison-of-leading-boosting-algorithms/#:~:text=outliers%20than%20AdaBoost.-,Flexibility,Boosting%20more%20flexible%20than%20AdaBoost.
+https://www.educba.com/random-forest-vs-gradient-boosting/
 '''
 
 import pandas as pd
