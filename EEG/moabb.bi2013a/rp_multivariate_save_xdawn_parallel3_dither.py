@@ -13,7 +13,7 @@ import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
-import Dither
+import Dither #pip install PyDither
 import os
 import glob
 import time
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     
     #CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True)
     
-    CreateData( bi2013a(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True) #0.7
+    CreateData( BNCI2014008(), 7, 20, f1, f2, [], Subjects , 20 , SamplesPerClass, True) #0.7
     
     end = time.time()
     print("Elapsed time (in seconds):",end - start)

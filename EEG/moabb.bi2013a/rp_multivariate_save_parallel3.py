@@ -6,14 +6,18 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import balanced_accuracy_score, make_scorer
 
-from moabb.datasets import bi2013a #, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
+from moabb.datasets import BNCI2014008, bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
 
 import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
-import Dither
+import sys
+sys.path.append('C:\\Work\\PythonCode\\ML_examples\\EEG\\P300Analysis\\')
+from DatasetHelper import *
+
+#import Dither #pip install PyDither
 import os
 import glob
 import time
@@ -27,7 +31,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 from mne import set_log_level
 set_log_level("CRITICAL")
 
-datasets = [bi2013a()] # , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
+#datasets = [BNCI2014008()] # bi2013a() , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
 paradigm = P300()
 
 le = LabelEncoder()
@@ -102,11 +106,11 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
         # plt.imshow(single_epoch_subject_rp, cmap = plt.cm.binary)
         np.save(full_filename, single_epoch_subject_rp)
 
-def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
+def CreateData(folder, dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
     #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
     #folder = "h:\\data"
-    folder = "h:\\data"
+    
 
     folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) 
     
@@ -114,51 +118,59 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
     
     if not os.path.exists(folder):
         os.makedirs(folder)
-
-    print("Clean data:")
     
-    files = glob.glob(folder + "\\*")
-    for f in files:
-        if f.endswith(".npy"):
-            os.remove(f)
+    clean_data = False
+    
+    if (clean_data):
+        print("Clean data:")
+        
+        files = glob.glob(folder + "\\*")
+        for f in files:
+            if f.endswith(".npy"):
+                os.remove(f)
+    else:
+        print("No folder clean.")
         
     print("Write rp image data:")
     
     
-    for dataset in datasets:
+    #for dataset in datasets:
         
-        for subject_i, subject in enumerate(dataset.subject_list[0:n_subjects]):
-            
-            epochs_class_1 = 0
-            epochs_class_2 = 0
-            
-            print("Loading subject:" , subject)  
-            X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
-            y = le.fit_transform(y)
-            print(X.shape) 
-            #0 NonTarget
-            #1 Target       
-            print("Class target samples: ", sum(y))
-            print("Class non-target samples: ", len(y) - sum(y))
+    for subject_i, subject in enumerate(dataset.subject_list[0:n_subjects]):
+        
+        epochs_class_1 = 0
+        epochs_class_2 = 0
+        
+        print("Loading subject:" , subject)  
+        X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+        y = le.fit_transform(y)
+        print(X.shape) 
+        #0 NonTarget
+        #1 Target       
+        print("Class target samples: ", sum(y))
+        print("Class non-target samples: ", len(y) - sum(y))
 
-            index_label1 = [];
-            index_label2 = [];
-            
-            #get only the required number of samples
-            for idx,val in enumerate(y):
-                if (val == 0 and epochs_class_1 < max_epochs_per_subject):
-                    index_label1.append(idx)
-                    epochs_class_1 = epochs_class_1 + 1
-                elif (val == 1 and epochs_class_2 < max_epochs_per_subject):
-                    index_label2.append(idx)
-                    epochs_class_2 = epochs_class_2 + 1
-            
-            print("Selected data target samples: ", epochs_class_1)
-            print("Selected non-target samples: ",  epochs_class_2)
-            
-            n = 10;
-            processes = [None] * n
-            
+        index_label1 = [];
+        index_label2 = [];
+        
+        #get only the required number of samples
+        for idx,val in enumerate(y):
+            if (val == 0 and epochs_class_1 < max_epochs_per_subject):
+                index_label1.append(idx)
+                epochs_class_1 = epochs_class_1 + 1
+            elif (val == 1 and epochs_class_2 < max_epochs_per_subject):
+                index_label2.append(idx)
+                epochs_class_2 = epochs_class_2 + 1
+        
+        print("Selected data target samples: ", epochs_class_1)
+        print("Selected non-target samples: ",  epochs_class_2)
+        
+        n = 10;
+        processes = [None] * n
+        
+        parallel = True
+        
+        if (parallel):
             i=0;
             print("Starting processes")
             for section in np.array_split(index_label1 + index_label2 , n):
@@ -170,6 +182,9 @@ def CreateData(m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percen
             print("Setting threads to join:")
             for p in processes:
                  p.join()
+        else:
+            ProcessSamples(index_label1 + index_label2, X, y, folder, subject, m, tau, electrodes, percentage)
+                 
 
 if __name__ == '__main__':
 
@@ -177,8 +192,25 @@ if __name__ == '__main__':
     f1 = paradigm.filters[0][0]
     f2 = paradigm.filters[0][1]
 
+    folder = "h:\\data"
     #CreateData(5,40,f1,f2,[8,9,10,11,12,13,14,15],16,20,200) #standard
-    CreateData(5,30,f1,f2,[9,10,11,13,14,15],16,20,200) #a different electrode set
+    #CreateData(folder,5,30,f1,f2,[9,10,11,13,14,15],16,20,200) #a different electrode set
+    
+    db = BNCI2014009()#BNCI2014008()
+    db_bame = GetDatasetNameAsString(db)
+    
+    electrodes = [GetElectrodeByName(db_bame,"Fz"), 
+                  GetElectrodeByName(db_bame,"Cz"), 
+                  GetElectrodeByName(db_bame,"Pz"), 
+                  GetElectrodeByName(db_bame,"Oz"),
+                  GetElectrodeByName(db_bame,"PO7"),
+                  GetElectrodeByName(db_bame,"PO8"),
+                  GetElectrodeByName(db_bame,"P3"),
+                  GetElectrodeByName(db_bame,"P4")
+                  ]
+    
+    CreateData(folder, db, 3, 30, f1, f2, electrodes , 2 , 20 , 20) #a different electrode set
+    
     end = time.time()
     print("Elapsed time (in seconds):",end - start)
     

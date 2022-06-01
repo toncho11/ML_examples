@@ -354,7 +354,7 @@ def ProcessSVM(train_x, train_y, test_x, test_y):
     print("Evaluate on test data (never seen): balanced accuracy:", ba)
     print("======================================")
 
-def ProcessFolder(epochs_all_subjects, label_all_subjects):
+def ProcessFolder(epochs_all_subjects, label_all_subjects, test_n):
     
     #build model
     
@@ -371,7 +371,6 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
     iterations = 1
     average_classification = 0;
-    test_n = 400
         
     for i in range(iterations):
         
@@ -425,7 +424,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
         
-        #get test data
+        #split manually into train and test data
         test_x = data_to_process[0:test_n] #getting random samples, but not saying how much per class
         test_y = labels_shuffled[0:test_n]
         data_to_process = data_to_process[test_n:]
@@ -463,8 +462,8 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 
 #data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #data_folder="H:\data"
-data_folder="C:\Temp\data"
-#data_folder="h:\data"
+#data_folder="C:\Temp\data"
+data_folder="h:\data"
 #configure tensor flow to avoid GPU out memory error
 #https://stackoverflow.com/questions/36927607/how-can-i-solve-ran-out-of-gpu-memory-in-tensorflow/60558547#60558547
 
@@ -490,11 +489,11 @@ data_folder="C:\Temp\data"
 #folder = data_folder + "\\rp_m_5_tau_40_f1_1_f2_24_el_8_nsub_16_per_20_nepo_200"
 #folder = data_folder + "\\rp_m_6_tau_40_f1_1_f2_24_el_8_nsub_3_per_20_nepo_50" 
 
-folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_12_per_40_nepo_1200_set_BNCI2014009_as_image" #good results on BNCI2014008
+#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_12_per_40_nepo_1200_set_BNCI2014009_as_image"
 
-#folder = data_folder + "\\rp_m_5_tau_30_f1_1_f2_24_el_3_nsub_4_per_20_nepo_800"
+folder = data_folder + "\\rp_m_3_tau_30_f1_1_f2_24_el_8_nsub_2_per_20_nepo_20"
 #rp_m_5_tau_30_f1_1_f2_24_el_8_nsub_10_per_20_nepo_800_set_BNCI2015003_xdawn_yes
-epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000)
+epochs_all_subjects, label_all_subjects = LoadImages(folder, 20, 10000, 200)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     
 print("Done.")
