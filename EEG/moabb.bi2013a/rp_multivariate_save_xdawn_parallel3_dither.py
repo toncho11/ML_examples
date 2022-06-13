@@ -30,18 +30,14 @@ set_log_level("CRITICAL")
 
 from mne.preprocessing import Xdawn
 
-#datasets = [bi2013a() , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
-#used already bi2013a, BNCI2014008
-#datasets = [ BNCI2014009()]
 paradigm = P300()
 
 le = LabelEncoder()
 
 #https://www.researchgate.net/figure/Common-electrode-setup-for-P300-spellers-according-to-8-Eight-EEG-electrodes-are_fig1_221583051
 #Common electrode setup for P300 spellers according to [8]. 
-# Eight EEG electrodes are placed at Fz, Cz, P3, Pz, P4, PO7, Oz and PO8. [3,6,9,10,11,14,15,16] 
+#Eight EEG electrodes are placed at Fz, Cz, P3, Pz, P4, PO7, Oz and PO8
 #bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
-#[9,10,11,13,14,15]
 
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
     
