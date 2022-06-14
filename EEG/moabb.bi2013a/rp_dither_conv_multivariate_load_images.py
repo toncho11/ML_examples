@@ -178,7 +178,7 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         print("Class non-target samples: ", len(labels_shuffled) - sum(labels_shuffled))
         print("Class target samples: ", sum(labels_shuffled))
 
-        epochs = 15;
+        epochs = 50;
         #model.fit(X_train, y_train, epochs=5, validation_data = (X_test,y_test) ) #validation_data=(X_test,y_test)
         #history = model.fit(np.array(epochs_all_subjects)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
         #history = model.fit(np.array(all_images_shuffled)[:, :, :, np.newaxis],  np.array(labels_shuffled), epochs=epochs, validation_split=0.2 )
@@ -187,18 +187,18 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
         data_to_process = data_to_process.reshape(data_to_process.shape[0],data_to_process.shape[1],data_to_process.shape[2],1)
         print(data_to_process.shape)
         print("Start model fit")
-        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=True )
+        history = model.fit(data_to_process,  np.array(labels_shuffled), epochs=epochs, validation_split=0.2, shuffle=False )
         
         #sample = data_to_process[4]   
         #plt.imshow(sample, cmap = plt.cm.binary, origin='lower')
         
-        print("Validation accuracy = ", history.history['val_accuracy'][epochs-1])
-        return history.history['val_accuracy'][epochs-1]
+        #print("Validation accuracy = ", history.history['val_accuracy'][epochs-1])
+        # return history.history['val_accuracy'][epochs-1]
         
         
 #print("Test data:================================================================================================================")
 
-data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
+data_folder="c:\\temp\\data"
 
 # results = []
 # max_folder = 20;
@@ -217,7 +217,7 @@ data_folder="D:\Work\ML_examples\EEG\moabb.bi2013a\data"
 #ProcessFolder(data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_3_per_-1_nepo_20",100)
 
 #folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_20_el_4_nsub_12_per_-1_nepo_300" #0.67
-folder = data_folder + "\\rp_dither_m_5_tau_40_f1_1_f2_24_el_8_nsub_5_per_-1_nepo_200" 
+folder = data_folder + "\\rp_m_7_tau_20_f1_1_f2_24_el_all_nsub_1_per_20_nepo_60_set_BNCI2014008_xdawn_yes_dither" 
 epochs_all_subjects, label_all_subjects = LoadImages(folder,5,800)
 ProcessFolder(epochs_all_subjects, label_all_subjects)
     

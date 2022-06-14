@@ -117,12 +117,9 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
         #im.rotate(90)
         #im.save(full_filename + ".jpeg")
 
-def CreateData(dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
+def CreateData(base_output_folder, dataset, m, tau , filter_fmin, filter_fmax, electrodes, n_subjects, percentage, max_epochs_per_subject):
     
-    #folder = "C:\\Work\PythonCode\\ML_examples\\EEG\\moabb.bi2013a\\data"
-    #folder = "h:\\data"
-    #folder = "h:\\data"
-    folder = "c:\\temp\data"
+    folder = base_output_folder
 
     folder = folder + "\\rp_m_" + str(m) + "_tau_" + str(tau) + "_f1_"+str(filter_fmin) + "_f2_"+ str(filter_fmax) + "_el_" + str(len(electrodes)) + "_nsub_" + str(n_subjects) + "_per_" + str(percentage) + "_nepo_" + str(max_epochs_per_subject) + "_set_" + dataset.__class__.__name__ + "_as_image"
    
@@ -201,9 +198,10 @@ if __name__ == '__main__':
     f2 = paradigm.filters[0][1]
 
     #[BNCI2014009] #bi2013a()  , EPFLP300(), BNCI2015003(), BNCI2014008(), BNCI2014009()]
-    db = BNCI2014009()#BNCI2014008()
+    db = BNCI2014008()#BNCI2014008()
     
     db_bame = GetDatasetNameAsString(db)
+    base_output_folder = "c:\\temp\\data"
     
     #PO7, PO8, P3, and P4
     #4009:"Fz", "FCz", "Cz", "CPz", "Pz", "Oz", "F3", "F4", "C3", "C4", "CP3", "CP4", "P3", "P4", "PO7", "PO8"
@@ -227,7 +225,7 @@ if __name__ == '__main__':
     #CreateData(db, 5, 30 , f1 ,f2 , electrodes, 10, 20, 400)
     
     #CreateData(db, 2, 30 , f1 ,f2 , electrodes, 1, 40, 800) 0.81
-    CreateData(db, 5, 30 , f1 ,f2 , electrodes, 12, 40, 1200)
+    CreateData(base_output_folder, db, 5, 30 , f1 ,f2 , electrodes, 1, 40, 60)
     #CreateData(db, 2, 40 , f1 ,f2 , electrodes, 2, 40, 800)
     #CreateData(db, 2, 5 , f1 ,f2 , electrodes, 2, 40, 800)
     #CreateData(db, 7, 30 , f1 ,f2 , electrodes, 2, 40, 800)

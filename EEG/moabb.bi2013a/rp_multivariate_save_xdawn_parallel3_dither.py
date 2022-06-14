@@ -236,8 +236,8 @@ if __name__ == '__main__':
     #CreateData(5,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, True) 
     #CreateData(6,30,f1,f2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 10 , 20 , 800, False) 
     
-    Subjects = 5; #default 10
-    SamplesPerClass = 800; #default 1000
+    Subjects = 1; #default 10
+    SamplesPerClass = 60; #default 1000
     
     #table
     #CreateData( BNCI2014009(), 6, 30, f1, f2, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], Subjects , 20 , SamplesPerClass, False) 
