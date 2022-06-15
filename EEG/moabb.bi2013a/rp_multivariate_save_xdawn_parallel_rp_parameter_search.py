@@ -48,6 +48,11 @@ le = LabelEncoder()
 #Eight EEG electrodes are placed at Fz, Cz, P3, Pz, P4, PO7, Oz and PO8
 #bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
 
+def GetElectrodes(db):
+    electrodes = []
+    #8 electrode configuration: Fz, Cz, P3, Pz, P4, PO7, Oz and PO8
+    #get if an electrode exist and add it
+
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
     
     channels_N = sample.shape[0]
@@ -67,7 +72,7 @@ def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
         print("Error in T multivariateRP ")
         sys.exit(1)
      
-    print("T=",T, "/", sample.shape[1])
+    #print("T=",T, "/", sample.shape[1])
     X_traj = np.zeros((T,points_n * channels_N))
             
     for i in range(0,T): #delta is number of vectors with  length points_n
@@ -108,7 +113,7 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
     global labels_all
     
     for sample_i in samples:
-        print("Process Sample:",sample_i)
+        #print("Process Sample:",sample_i)
         label = y[sample_i]
         sample = X[sample_i]
  
@@ -295,10 +300,12 @@ def ProcessFolder(epochs_all_subjects, label_all_subjects):
 max_score = -1;
 saved_params = []
 
+import gc
+
 def SearchHyperParameters(f1,f2):
     
-    Subjects = 1; #default 10
-    SamplesPerClass = 30; #default 1000
+    subjects = 5; #default 10
+    samples_per_class = 800; #default 1000
     
     #rp search
     #electrode search
@@ -306,17 +313,22 @@ def SearchHyperParameters(f1,f2):
 
     global images_all
     global labels_all
+    global max_score
+    global saved_params
     
-
-    for m in range(2,5):
-        for tau in range (20,22):
+    for m in range(4,8):
+        for tau in range (20,45,2):
             
-            CreateData( BNCI2014008(), m, tau, f1, f2, [], Subjects , 5 , SamplesPerClass, False)
+            CreateData( BNCI2014008(), m, tau, f1, f2, [], subjects , 5 , samples_per_class, False)
             score = ProcessFolder(images_all, labels_all)
+            print("Processing", subjects, samples_per_class, m, tau)
+            print("Current best score:", saved_params )
             if (score > max_score):
-                saved_params = [m,tau,score]
+                saved_params = [subjects, samples_per_class, m, tau, score]
+                max_score = score
             images_all = []
             labesl_all = []
+            gc.collect()
             
     print(saved_params)
 

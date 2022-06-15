@@ -30,6 +30,7 @@ def GetElectrodeCount(dataset):
         print("Error: Could not get the electrode count!")
 
 # which electrodes to use for P300: "An efficient P300-based brain–computer interface for disabled subjects"
+# A comparison of classification techniques for the P300 speller: "Fz", "Cz", "Pz", "Oz", "P3", "P4", "PO7","PO8"
 def GetChannelNames(dataset):
     if (dataset == "BNCI2014008"): #8 electrodes
         return ["Fz", "Cz", "Pz", "Oz", "P3", "P4", "PO7","PO8"]
