@@ -48,11 +48,6 @@ le = LabelEncoder()
 #Eight EEG electrodes are placed at Fz, Cz, P3, Pz, P4, PO7, Oz and PO8
 #bi2013a: FP1, FP2, F5, AFz, F6, T7, Cz, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
 
-def GetElectrodes(db):
-    electrodes = []
-    #8 electrode configuration: Fz, Cz, P3, Pz, P4, PO7, Oz and PO8
-    #get if an electrode exist and add it
-
 def multivariateRP(sample, electrodes, dimension, time_delay, percentage):
     
     channels_N = sample.shape[0]

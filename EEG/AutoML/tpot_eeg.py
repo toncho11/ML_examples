@@ -4,7 +4,7 @@ Created on Wed Jun 15 12:36:50 2022
 
 @author: antona
 """
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
 from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegression
@@ -19,14 +19,13 @@ import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
-import Dither #pip install PyDither
 import os
 import glob
 import time
 import sys
 
-from joblib import Parallel, delayed
-from multiprocessing import Process
+# from joblib import Parallel, delayed
+# from multiprocessing import Process
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -36,12 +35,12 @@ set_log_level("CRITICAL")
 
 from mne.preprocessing import Xdawn
 
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
-from tensorflow.keras import backend as K
+# import tensorflow as tf
+# from tensorflow import keras
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Conv2D, MaxPooling2D
+# from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
+# from tensorflow.keras import backend as K
 
 from tpot import TPOTClassifier
 from sklearn.model_selection import train_test_split
@@ -100,7 +99,8 @@ def BuidlDataset(dataset, electrodes, n_subjects, max_epochs_per_subject, enable
         else:
             X = np.concatenate((X, X1), axis=0)
             y = np.concatenate((y, y1), axis=0)
-        
+    
+    print("Building train data completed: ", X.shape)
     return X,y
     
 
