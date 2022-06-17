@@ -11,9 +11,9 @@ if (platform.system() != "Linux"):
     print("auto sklearn is only available on Linux")
     sys.exit()
 
-import matplotlib.pyplot as plt
-from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
-from pyriemann.tangentspace import TangentSpace
+# import matplotlib.pyplot as plt
+# from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
+# from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
@@ -43,17 +43,18 @@ set_log_level("CRITICAL")
 
 from mne.preprocessing import Xdawn
 
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
-from tensorflow.keras import backend as K
+# import tensorflow as tf
+# from tensorflow import keras
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Conv2D, MaxPooling2D
+# from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
+# from tensorflow.keras import backend as K
 
 import autosklearn.classification
 import sklearn.model_selection
 import sklearn.datasets
 import sklearn.metrics
+from sklearn.model_selection import train_test_split
 
 paradigm = P300()
 
@@ -61,7 +62,12 @@ le = LabelEncoder()
 
 def BuidlDataset(dataset, electrodes, n_subjects, max_epochs_per_subject, enableXDAWN):
     
+    #max_epochs_per_subject - not used
+    
     subjects  = enumerate(dataset.subject_list[0:n_subjects])
+    
+    X = np. array([])
+    y = np. array([])
     
     for subject_i, subject in subjects:
         
@@ -74,40 +80,51 @@ def BuidlDataset(dataset, electrodes, n_subjects, max_epochs_per_subject, enable
     
         #currently xDawn takes into account the entire dataset and not the reduced one that is used for the actual training
         if (enableXDAWN):
-            X_epochs, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject], return_epochs=True)
+            X_epochs, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject], return_epochs=True)
             print("Performing XDawn")
             xd = Xdawn(n_components=6) #output channels = 2 * n_components
-            X = np.asarray(xd.fit_transform(X_epochs))
-            electrodes = range(X.shape[1])
+            X1 = np.asarray(xd.fit_transform(X_epochs))
+            electrodes = range(X1.shape[1])
             print("Finished XDawn")
         else:
-            X, y, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+            X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
         
-        y = le.fit_transform(y)
-        print(X.shape)  
+        y1 = le.fit_transform(y1)
+        print(X1.shape)  
         
         if (electrodes == []):
-            electrodes = list(range(0,X.shape[1]))
-        elif X.shape[1] < len(electrodes):
+            electrodes = list(range(0,X1.shape[1]))
+        elif X1.shape[1] < len(electrodes):
             print("Error: electrode list is longer than electrodes in dataset")
             sys.exit(1)  
         
         print("Electrodes selected: ",electrodes)
         #0 NonTarget
         #1 Target       
-        print("Total class target samples available: ", sum(y))
-        print("Total class non-target samples available: ", len(y) - sum(y))
+        print("Total class target samples available: ", sum(y1))
+        print("Total class non-target samples available: ", len(y1) - sum(y1))
         
-        return X,y
+        if (X.size == 0):
+            X = np.copy(X1)
+            y = np.copy(y1)
+        else:
+            X = np.concatenate((X, X1), axis=0)
+            y = np.concatenate((y, y1), axis=0)
+    
+    print("Building train data completed: ", X.shape)
+    return X,y
     
 
     
 if __name__ == "__main__":
     
-    X, y = BuidlDataset()
+    db = BNCI2014008()
     
-    X_train, X_test, y_train, y_test = \
-        sklearn.model_selection.train_test_split(X, y, random_state=1)
+    X, y = BuidlDataset(db, [] , 8, -1, False)
+    
+    X = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.75, test_size=0.25)
         
     automl = autosklearn.classification.AutoSklearnClassifier()
     

@@ -5,8 +5,9 @@ Created on Wed Jun 15 12:36:50 2022
 @author: antona
 """
 #import matplotlib.pyplot as plt
-from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
-from pyriemann.tangentspace import TangentSpace
+# from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
+# from pyriemann.tangentspace import TangentSpace
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
