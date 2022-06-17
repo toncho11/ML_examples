@@ -26,14 +26,14 @@ import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
-import Dither #pip install PyDither
+#import Dither #pip install PyDither
 import os
 import glob
 import time
 import sys
 
-from joblib import Parallel, delayed
-from multiprocessing import Process
+#from joblib import Parallel, delayed
+#from multiprocessing import Process
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
