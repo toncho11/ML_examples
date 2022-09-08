@@ -37,7 +37,7 @@ from sklearn.feature_selection import chi2
 X = churn_df.drop('Exited',axis=1)
 y = churn_df['Exited']
 
-chi_scores = chi2(X,y) #here we use chi2 from sklearn, but tjere is also another one from scipy.stats
+chi_scores = chi2(X,y) #this chi2 version is designed for feature selection
 chi_scores
 
 #here first array represents chi square values and second array represnts p-values
