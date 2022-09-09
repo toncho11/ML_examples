@@ -9,7 +9,7 @@ Whenever you conduct a t-test, you will get a test statistic as a result.
 To determine if the results of the t-test are statistically significant, you 
 can compare the test statistic to a T critical value. If the absolute value
 of the test statistic is greater than the T critical value, then the results
-of the test are statistically significant.
+of the test are statistically significant to reject the Ho.
 """
 
 import scipy.stats
