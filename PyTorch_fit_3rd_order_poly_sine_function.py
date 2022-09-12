@@ -1,3 +1,10 @@
+'''
+
+Example "PyTorch: Tensors and autograd" from https://h-huang.github.io/tutorials/beginner/pytorch_with_examples.html
+
+Objective: fit a third order polynomial to sine function
+
+'''
 import torch
 import math
 
