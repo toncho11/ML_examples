@@ -78,8 +78,8 @@ class MLP(Module):
         
         # third hidden layer and output
         self.hidden3 = Linear(8, 1)
-        xavier_uniform_(self.hidden3.weight)
-        self.act3 = Sigmoid()
+        xavier_uniform_(self.hidden3.weight) # last layer uses xavier_uniform_ instead of kaiming_uniform_
+        self.act3 = Sigmoid() # in case of more than two classes the Softmax(dim=1) is used
 
     # forward propagate input
     def forward(self, X):
@@ -114,6 +114,7 @@ def train_model(train_dl, model):
     
     # define the optimization
     criterion = BCELoss() # Binary Cross Entropy Loss function (used in binary classfication)
+                          # CrossEntropyLoss used when classes are more than two
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     
     # enumerate epochs
