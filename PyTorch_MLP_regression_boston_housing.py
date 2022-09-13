@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Sep 13 08:34:54 2022
+Created on Tue Sep 13 12:39:47 2022
 
-Source: https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
+source: https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
+Objective: predicting house value based on properties of the house and neighborhood
+Method: MLP for regression using PyTorch
+Dataset: Boston Housing Data, July 7, 1993, 506 rows/inputs, 14 attributes, 13 predictors, y is th 14th
 
-This example demonstrates a binary classification implemnenting an MLP. 
-The dataset is: Johns Hopkins University Ionosphere database, 351 rows, 35 columns, 34 predictor attributes, y is the 35th column
 """
 
-# pytorch mlp for binary classification
-import numpy as np
+# pytorch mlp for regression
 from numpy import vstack
+from numpy import sqrt
 from pandas import read_csv
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from torch import Tensor
 from torch.nn import Linear
-from torch.nn import ReLU
 from torch.nn import Sigmoid
 from torch.nn import Module
 from torch.optim import SGD
-from torch.nn import BCELoss
-from torch.nn.init import kaiming_uniform_
+from torch.optim import Adam #can be used instead of SGD
+from torch.nn import MSELoss
 from torch.nn.init import xavier_uniform_
 
 # dataset definition
@@ -34,13 +33,9 @@ class CSVDataset(Dataset):
         # load the csv file as a dataframe
         df = read_csv(path, header=None)
         # store the inputs and outputs
-        self.X = df.values[:, :-1]
-        self.y = df.values[:, -1]
-        # ensure input data is floats
-        self.X = self.X.astype('float32')
-        # label encode target and ensure the values are floats
-        self.y = LabelEncoder().fit_transform(self.y)
-        self.y = self.y.astype('float32')
+        self.X = df.values[:, :-1].astype('float32')
+        self.y = df.values[:, -1].astype('float32')
+        # ensure target has the right shape
         self.y = self.y.reshape((len(self.y), 1))
 
     # number of rows in the dataset
@@ -67,19 +62,20 @@ class MLP(Module):
         super(MLP, self).__init__()
         
         # input to first hidden layer
-        self.hidden1 = Linear(n_inputs, 10) #example layers are 'Linear', 'Conv2d', 'MaxPool2d'
-        kaiming_uniform_(self.hidden1.weight, nonlinearity='relu') #Kaiming Initialization, or He Initialization, is an initialization method for neural networks that takes into account the non-linearity of activation functions, such as ReLU activations.
-        self.act1 = ReLU()
+        self.hidden1 = Linear(n_inputs, 10)
+        xavier_uniform_(self.hidden1.weight)
+        self.act1 = Sigmoid()
         
         # second hidden layer
         self.hidden2 = Linear(10, 8)
-        kaiming_uniform_(self.hidden2.weight, nonlinearity='relu')
-        self.act2 = ReLU()
+        xavier_uniform_(self.hidden2.weight)
+        self.act2 = Sigmoid()
         
         # third hidden layer and output
         self.hidden3 = Linear(8, 1)
-        xavier_uniform_(self.hidden3.weight) # last layer uses xavier_uniform_ instead of kaiming_uniform_
-        self.act3 = Sigmoid() # in case of more than two classes the Softmax(dim=1) is used
+        xavier_uniform_(self.hidden3.weight)
+        
+        #no final activation function!
 
     # forward propagate input
     def forward(self, X):
@@ -94,7 +90,6 @@ class MLP(Module):
         
         # third hidden layer and output
         X = self.hidden3(X)
-        X = self.act3(X)
         
         return X
 
@@ -105,24 +100,20 @@ def prepare_data(path):
     # calculate split
     train, test = dataset.get_splits()
     # prepare data loaders
-    train_dl = DataLoader(train, batch_size=32, shuffle=True) #DataLoader part of PyTorch
+    train_dl = DataLoader(train, batch_size=32, shuffle=True)
     test_dl = DataLoader(test, batch_size=1024, shuffle=False)
     return train_dl, test_dl
 
 # train the model
 def train_model(train_dl, model):
-    
     # define the optimization
-    criterion = BCELoss() # Binary Cross Entropy Loss function (used in binary classfication)
-                          # CrossEntropyLoss() used when classes are more than two
-    optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
+    criterion = MSELoss() #For regression MSELoss() is used insead of BCELoss() and CrossEntropyLoss() when doing classification
+    optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9) #can be used with Adam instead
     
     # enumerate epochs
     for epoch in range(100):
-        
         # enumerate mini batches
         for i, (inputs, targets) in enumerate(train_dl):
-            
             # clear the gradients
             optimizer.zero_grad()
             
@@ -131,7 +122,7 @@ def train_model(train_dl, model):
             
             # calculate loss
             loss = criterion(yhat, targets)
-            
+           
             # credit assignment
             # backward() method is used to compute the gradient during the backward pass in a neural network. The gradients are computed when this method is executed.
             loss.backward()
@@ -141,7 +132,6 @@ def train_model(train_dl, model):
 
 # evaluate the model
 def evaluate_model(test_dl, model):
-    
     predictions, actuals = list(), list()
     
     for i, (inputs, targets) in enumerate(test_dl):
@@ -151,46 +141,43 @@ def evaluate_model(test_dl, model):
         yhat = yhat.detach().numpy()
         actual = targets.numpy()
         actual = actual.reshape((len(actual), 1))
-        # round to class values
-        yhat = yhat.round()
         # store
         predictions.append(yhat)
         actuals.append(actual)
         
-    predictions, actuals = vstack(predictions), vstack(actuals) # vstack - stack arrays in sequence vertically (row wise).
+    predictions, actuals = vstack(predictions), vstack(actuals)
     
-    # calculate accuracy
-    acc = accuracy_score(actuals, predictions)
-    return acc
+    # calculate mse (Mean squared error)
+    mse = mean_squared_error(actuals, predictions)
+    return mse
 
 # make a class prediction for one row of data
 def predict(row, model):
     # convert row to data
     row = Tensor([row])
-    
     # make prediction
     yhat = model(row)
-    
     # retrieve numpy array
     yhat = yhat.detach().numpy()
     return yhat
 
 # prepare the data
-path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/ionosphere.csv'
+path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/housing.csv'
 train_dl, test_dl = prepare_data(path)
-print("Train samples =", len(train_dl.dataset), ", Test samples =", len(test_dl.dataset), ", Columns(n of inputs) =", np.shape(test_dl.dataset.dataset.X)[1])
+print(len(train_dl.dataset), len(test_dl.dataset))
 
 # define the network
-model = MLP(34) #34 predictor attributes in dataset
+model = MLP(13)
 
 # train the model
 train_model(train_dl, model)
 
 # evaluate the model
-acc = evaluate_model(test_dl, model)
-print('Accuracy: %.3f' % acc)
+mse = evaluate_model(test_dl, model)
+print('MSE: %.3f, RMSE: %.3f' % (mse, sqrt(mse))) # it can be said that RMSE values between 0.2 and 0.5 show that the model can relatively predict the data accurately
+print("MSE and RMSE seem too high on the Boston dataset?")
 
 # make a single prediction (expect class=1)
-row = [1,0,0.99539,-0.05889,0.85243,0.02306,0.83398,-0.37708,1,0.03760,0.85243,-0.17755,0.59755,-0.44945,0.60536,-0.38223,0.84356,-0.38542,0.58212,-0.32192,0.56971,-0.29674,0.36946,-0.47357,0.56811,-0.51171,0.41078,-0.46168,0.21266,-0.34090,0.42267,-0.54487,0.18641,-0.45300]
+row = [0.00632,18.00,2.310,0,0.5380,6.5750,65.20,4.0900,1,296.0,15.30,396.90,4.98]
 yhat = predict(row, model)
-print('Predicted: %.3f (class=%d)' % (yhat, yhat.round()))
+print('Predicted: %.3f' % yhat)
