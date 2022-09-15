@@ -92,7 +92,19 @@ def initialize_parameters_he(layers_dims):
      
     for l in range(1, L + 1):
         ### START CODE HERE ### (≈ 2 lines of code)
-        parameters['W' + str(l)] = np.random.randn(layers_dims[l], layers_dims[l-1]) * np.sqrt(2/layers_dims[l-1])
+        
+        '''
+        Example:
+        l = 1
+        layers_dims[l] = 10
+        layers_dims[l-1] = 2
+        np.random.randn(10, 2) returns 10 arrays of 2d arrays each containing a sample from the N distribution
+        Next this is multiplied by He initialized value: np.sqrt(2/layers_dims[l-1])
+        '''
+        normal_sampled =  np.random.randn(layers_dims[l], layers_dims[l-1])
+        he_value = np.sqrt(2/layers_dims[l-1])
+        parameters['W' + str(l)] = normal_sampled * he_value
+        
         parameters['b' + str(l)] = np.zeros((layers_dims[l], 1)) 
         ### END CODE HERE ###
         
