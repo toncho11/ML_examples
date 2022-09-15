@@ -2,6 +2,8 @@
 """
 Created on Tue Sep 13 12:39:47 2022
 
+@author: antona
+
 source: https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
 Objective: predicting house value based on properties of the house and neighborhood
 Method: MLP for regression using PyTorch

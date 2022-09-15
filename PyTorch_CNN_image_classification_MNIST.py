@@ -3,6 +3,13 @@
 Created on Tue Sep 13 13:08:10 2022
 
 @author: antona
+
+Source: https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
+
+This example demonstrates a multi class classification of the MNIST dataset.
+The MNIST database contains 60,000 training images and 10,000 testing images.
+Images are 28 x 28 pixels grayscale (with only one channel)
+
 """
 
 # pytorch cnn for multiclass classification
@@ -33,9 +40,12 @@ class CNN(Module):
     def __init__(self, n_channels):
         super(CNN, self).__init__()
         
-        #The model architecture is: CONV2D, POOL2D, CONV2D, POOL2D, LINEAR, LINEAR
-        #ReLU after for each CONV2D, no act() function for each POOL2D
-        #ReLU and Softmax are used for the last two LINEAR layers.
+        '''
+        The model architecture is: CONV2D, POOL2D, CONV2D, POOL2D, LINEAR, LINEAR
+        A layer is a transformation. LINEAR and Conv2d are functions that apply linear transformation and 2D convolution (over an input signal composed of several input planes)
+        ReLU after each CONV2D, no act() function after each POOL2D
+        ReLU and Softmax are used for the last two LINEAR layers.
+        '''
         
         # input to first hidden layer CONV2D
         self.hidden1 = Conv2d(n_channels, 32, (3,3))
@@ -94,12 +104,17 @@ class CNN(Module):
 # prepare the dataset
 def prepare_data(path):
     
-    # define standardization
-    #Note that the images are arrays of grayscale pixel data, therefore, we must add 
-    #a channel dimension to the data before we can use the images as input to the model.
-    #It is a good idea to scale the pixel values from the default range of 0-255 to 
-    #have a zero mean and a standard deviation of 1.
-    trans = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+    '''
+    Define standardization
+    Note that the images are arrays of grayscale pixel data, therefore, we must add 
+    a channel dimension to the data before we can use the images as input to the model.
+    It is a good idea to scale the pixel values from the default range of 0-255 to 
+    have a zero mean and a standard deviation of 1.
+    Compose() - composes several 'transforms' together.
+    ToTensor() - convert a ``PIL Image`` or ``numpy.ndarray`` to tensor.
+    Normalize() - normalizes a tensor image with mean and standard deviation.
+    '''
+    trans = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))]) 
     
     # load dataset
     train = MNIST(path, train=True,  download=True, transform=trans)
@@ -174,7 +189,7 @@ train_dl, test_dl = prepare_data(path)
 print(len(train_dl.dataset), len(test_dl.dataset))
 
 # define the network
-model = CNN(1) #the images are greyscaled, so only 1 channel, an image is usally represented as W x H x C (Width x Height x Channel). Color images normally have 3 channels.
+model = CNN(1) #the images are grayscaled, so only 1 channel, an image is usally represented as W x H x C (Width x Height x Channel). Color images normally have 3 channels.
 
 # train the model
 train_model(train_dl, model)

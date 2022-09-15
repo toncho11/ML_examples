@@ -114,7 +114,7 @@ def train_model(train_dl, model):
     
     # define the optimization
     criterion = BCELoss() # Binary Cross Entropy Loss function (used in binary classfication)
-                          # CrossEntropyLoss() used when classes are more than two
+                          # CrossEntropyLoss used when classes are more than two
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     
     # enumerate epochs
