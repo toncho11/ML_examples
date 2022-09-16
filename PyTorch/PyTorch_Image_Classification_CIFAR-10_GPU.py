@@ -10,6 +10,8 @@ The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 classes,
 with 6000 images per class. There are 50000 training images and 10000 test images.
 """
 
+print("Requires all variables to be cleared before execution!!!")
+
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -17,7 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -40,6 +42,8 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
+
+        
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
@@ -64,7 +68,7 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     net = Net()
-    #net.to(device) #switch to GPU
+    net.to(device) #switch to GPU
     
     #Define a Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -78,8 +82,8 @@ if __name__ == '__main__':
         
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data #CPU version
-            #inputs, labels = data[0].to(device), data[1].to(device) #GPU version
+            #inputs, labels = data #CPU version
+            inputs, labels = data[0].to(device), data[1].to(device) #GPU version
     
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -101,7 +105,9 @@ if __name__ == '__main__':
     
     #Prepare for Testing
     dataiter = iter(testloader)
-    images, labels = dataiter.next()
+    images, labels = dataiter.next() #provides a batch of samples (of size batch_size)
+    images = images.to(device) #switch to GPU
+    labels = labels.to(device) #switch to GPU
     outputs = net(images)
     
     #Single prediction
@@ -118,11 +124,16 @@ if __name__ == '__main__':
     # since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
         for data in testloader:
-            images, labels = data
+            
+            #images, labels = data #CPU version
+            images, labels = data[0].to(device), data[1].to(device) #GPU version
+            
             # calculate outputs by running images through the network
             outputs = net(images)
+            
             # the class with the highest energy is what we choose as prediction
             _, predicted = torch.max(outputs.data, 1)
+            
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     
