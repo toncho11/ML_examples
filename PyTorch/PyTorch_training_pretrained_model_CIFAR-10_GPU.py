@@ -4,13 +4,16 @@ Created on Fri Sep 16 12:10:25 2022
 
 source: https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
 
-PyTorch classfication the CIFAR-10 dataset
+PyTorch classfication of the CIFAR-10 dataset using the pre-trained model vgg19.
+The first layers of VGG19 are freezed and the last one is changed to output 10 classes instead of 1000 classes.
+
+More info: https://stackoverflow.com/questions/65690251/how-to-use-vgg19-transfer-learning-pretraining
 
 The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 classes, 
 with 6000 images per class. There are 50000 training images and 10000 test images.
-"""
 
-print("Requires all variables to be cleared before execution!!!")
+You need to restart Python kernel to run this code or clear all variables!!!
+"""
 
 import torch
 import torchvision
@@ -20,6 +23,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+print ("You need to restart Python kernel to run this code or clear all variables!")
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -41,40 +46,32 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
 
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-     
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        
-        return x
 
 if __name__ == '__main__':
-    net = Net()
+    
+    #load the pre-trained model and then modify the last layer
+    model = torchvision.models.vgg19(pretrained=True)
+    
+    #freeze the all layers
+    for param in model.parameters():
+        param.requires_grad = False
+   
+    # Replace the last fully-connected layer
+    # Parameters of newly constructed modules have requires_grad=True by default
+    model.classifier._modules['6'] = nn.Linear(4096, 10, bias=True)
+    
+    print(model.classifier) #show new network
+    
+    net = model
     net.to(device) #switch to GPU
     
     #Define a Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.6) #learning rate changed to 0.0001
     
     #Train the network
     print('Started Training')
-    for epoch in range(2):  # loop over the dataset multiple times
+    for epoch in range(2):  # loop over the dataset multiple times - default 2
     
         running_loss = 0.0
         
@@ -115,7 +112,7 @@ if __name__ == '__main__':
     print('True classes: ', ' '.join(f'{classes[labels[j]]:5s}'
                                   for j in range(4)))
     
-    #Evaluate the entire dataset
+    print("Started evaluating the entire test dataset:")
     correct = 0
     total = 0
     # since we're not training, we don't need to calculate the gradients for our outputs
