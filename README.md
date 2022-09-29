@@ -1,3 +1,3 @@
 # ML examples
 
-A list of examples for Machine Leraning: Keras for Deep Learning, Signal Processing with Deep Learning, EEG classification, decision trees, statistical hypothesis testing ...
+A list of examples for Machine Learning: Keras for Deep Learning, Transfer Learning with PyTorch for Image Classification, EEG Classification, Decision Trees, Statistical Hypothesis Testing.
