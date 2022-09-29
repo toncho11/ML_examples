@@ -15,6 +15,9 @@ imgaug is a library for image augmentation in machine learning experiments.
 It uses a dataset from Keras called "tf_flowers".
 Model is saved to the file "model_quant.tflite".
 
+You need to click on "Software Packs" -> Select Components -> X-CUBE-AI -> Artificial Intelligence -> Check "Core" -> OK
+When you use the model in Stm32CubeIDE or Stm32CubeMX you need to select "TFLite".
+
 """
 
 import matplotlib.pyplot as plt
@@ -122,6 +125,7 @@ validation_dataset = validation_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
 #Model instantiation
 base_model.trainable = False
+
 inputs = tf.keras.Input(shape=IMG_SHAPE)
 x = base_model(inputs, training=False)
 x = tf.keras.layers.GlobalAveragePooling2D()(x)
