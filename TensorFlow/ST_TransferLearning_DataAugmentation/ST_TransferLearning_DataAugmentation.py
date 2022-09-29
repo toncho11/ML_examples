@@ -12,7 +12,7 @@ pip install imgaug --upgrade
 pip install tensorflow_datasets
 
 imgaug is a library for image augmentation in machine learning experiments.
-
+It uses a dataset from Keras called "tf_flowers".
 Model is saved to the file "model_quant.tflite".
 
 """
@@ -138,8 +138,10 @@ model.summary()
 #Train the model
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 history = model.fit(train_dataset,
-                        epochs=5, #default 100
+                        epochs=7, #default 100
                         validation_data=validation_dataset, callbacks=callback)
+
+print("Total Validation Accuracy: ", history.history['val_accuracy'][len(history.history['val_accuracy'])-1] )
 
 #Display Training results
 acc = history.history['accuracy']
