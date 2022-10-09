@@ -2,12 +2,22 @@
 
 GradientBoostingClassifier
 
+Boosting
+Boosting is a special type of Ensemble Learning technique that works by 
+combining several weak learners(predictors with poor accuracy) into a strong
+learner(a model with strong accuracy). This works by each model paying 
+attention to its predecessor’s mistakes.
+
+The two most popular boosting methods are:
+
+- Adaptive Boosting (also called AdaBoost)
+- Gradient Boosting (shown here)
+
 source 1: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html
 source 2: https://towardsdatascience.com/gradient-boosting-classification-explained-through-python-60cc980eeb3d
 
 Boosting:
-- Adaptive Boosting (also called AdaBoost)
-- Gradient Boosting (shown here)
+
 
 Comparison:
 https://analyticsindiamag.com/adaboost-vs-gradient-boosting-a-comparison-of-leading-boosting-algorithms/#:~:text=outliers%20than%20AdaBoost.-,Flexibility,Boosting%20more%20flexible%20than%20AdaBoost.
