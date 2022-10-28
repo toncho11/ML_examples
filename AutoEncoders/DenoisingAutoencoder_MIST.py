@@ -9,6 +9,9 @@ source2: https://blog.keras.io/building-autoencoders-in-keras.html
 
 We train the autoencoder to map noisy digits images to clean digits images: model.fit(x_train_noisy, x_train)
 
+The model.predict produces denoised images.
+We learn a filter on the (x_train_noisy, x_train) and then we test on the x_test_noisy 
+
 """
 
 from keras.layers import Dense,Conv2D,MaxPooling2D,UpSampling2D
@@ -68,17 +71,20 @@ model.fit(x_train_noisy, x_train,
 pred = model.predict(x_test_noisy)
 plt.figure(figsize=(20, 4))
 for i in range(5):
+    
     # Display original
     ax = plt.subplot(2, 5, i + 1)
     plt.imshow(x_test_noisy[i].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
+    
     # Display reconstruction
     ax = plt.subplot(2, 5, i + 1 + 5)
     plt.imshow(pred[i].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
+    
 plt.show()
 
