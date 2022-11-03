@@ -79,7 +79,7 @@ vae.add_loss(vae_loss) #vae_loss is a loss value tensor based on binary_crossent
 vae.compile(optimizer='adam')
 
 #We train our VAE on MNIST digits:  
-epochs = 5 #default 100
+epochs = 60 #default 100
 vae.fit(x_train, x_train,
         epochs=epochs,
         batch_size=32,
