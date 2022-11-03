@@ -66,18 +66,20 @@ decoder = keras.Model(latent_inputs, outputs, name='decoder')
 outputs = decoder(encoder(inputs)[2])
 vae = keras.Model(inputs, outputs, name='vae_mlp')
 
-#We train the model using the end-to-end model, with a custom loss function: the sum of a reconstruction term, and the KL divergence regularization term.
-reconstruction_loss = keras.losses.binary_crossentropy(inputs, outputs)
+#We train the model using the end-to-end model, with a custom loss function: 
+# - the sum of a reconstruction term
+# - and the KL divergence regularization term.
+reconstruction_loss = keras.losses.binary_crossentropy(inputs, outputs) #returns the Binary crossentropy loss value
 reconstruction_loss *= original_dim
 kl_loss = 1 + z_log_sigma - K.square(z_mean) - K.exp(z_log_sigma)
 kl_loss = K.sum(kl_loss, axis=-1)
 kl_loss *= -0.5
-vae_loss = K.mean(reconstruction_loss + kl_loss)
-vae.add_loss(vae_loss)
+vae_loss = K.mean(reconstruction_loss + kl_loss) #K.mean calculates the mean of a tensor in Keras
+vae.add_loss(vae_loss) #vae_loss is a loss value tensor based on binary_crossentropy and KL divergence
 vae.compile(optimizer='adam')
 
 #We train our VAE on MNIST digits:  
-epochs = 20 #default 100
+epochs = 5 #default 100
 vae.fit(x_train, x_train,
         epochs=epochs,
         batch_size=32,
@@ -86,13 +88,13 @@ vae.fit(x_train, x_train,
 #We look at the neighborhoods of different classes on the latent 2D plane:
 #Each of these colored clusters is a type of digit. Close clusters are digits that are structurally similar (i.e. digits that share information in the latent space).
 
-#x_test_encoded = encoder.predict(x_test, batch_size=32)
-#plt.figure(figsize=(6, 6))
-#plt.scatter(x_test_encoded[:, 0], x_test_encoded[:, 1], c=y_test)
-#plt.colorbar()
-#plt.show()
+# x_test_encoded = encoder.predict(x_test, batch_size=100) #encoded = latent
+# plt.figure(figsize=(6, 6))
+# plt.scatter(x_test_encoded[:, 0], x_test_encoded[:, 1], c=y_test)
+# plt.colorbar()
+# plt.show()
 
-# Display a 2D manifold of the digits
+# Display a 2D manifold of genrated digits - generate and visualize 255 samples
 n = 15  # figure with 15x15 digits
 digit_size = 28
 figure = np.zeros((digit_size * n, digit_size * n))
@@ -101,6 +103,7 @@ figure = np.zeros((digit_size * n, digit_size * n))
 grid_x = np.linspace(-15, 15, n)
 grid_y = np.linspace(-15, 15, n)
 
+#generate and display 15 x 15 = 225 samples
 for i, yi in enumerate(grid_x):
     for j, xi in enumerate(grid_y):
         
