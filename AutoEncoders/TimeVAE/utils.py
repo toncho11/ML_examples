@@ -35,7 +35,7 @@ def get_mnist_data():
     return mnist_digits
 
 
-def draw_orig_and_post_pred_sample(orig, reconst, n):
+def draw_orig_and_post_pred_sample(orig, reconst, n, title = "Original vs Reconstructed Data"):
 
     fig, axs = plt.subplots(n, 2, figsize=(10,6))
     i = 1
@@ -58,7 +58,7 @@ def draw_orig_and_post_pred_sample(orig, reconst, n):
         # plt.title("Sampled")
         i += 1
 
-    fig.suptitle("Original vs Reconstructed Data", fontsize = TITLE_FONT_SIZE)
+    fig.suptitle(title, fontsize = TITLE_FONT_SIZE)
     fig.tight_layout()
     plt.show()
 

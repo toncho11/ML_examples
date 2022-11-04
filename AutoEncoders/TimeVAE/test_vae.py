@@ -17,8 +17,6 @@ from vae_conv_model import VariationalAutoencoderConv as VAE_Conv
 from vae_conv_I_model import VariationalAutoencoderConvInterpretable as TimeVAE
 
 
-
-
 if __name__ == '__main__':
     start = time.time()
     
@@ -29,17 +27,20 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------
     # read data    
     dataset = 'sine'            # 'sine', 'stocks', 'energy'
+    
     perc_of_train_used = 20     # 5, 10, 20, 100    
-    valid_perc = 0.1
+    valid_perc = 0.1 # portion to reserve for validation
+    
     input_file = f'{dataset}_subsampled_train_perc_{perc_of_train_used}.npz'
     full_train_data = utils.get_training_data(data_dir + input_file)
-    N, T, D = full_train_data.shape   
+    
+    N, T, D = full_train_data.shape #N = number of samples, T = time steps, D = feature dimensions   
     print('data shape:', N, T, D) 
 
     # ----------------------------------------------------------------------------------
     # further split the training data into train and validation set - same thing done in forecasting task
-    N_train = int(N * (1 - valid_perc))
-    N_valid = N - N_train
+    N_train = int(N * (1 - valid_perc)) #number of train samples
+    N_valid = N - N_train #number of validation samples
 
     # Shuffle data
     np.random.shuffle(full_train_data)
@@ -51,8 +52,8 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------
     # min max scale the data    
     scaler = utils.MinMaxScaler()        
+   
     scaled_train_data = scaler.fit_transform(train_data)
-
     scaled_valid_data = scaler.transform(valid_data)
     # joblib.dump(scaler, 'scaler.save')  
 
@@ -79,15 +80,16 @@ if __name__ == '__main__':
                 #---------------------------
                 use_residual_conn = True
             )   
-    else:  raise Exception('wut')
+    else:  raise Exception('Error: unknown type of VAE. Available types are: ''vae_dense'', ''vae_conv'', ''timeVAE'' where ''timeVAE'' is the basic one without interpretations.')
 
     
     vae.compile(optimizer=Adam())
     # vae.summary() ; sys.exit()
 
     early_stop_loss = 'loss'
+    #define two callbacks
     early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
-    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)
+    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
     vae.fit(
         scaled_train_data, 
@@ -112,6 +114,7 @@ if __name__ == '__main__':
     print('x_decoded.shape', x_decoded.shape)
 
     ### compare original and posterior predictive (reconstructed) samples
+    # this tells us how well the VAE is trained
     utils.draw_orig_and_post_pred_sample(X, x_decoded, n=5)
     
 
@@ -123,29 +126,34 @@ if __name__ == '__main__':
     num_samples = N_train
     # print("num_samples: ", num_samples)
 
-    samples = vae.get_prior_samples(num_samples=num_samples)
+    new_samples = vae.get_prior_samples(num_samples=num_samples)
     
-    utils.plot_samples(samples, n=5)
+    #utils.plot_samples(new_samples, n=5)
+    
+    #compare train data and newly generatee data
+    utils.draw_orig_and_post_pred_sample(X, new_samples, n=5, title = "Original vs Newly Generated Data")
 
     # inverse-transform scaling 
-    samples = scaler.inverse_transform(samples)
-    print('shape of gen samples: ', samples.shape) 
+    new_samples = scaler.inverse_transform(new_samples)
+    print('shape of gen samples: ', new_samples.shape) 
 
     # ----------------------------------------------------------------------------------
     # save samples
     output_dir = './outputs/'
     sample_fname = f'{vae_type}_gen_samples_{dataset}_perc_{perc_of_train_used}.npz' 
     samples_fpath = os.path.join(output_dir, sample_fname) 
-    np.savez_compressed(samples_fpath, data=samples)
+    np.savez_compressed(samples_fpath, data=new_samples)
 
     # ----------------------------------------------------------------------------------
     
     # later.... load model 
     new_vae = TimeVAE.load(model_dir, file_pref)
 
+    #one more time we check if the reconstructed data matches the training data within some margin of error
     new_x_decoded = new_vae.predict(scaled_train_data)
     # print('new_x_decoded.shape', new_x_decoded.shape)
 
+    #comapre original vs reconstructed
     print('Preds from orig and loaded models equal: ', np.allclose( x_decoded,  new_x_decoded, atol=1e-5))        
     
     # ----------------------------------------------------------------------------------
