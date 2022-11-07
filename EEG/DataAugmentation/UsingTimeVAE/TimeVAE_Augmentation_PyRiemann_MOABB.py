@@ -3,6 +3,9 @@
 Created on Mon Nov  7 12:27:00 2022
 
 @author: antona
+
+Performing data augmentation on the P300 class in an EEG dataset and classification.
+
 """
 
 from sklearn.linear_model import LogisticRegression
@@ -58,10 +61,9 @@ from pyriemann.tangentspace import TangentSpace
 def ToOneSubject(db): 
     return db
 
-#one needs to select which class to augment
 class DataAugment(BaseEstimator, TransformerMixin):
     
-    def __init__(self, estimator='scm'):
+    def __init__(self, estimator='scm'):#FIX: one needs to select which class to augment
         """Init."""
         self.estimator = estimator 
         
@@ -69,18 +71,27 @@ class DataAugment(BaseEstimator, TransformerMixin):
         return self
     
     def transform(self, X):
-        pass #call TimeVAE on the selected class
+        
+        #Final sampling from the vae
+        #num_samples = 100
+        #new_samples = vae.get_prior_samples(num_samples=num_samples)
+        
+        # inverse-transform scaling 
+        #new_samples = scaler.inverse_transform(new_samples)
+        return X
 
 pipelines = {}
 #XdawnCovariances can be used
 
 #should test with other than MDM pipelines!
 pipelines["MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
-pipelines["DataAugment+MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
+pipelines["DataAugment+MDM"] = make_pipeline(DataAugment(), Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
 
 print("Total pipelines to evaluate: ", len(pipelines))
 
 datasets = [BNCI2014008()]
+
+datasets = [ToOneSubject(db) for db in datasets]
 
 #apply ToOneSubject to all datasets
 

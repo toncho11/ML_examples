@@ -113,7 +113,7 @@ if __name__ == '__main__':
     x_decoded = vae.predict(scaled_train_data)
     print('x_decoded.shape', x_decoded.shape)
 
-    ### compare original and posterior predictive (reconstructed) samples
+    ### plot and compare original and posterior predictive (reconstructed) samples
     # this tells us how well the VAE is trained
     utils.draw_orig_and_post_pred_sample(X, x_decoded, n=5)
     
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     
     #utils.plot_samples(new_samples, n=5)
     
-    #compare train data and newly generatee data
+    #plot and compare train data and newly generatee data
     utils.draw_orig_and_post_pred_sample(X, new_samples, n=5, title = "Original vs Newly Generated Data")
 
     # inverse-transform scaling 
