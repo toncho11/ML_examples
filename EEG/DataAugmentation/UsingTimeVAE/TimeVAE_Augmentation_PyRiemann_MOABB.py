@@ -30,6 +30,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from moabb.datasets import bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
 from moabb.evaluations import WithinSessionEvaluation
+from moabb.datasets.base import BaseDataset
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -53,13 +54,43 @@ from pyriemann.classification import MDM
 from pyriemann.estimation import Covariances
 from pyriemann.tangentspace import TangentSpace
 
+
 #START CODE
 
-def ToOneSubject(db): 
+class OneSubject(BaseDataset):
     
-    #data should be suffled very well
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.subject_list = [0]
+        self.n_sessions = 1
+        self.event_id = dataset.event_id
+        self.code = 'Single' + dataset.code
+        self.interval = dataset.interval
+        self.paradigm = dataset.paradigm
+        self.doi = dataset.doi
+        self.unit_factor = dataset.unit_factor
+        self.data = self._get_data()
+
+    def _get_data(self):
+        data = self.dataset.get_data()
+        ret = {}
+        ret['subject0'] = {}
+        ret['subject0']['session0'] = {}
+        
+        for subject, sessions in data.items():
+            for session, runs in sessions.items():
+                for run, raw in runs.items():
+                    ret['subject0']['session0'][run] = raw                     
+        return ret
     
-    return db
+    def get_data(self):
+        return self.data
+    
+    def _get_single_subject_data(self, subject):
+        pass
+
+    def data_path(self, subject, path=None, force_update=False, update_path=None, verbose=None):
+        pass
 
 class DataAugment(BaseEstimator, TransformerMixin):
     
@@ -123,7 +154,7 @@ print("Total pipelines to evaluate: ", len(pipelines))
 
 datasets = [BNCI2014008()]
 
-datasets = [ToOneSubject(db) for db in datasets]
+datasets = [OneSubject(db) for db in datasets]
 
 #apply ToOneSubject to all datasets
 
