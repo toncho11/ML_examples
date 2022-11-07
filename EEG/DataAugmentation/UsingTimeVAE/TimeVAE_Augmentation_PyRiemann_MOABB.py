@@ -105,8 +105,11 @@ class DataAugment(BaseEstimator, TransformerMixin):
     
     def transform(self, X):
         
+        return X #return the same data for now
+    
         #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
+        print(N, T, D)
         
         np.random.shuffle(X)
         
@@ -143,27 +146,26 @@ class DataAugment(BaseEstimator, TransformerMixin):
         # inverse-transform scaling 
         new_samples = scaler.inverse_transform(new_samples)
         
-        return X #return the same data for now
+        #return X #return the same data for now
 
 pipelines = {}
 #XdawnCovariances can be used
 
 #should test with other than MDM pipelines!
-pipelines["MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
+#pipelines["MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
 pipelines["DataAugment+MDM"] = make_pipeline(DataAugment(), Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
 
 print("Total pipelines to evaluate: ", len(pipelines))
 
 datasets = [BNCI2014008()]
 
+#maybe not working correctly:
+# subj = [1, 2, 3]
+# for d in datasets:
+#     d.subject_list = subj
+
+#merge all subjects in one single subject, so that we train on the entire dataset
 datasets = [OneSubject(db) for db in datasets]
-
-#apply ToOneSubject to all datasets
-
-subj = [1, 2, 3]
-
-for d in datasets:
-    d.subject_list = subj
 
 paradigm = P300()
 
