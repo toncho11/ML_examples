@@ -8,37 +8,34 @@ Performing data augmentation on the P300 class in an EEG dataset and classificat
 
 """
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import balanced_accuracy_score, make_scorer
-
-from moabb.datasets import bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
-from moabb.paradigms import P300
-from moabb.evaluations import WithinSessionEvaluation
-
-import numpy as np
-
-from sklearn.preprocessing import LabelEncoder
-
-#import Dither #pip install PyDither
 import os
 import glob
 import time
 import sys
+import numpy as np
+
+#skleran
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import balanced_accuracy_score, make_scorer
+from sklearn.preprocessing import LabelEncoder
+import sklearn.model_selection
+import sklearn.datasets
+#import sklearn.metrics
+from sklearn.model_selection import train_test_split
+from sklearn.base import BaseEstimator, TransformerMixin
+
+#moabb
+from moabb.datasets import bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
+from moabb.paradigms import P300
+from moabb.evaluations import WithinSessionEvaluation
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from mne import set_log_level
 set_log_level("CRITICAL")
-
-#import autosklearn.classification
-import sklearn.model_selection
-import sklearn.datasets
-#import sklearn.metrics
-from sklearn.model_selection import train_test_split
-from sklearn.base import BaseEstimator, TransformerMixin
 
 #TimeVAE
 from tensorflow.keras.optimizers import Adam
@@ -59,6 +56,9 @@ from pyriemann.tangentspace import TangentSpace
 #START CODE
 
 def ToOneSubject(db): 
+    
+    #data should be suffled very well
+    
     return db
 
 class DataAugment(BaseEstimator, TransformerMixin):
@@ -102,7 +102,7 @@ for d in datasets:
 
 paradigm = P300()
 
-evaluation = WithinSessionEvaluation(paradigm=paradigm, datasets=datasets, overwrite=True)
+evaluation = WithinSessionEvaluation(paradigm=paradigm, datasets=datasets, overwrite=False)
 
 results = evaluation.process(pipelines)
 
