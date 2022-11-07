@@ -10,8 +10,8 @@ import numpy as np , pandas as pd
 import time
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-import utils
 #from local files:
+import utils
 from vae_dense_model import VariationalAutoencoderDense as VAE_Dense
 from vae_conv_model import VariationalAutoencoderConv as VAE_Conv
 from vae_conv_I_model import VariationalAutoencoderConvInterpretable as TimeVAE
