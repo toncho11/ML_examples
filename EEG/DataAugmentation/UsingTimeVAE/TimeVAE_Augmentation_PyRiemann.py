@@ -5,9 +5,6 @@ Created on Mon Nov  7 09:56:26 2022
 @author: antona
 """
 
-# import matplotlib.pyplot as plt
-# from pyriemann.estimation import Covariances, ERPCovariances, XdawnCovariances
-# from pyriemann.tangentspace import TangentSpace
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
@@ -35,9 +32,10 @@ set_log_level("CRITICAL")
 #import autosklearn.classification
 import sklearn.model_selection
 import sklearn.datasets
-import sklearn.metrics
+#import sklearn.metrics
 from sklearn.model_selection import train_test_split
 
+#TimeVAE
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/AutoEncoders/TimeVAE') #should be changed to your TimeVAE code
@@ -47,7 +45,11 @@ from vae_dense_model import VariationalAutoencoderDense as VAE_Dense
 from vae_conv_model import VariationalAutoencoderConv as VAE_Conv
 from vae_conv_I_model import VariationalAutoencoderConvInterpretable as TimeVAE
 
-#start code
+#PyRiemann
+from pyriemann.estimation import XdawnCovariances
+from pyriemann.classification import MDM
+
+#START CODE
 
 paradigm = P300()
 
@@ -89,6 +91,8 @@ def BuidlDataset(dataset):
     return X,y
 
 # should be changed to be K-fold
+# http://moabb.neurotechx.com/docs/auto_tutorials/tutorial_3_benchmarking_multiple_pipelines.html
+# PyRiemann MDM example: https://github.com/pyRiemann/pyRiemann/blob/master/examples/ERP/plot_classify_MEG_mdm.py
 def EvaluatePyRiemann(X_train, X_test, y_train, y_test):
     pass
 
@@ -117,7 +121,7 @@ if __name__ == "__main__":
     
     #add to X_train and y_train
     
-    #shuffle the real training data and the augmented before testing again
+    #shuffle the real training data and the augmented data before testing again
     
     print('Test with PyRiemann, WITH data augmentation')
     EvaluatePyRiemann(X_train, X_test, y_train, y_test)
