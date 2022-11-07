@@ -74,16 +74,18 @@ class OneSubject(BaseDataset):
     def _get_data(self):
         data = self.dataset.get_data()
         ret = {}
-        ret['subject0'] = {}
-        ret['subject0']['session0'] = {}
+        ret[1] = {}
+        ret[1]['session_0'] = {}
         
+        i = 0
         for subject, sessions in data.items():
             for session, runs in sessions.items():
                 for run, raw in runs.items():
-                    ret['subject0']['session0'][run] = raw                     
+                    ret[1]['session_0']['run_'+str(i)] = raw
+                    i = i + 1 
         return ret
     
-    def get_data(self):
+    def get_data(self, subjects=None):
         return self.data
     
     def _get_single_subject_data(self, subject):
