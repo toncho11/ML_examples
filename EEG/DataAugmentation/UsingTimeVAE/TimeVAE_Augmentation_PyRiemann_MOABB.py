@@ -58,11 +58,23 @@ from pyriemann.tangentspace import TangentSpace
 def ToOneSubject(db): 
     return db
 
+#one needs to select which class to augment
 class DataAugment(BaseEstimator, TransformerMixin):
-    pass
+    
+    def __init__(self, estimator='scm'):
+        """Init."""
+        self.estimator = estimator 
+        
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        pass #call TimeVAE on the selected class
 
 pipelines = {}
 #XdawnCovariances can be used
+
+#should test with other than MDM pipelines!
 pipelines["MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
 pipelines["DataAugment+MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
 
