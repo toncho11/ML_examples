@@ -101,12 +101,17 @@ class DataAugment(BaseEstimator, TransformerMixin):
         self.estimator = estimator 
         
     def fit(self, X, y=None):
+        print("\nfit")
         return self
     
     def transform(self, X):
+        print("\ntransform")
+        return X
         
-        return X #return the same data for now
-    
+    def fit_transform(self, X, y):
+        
+        print("\nfit_transform")
+        
         #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
         print(N, T, D)
@@ -123,13 +128,14 @@ class DataAugment(BaseEstimator, TransformerMixin):
         vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
         
         vae.compile(optimizer=Adam())
-        # vae.summary() ; sys.exit()
+        # vae.summary()
 
         early_stop_loss = 'loss'
         #define two callbacks
         early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
         reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
+        print("Fit VAE")
         vae.fit(
             scaled_data, 
             batch_size = 32,
@@ -142,11 +148,12 @@ class DataAugment(BaseEstimator, TransformerMixin):
         #Final sampling from the vae
         num_samples = 100 #FIX: set to the correct number we need
         new_samples = vae.get_prior_samples(num_samples=num_samples)
+        print("New samples generated")
         
         # inverse-transform scaling 
         new_samples = scaler.inverse_transform(new_samples)
         
-        #return X #return the same data for now
+        return X, y #return the same data for now
 
 pipelines = {}
 #XdawnCovariances can be used
