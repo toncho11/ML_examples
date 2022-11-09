@@ -121,7 +121,10 @@ def Evaluate(X_train, X_test, y_train, y_test):
     print("0s: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
     
     from sklearn.metrics import classification_report
-    print(classification_report(y_test, y_pred, target_names=['Non P300', 'P300']))
+    cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
+    #print(cr)
+    return cr
+    
 
 # Augments the p300 class with TimeVAE
 def AugmentData(X, y, selected_class, samples_required):
@@ -137,10 +140,10 @@ def AugmentData(X, y, selected_class, samples_required):
     print("Count of P300 samples used by the VAE: ", X.shape)
     
     #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
-    print(N, T, D)
-    
-    X = X.reshape(N,D,T)
+    # N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
+    # print(N, T, D)
+    # X = X.reshape(N,D,T)
+    X.transpose(0,2,1)
     N, T, D = X.shape
     #print(N, T, D)
     
@@ -151,7 +154,8 @@ def AugmentData(X, y, selected_class, samples_required):
     
     latent_dim = 8
     
-    vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
+    #vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
+    vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[1000,500], )
     
     vae.compile(optimizer=Adam())
     # vae.summary()
@@ -165,10 +169,10 @@ def AugmentData(X, y, selected_class, samples_required):
     vae.fit(
         scaled_data, 
         batch_size = 32,
-        epochs=500, #default 500 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        epochs=3000, #default 500 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         shuffle = True,
-        callbacks=[early_stop_callback, reduceLR],
-        verbose = 0
+        #callbacks=[early_stop_callback, reduceLR],
+        verbose = 1
     )
     
     #Final sampling from the vae
@@ -179,7 +183,8 @@ def AugmentData(X, y, selected_class, samples_required):
     # inverse-transform scaling 
     new_samples = scaler.inverse_transform(new_samples)
     
-    new_samples = new_samples.reshape(num_samples, D, T) #convert back to D,T
+    #new_samples = new_samples.reshape(num_samples, D, T) #convert back to D,T
+    X.transpose(0,1,2) #convert back to D,T
     return new_samples
     
 if __name__ == "__main__":
@@ -200,14 +205,14 @@ if __name__ == "__main__":
         
     print('Test with PyRiemann, NO data augmentation')
     #This produces a base result to compare with
-    Evaluate(X_train, X_test, y_train, y_test)
+    CR1 = Evaluate(X_train, X_test, y_train, y_test)
     
     #Perform data augmentation with TimeVAE
     
     P300Class = 1 #1 corresponds to P300 samples
     NonTargetCount = len(y_train) - sum(y_train)
     #samples_required = NonTargetCount - sum(y_train)
-    samples_required = 20
+    samples_required = 600 #default 100
     X_augmented = AugmentData(X_train, y_train, P300Class, samples_required)
     
     #add to X_train and y_train
@@ -222,4 +227,7 @@ if __name__ == "__main__":
         y_train = np.array(y_train)[indices]
     
     print('Test with PyRiemann, WITH data augmentation')
-    Evaluate(X_train, X_test, y_train, y_test)
+    CR2 = Evaluate(X_train, X_test, y_train, y_test)
+    
+    print(CR1)
+    print(CR2)
