@@ -3,6 +3,10 @@
 Created on Mon Nov  7 09:56:26 2022
 
 @author: antona
+
+Trains a TimeVAE - a variational autoencoder on the P300 class in ERP EEG datasets. 
+It tries to generate data for the P300 class - it performs a data augmentation.
+Next it uses MDM from PyRiemann to classify the data (with and without data augmentation)
 """
 
 from sklearn.linear_model import LogisticRegression
@@ -10,7 +14,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import balanced_accuracy_score, make_scorer
 
-from moabb.datasets import bi2013a, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
+#not valid: bi2012a, bi2013a
+#bi2014a - 71 subjects
+from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
 
 import numpy as np
@@ -56,40 +62,42 @@ paradigm = P300()
 le = LabelEncoder()
 
 # Puts all subjects in single X,y
-def BuidlDataset(dataset):
-    
-    subjects  = enumerate(dataset.subject_list)
+def BuidlDataset(datasets):
     
     X = np.array([])
     y = np.array([])
     
-    for subject_i, subject in subjects:
+    for dataset in datasets:
         
-        #if subject_i > 2:
-        #    break
-        #epochs_class_1 = 0
-        #epochs_class_2 = 0
-        
-        print("Loading subject:" , subject) 
-        
-        X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
-        
-        y1 = le.fit_transform(y1)
-        print(X1.shape)  
-        
-        #0 NonTarget
-        #1 Target       
-        print("Total class target samples available: ", sum(y1))
-        print("Total class non-target samples available: ", len(y1) - sum(y1))
-        
-        #X1 = np.transpose(X1)
-        
-        if (X.size == 0):
-            X = np.copy(X1)
-            y = np.copy(y1)
-        else:
-            X = np.concatenate((X, X1), axis=0)
-            y = np.concatenate((y, y1), axis=0)
+        subjects  = enumerate(dataset.subject_list)
+
+        for subject_i, subject in subjects:
+            
+            #if subject_i > 2:
+            #    break
+            #epochs_class_1 = 0
+            #epochs_class_2 = 0
+            
+            print("Loading subject:" , subject) 
+            
+            X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+            
+            y1 = le.fit_transform(y1)
+            print(X1.shape)  
+            
+            #0 NonTarget
+            #1 Target       
+            print("Total class target samples available: ", sum(y1))
+            print("Total class non-target samples available: ", len(y1) - sum(y1))
+            
+            #X1 = np.transpose(X1)
+            
+            if (X.size == 0):
+                X = np.copy(X1)
+                y = np.copy(y1)
+            else:
+                X = np.concatenate((X, X1), axis=0)
+                y = np.concatenate((y, y1), axis=0)
     
     print("Building train data completed: ", X.shape)
     return X,y
@@ -190,12 +198,14 @@ def AugmentData(X, y, selected_class, samples_required):
 if __name__ == "__main__":
     
     #select dataset to be used
-    db = BNCI2014009() #BNCI2014008()
+    #ds = [BNCI2014009()] #BNCI2014008()
+    #warning datasets must have the same number of electrodes
+    ds = [bi2014a()]
     
-    X, y = BuidlDataset(db)
+    X, y = BuidlDataset(ds)
     
     #shuffle
-    for x in range(6):
+    for x in range(20):
         indices = np.arange(X.shape[0])
         np.random.shuffle(indices)
         X = np.array(X)[indices]
