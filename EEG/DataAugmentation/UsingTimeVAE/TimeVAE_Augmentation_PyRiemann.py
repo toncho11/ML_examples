@@ -118,8 +118,10 @@ def Evaluate(X_train, X_test, y_train, y_test):
     
     y_pred = clf.predict(X_test)
     
-    print("Balanced Accuracy: ", balanced_accuracy_score(y_test, y_pred))
-    print("Accuracy score: ", sklearn.metrics.accuracy_score(y_test, y_pred))
+    print("Balanced Accuracy #####: ", balanced_accuracy_score(y_test, y_pred))
+    print("Accuracy score    #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
+    from sklearn.metrics import roc_auc_score
+    print("ROC AUC score     #####: ", roc_auc_score(y_test, y_pred))
     
     print("1s: ", sum(y_pred), "/", sum(y_test))
     print("0s: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
@@ -253,4 +255,4 @@ if __name__ == "__main__":
         print('Test with PyRiemann, WITH data augmentation')
         CR2 = Evaluate(X_train, X_test, y_train, y_test)
         print("Percentage P300 class data added: ", percentageP300Added)
-        print(CR2)
+        #print(CR2)
