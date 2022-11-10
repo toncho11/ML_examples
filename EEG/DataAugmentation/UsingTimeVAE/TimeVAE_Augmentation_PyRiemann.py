@@ -73,10 +73,8 @@ def BuidlDataset(datasets):
 
         for subject_i, subject in subjects:
             
-            #if subject_i > 2:
+            #if subject_i > 5:
             #    break
-            #epochs_class_1 = 0
-            #epochs_class_2 = 0
             
             print("Loading subject:" , subject) 
             
@@ -89,8 +87,6 @@ def BuidlDataset(datasets):
             #1 Target       
             print("Total class target samples available: ", sum(y1))
             print("Total class non-target samples available: ", len(y1) - sum(y1))
-            
-            #X1 = np.transpose(X1)
             
             if (X.size == 0):
                 X = np.copy(X1)
@@ -123,7 +119,7 @@ def Evaluate(X_train, X_test, y_train, y_test):
     y_pred = clf.predict(X_test)
     
     print("Balanced Accuracy: ", balanced_accuracy_score(y_test, y_pred))
-    print("Precion score: ", sklearn.metrics.precision_score(y_test, y_pred))
+    print("Accuracy score: ", sklearn.metrics.accuracy_score(y_test, y_pred))
     
     print("1s: ", sum(y_pred), "/", sum(y_test))
     print("0s: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
@@ -135,9 +131,10 @@ def Evaluate(X_train, X_test, y_train, y_test):
     
 
 # Augments the p300 class with TimeVAE
-def AugmentData(X, y, selected_class, samples_required):
+# latent space = encoded space
+def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
     
-    print("In fit_transform")
+    print("In TrainVAE")
     
     selected_class_indices = np.where(y == selected_class)
     
@@ -148,22 +145,20 @@ def AugmentData(X, y, selected_class, samples_required):
     print("Count of P300 samples used by the VAE: ", X.shape)
     
     #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
-    # print(N, T, D)
+    N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
+    print(N, T, D)
     # X = X.reshape(N,D,T)
-    X.transpose(0,2,1)
+    X = X.transpose(0,2,1)
     N, T, D = X.shape
-    #print(N, T, D)
+    print(N, T, D)
     
     # min max scale the data    
     scaler = utils.MinMaxScaler()        
    
     scaled_data = scaler.fit_transform(X)
     
-    latent_dim = 8
-    
     #vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
-    vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[1000,500], )
+    vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[hidden_layer_low * 2, hidden_layer_low], )
     
     vae.compile(optimizer=Adam())
     # vae.summary()
@@ -177,22 +172,25 @@ def AugmentData(X, y, selected_class, samples_required):
     vae.fit(
         scaled_data, 
         batch_size = 32,
-        epochs=3000, #default 500 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        epochs=iterations, #default 500
         shuffle = True,
         #callbacks=[early_stop_callback, reduceLR],
         verbose = 1
     )
     
-    #Final sampling from the vae
-    num_samples = samples_required #FIX: set to the correct number we need
-    new_samples = vae.get_prior_samples(num_samples=num_samples)
-    print("New samples generated: ", new_samples.shape[0])
+    return vae, scaler
+   
+
+def GenerateSamples(model, scaler, samples_required):
+    
+    #Sampling from the VAE
+    print("New samples requested: ", samples_required)
+    new_samples = model.get_prior_samples(num_samples=samples_required)
+    print("Number of new samples generated: ", new_samples.shape[0])
     
     # inverse-transform scaling 
     new_samples = scaler.inverse_transform(new_samples)
-    
-    #new_samples = new_samples.reshape(num_samples, D, T) #convert back to D,T
-    X.transpose(0,1,2) #convert back to D,T
+        
     return new_samples
     
 if __name__ == "__main__":
@@ -211,33 +209,48 @@ if __name__ == "__main__":
         X = np.array(X)[indices]
         y = np.array(y)[indices]
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 400, stratify = y)
+    #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.05) #, stratify = y
         
-    print('Test with PyRiemann, NO data augmentation')
-    #This produces a base result to compare with
-    CR1 = Evaluate(X_train, X_test, y_train, y_test)
-    
     #Perform data augmentation with TimeVAE
     
     P300Class = 1 #1 corresponds to P300 samples
-    NonTargetCount = len(y_train) - sum(y_train)
+    
+    #train and generate samples
+    model, scaler = TrainVAE(X_train, y_train, P300Class, 3000, 600, 16) #latent_dim = 8
+    
+    P300ClassCount = sum(y_train)
+    NonTargetCount = len(y_train) - P300ClassCount
     #samples_required = NonTargetCount - sum(y_train)
-    samples_required = 600 #default 100
-    X_augmented = AugmentData(X_train, y_train, P300Class, samples_required)
+    #samples_required = 600 #default 100
     
-    #add to X_train and y_train
-    X_train = np.concatenate((X_train, X_augmented), axis=0)
-    y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
-    
-    #shuffle the real training data and the augmented data before testing again
-    for x in range(6):
-        indices = np.arange(len(X_train))
-        np.random.shuffle(indices)
-        X_train = np.array(X_train)[indices]
-        y_train = np.array(y_train)[indices]
-    
-    print('Test with PyRiemann, WITH data augmentation')
-    CR2 = Evaluate(X_train, X_test, y_train, y_test)
-    
+    print('Test with PyRiemann, NO data augmentation')
+    #This produces a base result to compare with
+    CR1 = Evaluate(X_train, X_test, y_train, y_test)
     print(CR1)
-    print(CR2)
+    
+    print("Reports for augmented data:") 
+    for percentageP300Added in [2, 3, 5, 10]:
+        
+        print("Percentage P300 Added:", percentageP300Added)
+        samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
+        X_augmented = GenerateSamples(model, scaler, samples_required)
+        
+        X_augmented = X_augmented.transpose(0,2,1) #convert back to D,T
+        print("Back to original dimensions: ", X.shape)
+        
+        #add to X_train and y_train
+        X_train = np.concatenate((X_train, X_augmented), axis=0)
+        y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+        
+        #shuffle the real training data and the augmented data before testing again
+        for x in range(6):
+            indices = np.arange(len(X_train))
+            np.random.shuffle(indices)
+            X_train = np.array(X_train)[indices]
+            y_train = np.array(y_train)[indices]
+        
+        print('Test with PyRiemann, WITH data augmentation')
+        CR2 = Evaluate(X_train, X_test, y_train, y_test)
+        print("Percentage P300 class data added: ", percentageP300Added)
+        print(CR2)
