@@ -73,7 +73,7 @@ def BuidlDataset(datasets):
 
         for subject_i, subject in subjects:
             
-            #if subject_i > 5:
+            #if subject_i > 2:
             #    break
             
             print("Loading subject:" , subject) 
@@ -118,18 +118,19 @@ def Evaluate(X_train, X_test, y_train, y_test):
     
     y_pred = clf.predict(X_test)
     
-    print("Balanced Accuracy #####: ", balanced_accuracy_score(y_test, y_pred))
+    ba = balanced_accuracy_score(y_test, y_pred)
+    print("Balanced Accuracy #####: ", ba)
     print("Accuracy score    #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
     from sklearn.metrics import roc_auc_score
     print("ROC AUC score     #####: ", roc_auc_score(y_test, y_pred))
     
-    print("1s: ", sum(y_pred), "/", sum(y_test))
-    print("0s: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
+    print("1s     P300: ", sum(y_pred), "/", sum(y_test))
+    print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
     
     from sklearn.metrics import classification_report
     cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
     #print(cr)
-    return cr
+    return cr, ba
     
 
 # Augments the p300 class with TimeVAE
@@ -212,14 +213,11 @@ if __name__ == "__main__":
         y = np.array(y)[indices]
     
     #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.05) #, stratify = y
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
         
     #Perform data augmentation with TimeVAE
     
     P300Class = 1 #1 corresponds to P300 samples
-    
-    #train and generate samples
-    model, scaler = TrainVAE(X_train, y_train, P300Class, 3000, 600, 16) #latent_dim = 8
     
     P300ClassCount = sum(y_train)
     NonTargetCount = len(y_train) - P300ClassCount
@@ -229,30 +227,53 @@ if __name__ == "__main__":
     print('Test with PyRiemann, NO data augmentation')
     #This produces a base result to compare with
     CR1 = Evaluate(X_train, X_test, y_train, y_test)
-    print(CR1)
+    #print(CR1)
     
-    print("Reports for augmented data:") 
-    for percentageP300Added in [2, 3, 5, 10]:
-        
-        print("Percentage P300 Added:", percentageP300Added)
-        samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
-        X_augmented = GenerateSamples(model, scaler, samples_required)
-        
-        X_augmented = X_augmented.transpose(0,2,1) #convert back to D,T
-        print("Back to original dimensions: ", X.shape)
-        
-        #add to X_train and y_train
-        X_train = np.concatenate((X_train, X_augmented), axis=0)
-        y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
-        
-        #shuffle the real training data and the augmented data before testing again
-        for x in range(6):
-            indices = np.arange(len(X_train))
-            np.random.shuffle(indices)
-            X_train = np.array(X_train)[indices]
-            y_train = np.array(y_train)[indices]
-        
-        print('Test with PyRiemann, WITH data augmentation')
-        CR2 = Evaluate(X_train, X_test, y_train, y_test)
-        print("Percentage P300 class data added: ", percentageP300Added)
-        #print(CR2)
+    max_ba = -1
+    max_hl = -1
+    max_ls = -1
+    max_percentage = -1
+    
+    for hl in [500, 700, 900]:#
+        for ls in [8, 12, 16]:
+            print ("hidden layers low:", hl)
+            print ("latent_dim:", ls)
+            #train and generate samples
+            model, scaler = TrainVAE(X_train, y_train, P300Class, 3000, hl, ls) #latent_dim = 8
+            
+            print("Reports for augmented data:") 
+            for percentageP300Added in [2, 3, 5, 10]:
+                
+                print("% P300 Added:", percentageP300Added)
+                samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
+                X_augmented = GenerateSamples(model, scaler, samples_required)
+                
+                print("X augmented NANs: ", np.count_nonzero(np.isnan(X_augmented)))
+                
+                X_augmented = X_augmented.transpose(0,2,1) #convert back to D,T
+                print("Back to original dimensions: ", X.shape)
+                
+                #add to X_train and y_train
+                X_train = np.concatenate((X_train, X_augmented), axis=0)
+                y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+                
+                #shuffle the real training data and the augmented data before testing again
+                for x in range(6):
+                    indices = np.arange(len(X_train))
+                    np.random.shuffle(indices)
+                    X_train = np.array(X_train)[indices]
+                    y_train = np.array(y_train)[indices]
+                
+                print('Test with PyRiemann, WITH data augmentation. Metrics:')
+                CR2, ba = Evaluate(X_train, X_test, y_train, y_test)
+                
+                if ba > max_ba:
+                    max_ba = ba
+                    max_hl = hl
+                    max_ls = ls
+                    max_percentage = percentageP300Added
+                
+                #print(CR2)
+                print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                
+print("max all:", max_ba, max_hl, max_ls, max_percentage)
