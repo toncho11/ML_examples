@@ -73,8 +73,8 @@ def BuidlDataset(datasets):
 
         for subject_i, subject in subjects:
             
-            #if subject_i > 2:
-            #    break
+            if subject_i > 2:
+                break
             
             print("Loading subject:" , subject) 
             
@@ -130,7 +130,7 @@ def Evaluate(X_train, X_test, y_train, y_test):
     from sklearn.metrics import classification_report
     cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
     #print(cr)
-    return cr, ba
+    return cr, ba, clf
     
 
 # Augments the p300 class with TimeVAE
@@ -174,7 +174,7 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
     print("Fit VAE")
     vae.fit(
         scaled_data, 
-        batch_size = 32,
+        batch_size = 32, #default 32
         epochs=iterations, #default 500
         shuffle = True,
         #callbacks=[early_stop_callback, reduceLR],
@@ -193,8 +193,53 @@ def GenerateSamples(model, scaler, samples_required):
     
     # inverse-transform scaling 
     new_samples = scaler.inverse_transform(new_samples)
-        
+    
+    print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
+    
+    new_samples = new_samples.transpose(0,2,1) #convert back to D,T
+    print("Back to original dimensions: ", X.shape)
+    
     return new_samples
+    
+def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, selected_class):
+    
+    print("GenerateSamplesMDMfiltered start")
+    good_samples_count = 0
+    batch_samples_count = 20
+    X = np.array([])
+    
+    while (good_samples_count < samples_required):
+        
+        #Sampling from the VAE
+        print("New samples requested: ", samples_required)
+        new_samples = model.get_prior_samples(num_samples=batch_samples_count)
+        print("Number of new samples generated: ", new_samples.shape[0])
+        
+        # inverse-transform scaling 
+        new_samples = scaler.inverse_transform(new_samples)
+        
+        print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
+        
+        print("Back to original dimensions: ", X.shape)
+        new_samples = new_samples.transpose(0,2,1) #convert back to D,T
+        
+        #classify
+        y_pred = modelMDM.predict(new_samples)
+        
+        #select only the P300 samples
+        filtered_samples =  new_samples[y_pred == selected_class]
+        
+        if (filtered_samples.shape[0] > 0):
+            good_samples_count = good_samples_count + filtered_samples.shape[0]
+            
+            if (X.size == 0):
+                X = np.copy(filtered_samples)
+            else:
+                X = np.concatenate((X, filtered_samples), axis=0)
+            
+        print("GenerateSamplesMDMfiltered end")
+    
+    return X
     
 if __name__ == "__main__":
     
@@ -226,7 +271,7 @@ if __name__ == "__main__":
     
     print('Test with PyRiemann, NO data augmentation')
     #This produces a base result to compare with
-    CR1 = Evaluate(X_train, X_test, y_train, y_test)
+    CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
     #print(CR1)
     
     max_ba = -1
@@ -234,24 +279,22 @@ if __name__ == "__main__":
     max_ls = -1
     max_percentage = -1
     
-    for hl in [500, 700, 900]:#
-        for ls in [8, 12, 16]:
+    iterations = 3000 #more means better training
+    
+    for hl in [500]:#700, 900, 2000
+        for ls in [8]: #16 produces NaNs
             print ("hidden layers low:", hl)
             print ("latent_dim:", ls)
             #train and generate samples
-            model, scaler = TrainVAE(X_train, y_train, P300Class, 3000, hl, ls) #latent_dim = 8
+            model, scaler = TrainVAE(X_train, y_train, P300Class, iterations, hl, ls) #latent_dim = 8
             
             print("Reports for augmented data:") 
             for percentageP300Added in [2, 3, 5, 10]:
                 
                 print("% P300 Added:", percentageP300Added)
                 samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
-                X_augmented = GenerateSamples(model, scaler, samples_required)
-                
-                print("X augmented NANs: ", np.count_nonzero(np.isnan(X_augmented)))
-                
-                X_augmented = X_augmented.transpose(0,2,1) #convert back to D,T
-                print("Back to original dimensions: ", X.shape)
+                #X_augmented = GenerateSamples(model, scaler, samples_required)
+                X_augmented = GenerateSamplesMDMfiltered(model, scaler, samples_required, modelMDM, P300Class)
                 
                 #add to X_train and y_train
                 X_train = np.concatenate((X_train, X_augmented), axis=0)
@@ -265,7 +308,7 @@ if __name__ == "__main__":
                     y_train = np.array(y_train)[indices]
                 
                 print('Test with PyRiemann, WITH data augmentation. Metrics:')
-                CR2, ba = Evaluate(X_train, X_test, y_train, y_test)
+                CR2, ba, _ = Evaluate(X_train, X_test, y_train, y_test)
                 
                 if ba > max_ba:
                     max_ba = ba
@@ -277,3 +320,4 @@ if __name__ == "__main__":
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                 
 print("max all:", max_ba, max_hl, max_ls, max_percentage)
+print("orginal / best:", pure_mdm_ba, "/", max_ba)
