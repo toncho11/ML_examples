@@ -9,6 +9,9 @@ It tries to generate data for the P300 class - it performs a data augmentation.
 Next it uses MDM from PyRiemann to classify the data (with and without data augmentation)
 """
 
+import tensorflow as tf
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
@@ -69,12 +72,12 @@ def BuidlDataset(datasets):
     
     for dataset in datasets:
         
-        subjects  = enumerate(dataset.subject_list)
+        subjects  = enumerate(dataset.subject_list[20:25])
 
         for subject_i, subject in subjects:
             
-            if subject_i > 2:
-                break
+            # if subject_i > 0:
+            #     break
             
             print("Loading subject:" , subject) 
             
@@ -87,6 +90,10 @@ def BuidlDataset(datasets):
             #1 Target       
             print("Total class target samples available: ", sum(y1))
             print("Total class non-target samples available: ", len(y1) - sum(y1))
+            
+            #start = 102
+            #end = 307
+            #X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
             
             if (X.size == 0):
                 X = np.copy(X1)
@@ -168,8 +175,11 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
 
     early_stop_loss = 'loss'
     #define two callbacks
-    early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
-    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
+    #early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
+    #reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
+    
+    early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=50) 
+    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=50)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
     print("Fit VAE")
     vae.fit(
@@ -205,7 +215,7 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
     
     print("GenerateSamplesMDMfiltered start")
     good_samples_count = 0
-    batch_samples_count = 20
+    batch_samples_count = 10000
     X = np.array([])
     
     while (good_samples_count < samples_required):
@@ -223,22 +233,37 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
         print("Back to original dimensions: ", X.shape)
         new_samples = new_samples.transpose(0,2,1) #convert back to D,T
         
+        print("classify")
         #classify
         y_pred = modelMDM.predict(new_samples)
+        
+        print("sum(y_pred):", sum(y_pred))
         
         #select only the P300 samples
         filtered_samples =  new_samples[y_pred == selected_class]
         
+        if (sum(y_pred) != filtered_samples.shape[0]):
+            print("WARNING: potential error")
+        
         if (filtered_samples.shape[0] > 0):
-            good_samples_count = good_samples_count + filtered_samples.shape[0]
+            
+            samples_still_needed = samples_required - good_samples_count
+            
+            samples_tobe_taken = min(samples_still_needed, filtered_samples.shape[0])
             
             if (X.size == 0):
-                X = np.copy(filtered_samples)
+                X = np.copy(filtered_samples[0:samples_tobe_taken,:,:])
             else:
-                X = np.concatenate((X, filtered_samples), axis=0)
-            
-        print("GenerateSamplesMDMfiltered end")
-    
+                X = np.concatenate((X, filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
+                
+            good_samples_count = good_samples_count + samples_tobe_taken
+                
+            print("New filtered samples added:", good_samples_count, "/", samples_required)
+        else:
+            print("Non added samples: ", new_samples.shape[0])
+            print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
+        
+    print("GenerateSamplesMDMfiltered end")
     return X
     
 if __name__ == "__main__":
@@ -281,7 +306,7 @@ if __name__ == "__main__":
     
     iterations = 3000 #more means better training
     
-    for hl in [500]:#700, 900, 2000
+    for hl in [800]:#700, 900, 2000 , default 500
         for ls in [8]: #16 produces NaNs
             print ("hidden layers low:", hl)
             print ("latent_dim:", ls)
@@ -289,10 +314,12 @@ if __name__ == "__main__":
             model, scaler = TrainVAE(X_train, y_train, P300Class, iterations, hl, ls) #latent_dim = 8
             
             print("Reports for augmented data:") 
-            for percentageP300Added in [2, 3, 5, 10]:
+            for percentageP300Added in [2, 3, 10, 15, 20]: #, 5, 10, 20
                 
                 print("% P300 Added:", percentageP300Added)
+                
                 samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
+                
                 #X_augmented = GenerateSamples(model, scaler, samples_required)
                 X_augmented = GenerateSamplesMDMfiltered(model, scaler, samples_required, modelMDM, P300Class)
                 
