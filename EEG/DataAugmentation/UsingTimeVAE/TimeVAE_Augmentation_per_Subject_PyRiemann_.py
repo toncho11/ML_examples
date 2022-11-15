@@ -188,7 +188,7 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
         epochs=iterations, #default 500
         shuffle = True,
         #callbacks=[early_stop_callback, reduceLR],
-        verbose = 1
+        verbose = 0
     )
     
     return vae, scaler
@@ -266,74 +266,80 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
     print("GenerateSamplesMDMfiltered end")
     return X
 
-def CreateNormalDataset():
+# def CreateNormalDataset():
     
-    X_train = np.array([])
-    y_train = np.array([])
+#     X_train = np.array([])
+#     y_train = np.array([])
     
-    X_test = np.array([])
-    y_test = np.array([])
+#     X_test = np.array([])
+#     y_test = np.array([])
     
-    #we seperate each subject into Train Xy and TestXy
-    #we train the VAE on the TrainX (P300 class)
-    #we save both the augmented Train X dataset
-    #and Test Xy for the classfication later
+#     #we seperate each subject into Train Xy and TestXy
+#     #we train the VAE on the TrainX (P300 class)
+#     #we save both the augmented Train X dataset
+#     #and Test Xy for the classfication later
     
-    for dataset in ds:
+#     for dataset in ds:
         
-        subjects  = enumerate(dataset.subject_list[20:22])
+#         subjects  = enumerate(dataset.subject_list[20:22])
 
-        for subject_i, subject in subjects:
+#         for subject_i, subject in subjects:
             
-            # if subject_i > 0:
-            #     break
+#             # if subject_i > 0:
+#             #     break
             
-            print("Loading subject:" , subject) 
+#             print("Loading subject:" , subject) 
             
-            X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+#             X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
             
-            y1 = le.fit_transform(y1)
+#             y1 = le.fit_transform(y1)
             
-            #shuffle
-            for x in range(7):
-                indices = np.arange(X1.shape[0])
-                np.random.shuffle(indices)
-                X1 = np.array(X1)[indices]
-                y1 = np.array(y1)[indices]
+#             #shuffle
+#             for x in range(7):
+#                 indices = np.arange(X1.shape[0])
+#                 np.random.shuffle(indices)
+#                 X1 = np.array(X1)[indices]
+#                 y1 = np.array(y1)[indices]
             
     
-            #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-            X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size = 0.10) #, stratify = y
+#             #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
+#             X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size = 0.10) #, stratify = y
         
             
-            #add to X_train and y_train
-            if (X_train.size == 0):
-                #add subject original data
-                X_train = np.copy(X_train1)
-                y_train = np.copy(y_train1)
+#             #add to X_train and y_train
+#             if (X_train.size == 0):
+#                 #add subject original data
+#                 X_train = np.copy(X_train1)
+#                 y_train = np.copy(y_train1)
                 
-            else:
-                #add subject original data
-                X_train = np.concatenate((X_train, X_train1), axis=0)
-                y_train = np.concatenate((y_train, y_train1), axis=0)
+#             else:
+#                 #add subject original data
+#                 X_train = np.concatenate((X_train, X_train1), axis=0)
+#                 y_train = np.concatenate((y_train, y_train1), axis=0)
             
-            #add to X_test and y_test
-            if (X_test.size == 0):
-                X_test = np.copy(X_test1)
-                y_test = np.copy(y_test1)
-            else:
-                X_test = np.concatenate((X_test, X_test1), axis=0)
-                y_test = np.concatenate((y_test, y_test1), axis=0)
+#             #add to X_test and y_test
+#             if (X_test.size == 0):
+#                 X_test = np.copy(X_test1)
+#                 y_test = np.copy(y_test1)
+#             else:
+#                 X_test = np.concatenate((X_test, X_test1), axis=0)
+#                 y_test = np.concatenate((y_test, y_test1), axis=0)
                 
-    return X_train, y_train, X_test, y_test
+#     return X_train, y_train, X_test, y_test
     
-def CreateAugmentedDataset():
+def CreateDataset():
     
     X_train = np.array([])
     y_train = np.array([])
     
     X_test = np.array([])
     y_test = np.array([])
+    
+    X_train_a = np.array([])
+    y_train_a = np.array([])
+    
+    # X_test_a = np.array([])
+    # y_test_a = np.array([])
     
     #we seperate each subject into Train Xy and TestXy
     #we train the VAE on the TrainX (P300 class)
@@ -342,7 +348,7 @@ def CreateAugmentedDataset():
     
     for dataset in ds:
         
-        subjects  = enumerate(dataset.subject_list[20:22])
+        subjects  = enumerate(dataset.subject_list[20:29])
 
         for subject_i, subject in subjects:
             
@@ -375,7 +381,7 @@ def CreateAugmentedDataset():
             max_ls = -1
             max_percentage = -1
             
-            iterations = 2000 #more means better training
+            iterations = 20 #more means better training
             
             hl = 500 #hidden layer
             ls = 8 #latent space
@@ -393,7 +399,7 @@ def CreateAugmentedDataset():
             P300ClassCount = sum(y_train1)
             NonTargetCount = len(y_train1) - P300ClassCount
             
-            percentageP300Added = 10               
+            percentageP300Added = 5              
             print("% P300 Added:", percentageP300Added)
             
             samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
@@ -407,16 +413,16 @@ def CreateAugmentedDataset():
                 X_train = np.copy(X_train1)
                 y_train = np.copy(y_train1)
                 #add subject augmented data
-                X_train = np.concatenate((X_train, X_augmented), axis=0)
-                y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+                # X_train = np.concatenate((X_train, X_augmented), axis=0)
+                # y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
                 
             else:
                 #add subject original data
                 X_train = np.concatenate((X_train, X_train1), axis=0)
                 y_train = np.concatenate((y_train, y_train1), axis=0)
                 #add subject augmented data
-                X_train = np.concatenate((X_train, X_augmented), axis=0)
-                y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+                # X_train = np.concatenate((X_train, X_augmented), axis=0)
+                # y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
                 
             
             #add to X_test and y_test
@@ -426,8 +432,36 @@ def CreateAugmentedDataset():
             else:
                 X_test = np.concatenate((X_test, X_test1), axis=0)
                 y_test = np.concatenate((y_test, y_test1), axis=0)
+            
+            # ============================================================================
+            #add to X_train and y_train
+            if (X_train_a.size == 0):
+                #add subject original data
+                # X_train_a = np.copy(X_train1)
+                # y_train_a = np.copy(y_train1)
+                #add subject augmented data
+                X_train_a = np.copy(X_augmented)
+                y_train_a = np.copy(np.repeat(P300Class,X_augmented.shape[0]))
                 
-    return X_train, y_train, X_test, y_test
+            else:
+                #add subject original data
+                # X_train_a = np.concatenate((X_train_a, X_train1), axis=0)
+                # y_train_a = np.concatenate((y_train_a, y_train1), axis=0)
+                #add subject augmented data
+                X_train_a = np.concatenate((X_train_a, X_augmented), axis=0)
+                y_train_a = np.concatenate((y_train_a, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+                
+            
+            # #add to X_test and y_test
+            # if (X_test_a.size == 0):
+            #     X_test_a = np.copy(X_test1)
+            #     y_test_a = np.copy(y_test1)
+            # else:
+            #     X_test_a = np.concatenate((X_test_a, X_test1), axis=0)
+            #     y_test_a = np.concatenate((y_test_a, y_test1), axis=0)
+                    
+                
+    return X_train, y_train, X_test, y_test, X_train_a, y_train_a
     
 if __name__ == "__main__":
     
@@ -436,46 +470,57 @@ if __name__ == "__main__":
     #warning datasets must have the same number of electrodes
     ds = [bi2014a()]
     
-    #1) Evaluate original dataset
+    pure_mdm_scores = []
+    aug_mdm_scores = []
     
-    X_train, y_train, X_test, y_test = CreateNormalDataset()
-    
-    #shuffle the real training data and the augmented data before testing again
-    for x in range(3):
-        indices = np.arange(len(X_train))
-        np.random.shuffle(indices)
-        X_train = np.array(X_train)[indices]
-        y_train = np.array(y_train)[indices]
+    for i in range(10):
         
-    print('Test with PyRiemann, NO data augmentation')
-    #This produces a base result to compare with
-    CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
-    print(CR1)
-    
-    #2) train on the final Train and Test dataset (that uses augmented data) 
-    
-    X_train, y_train, X_test, y_test = CreateAugmentedDataset()
-    
-    #shuffle the real training data and the augmented data before testing again
-    for x in range(3):
-        indices = np.arange(len(X_train))
-        np.random.shuffle(indices)
-        X_train = np.array(X_train)[indices]
-        y_train = np.array(y_train)[indices]
-    
-    print('Test with PyRiemann, WITH data augmentation. Metrics:')
-    CR2, ba_augmented, _ = Evaluate(X_train, X_test, y_train, y_test)
-    
-    # if ba > max_ba:
-    #     max_ba = ba
-    #     max_hl = hl
-    #     max_ls = ls
-    #     max_percentage = percentageP300Added
-    
-    #print(CR2)
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("Iteration: ", i)
+        #1) Evaluate original dataset
+        
+        X_train, y_train, X_test, y_test, X_train_a, y_train_a = CreateDataset()
+        
+        #shuffle the real training data and the augmented data before testing again
+        for x in range(3):
+            indices = np.arange(len(X_train))
+            np.random.shuffle(indices)
+            X_train = np.array(X_train)[indices]
+            y_train = np.array(y_train)[indices]
+            
+        print('Test with PyRiemann, NO data augmentation')
+        #This produces a base result to compare with
+        CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
+        print(CR1)
+        
+        pure_mdm_scores.append(pure_mdm_ba)
+        
+        #2) train on the final Train and Test dataset (that uses augmented data) 
+        
+        #merge
+        X_train = np.concatenate((X_train, X_train_a), axis=0)
+        y_train = np.concatenate((y_train, y_train_a), axis=0)
+        
+        #shuffle the real training data and the augmented data before testing again
+        for x in range(7):
+            indices = np.arange(len(X_train))
+            np.random.shuffle(indices)
+            X_train = np.array(X_train)[indices]
+            y_train = np.array(y_train)[indices]
+        
+        print('Test with PyRiemann, WITH data augmentation. Metrics:')
+        CR2, ba_augmented, _ = Evaluate(X_train, X_test, y_train, y_test)
+        
+        aug_mdm_scores.append(ba_augmented)
+        
+        del X_train, y_train, X_test, y_test, X_train_a, y_train_a
+        import gc
+        gc.collect()
+        
+        #print(CR2)
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                     
     # print("max all:", max_ba, max_hl, max_ls, max_percentage)
     # print("orginal / best:", pure_mdm_ba, "/", max_ba)
     
-    print("orginal / best:", pure_mdm_ba, "/", ba_augmented)
+    #print("orginal / best:", pure_mdm_ba, "/", ba_best)
+    print("orginal / augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
