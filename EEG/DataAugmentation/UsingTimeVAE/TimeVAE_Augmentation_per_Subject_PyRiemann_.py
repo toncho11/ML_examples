@@ -381,7 +381,7 @@ def CreateDataset():
             max_ls = -1
             max_percentage = -1
             
-            iterations = 20 #more means better training
+            iterationsVAE = 500 #more means better training
             
             hl = 500 #hidden layer
             ls = 8 #latent space
@@ -394,7 +394,7 @@ def CreateDataset():
             #train and generate samples
             
             #train on single subject
-            modelVAE, scaler = TrainVAE(X_train1, y_train1, P300Class, iterations, hl, ls) #latent_dim = 8
+            modelVAE, scaler = TrainVAE(X_train1, y_train1, P300Class, iterationsVAE, hl, ls) #latent_dim = 8
                     
             P300ClassCount = sum(y_train1)
             NonTargetCount = len(y_train1) - P300ClassCount
