@@ -64,50 +64,10 @@ paradigm = P300()
 
 le = LabelEncoder()
 
-# Puts all subjects in single X,y
-def BuidlDataset(datasets):
-    
-    X = np.array([])
-    y = np.array([])
-    
-    for dataset in datasets:
-        
-        subjects  = enumerate(dataset.subject_list[20:22])
-
-        for subject_i, subject in subjects:
-            
-            # if subject_i > 0:
-            #     break
-            
-            print("Loading subject:" , subject) 
-            
-            X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
-            
-            y1 = le.fit_transform(y1)
-            print(X1.shape)  
-            
-            #0 NonTarget
-            #1 Target       
-            print("Total class target samples available: ", sum(y1))
-            print("Total class non-target samples available: ", len(y1) - sum(y1))
-            
-            #start = 102
-            #end = 307
-            #X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
-            
-            if (X.size == 0):
-                X = np.copy(X1)
-                y = np.copy(y1)
-            else:
-                X = np.concatenate((X, X1), axis=0)
-                y = np.concatenate((y, y1), axis=0)
-    
-    print("Building train data completed: ", X.shape)
-    return X,y
-
 # should be changed to be K-fold
 # http://moabb.neurotechx.com/docs/auto_tutorials/tutorial_3_benchmarking_multiple_pipelines.html
 # PyRiemann MDM example: https://github.com/pyRiemann/pyRiemann/blob/master/examples/ERP/plot_classify_MEG_mdm.py
+
 def Evaluate(X_train, X_test, y_train, y_test):
     
     print ("Evaluating ...================================================================")
@@ -211,122 +171,6 @@ def GenerateSamples(model, scaler, samples_required):
     
     return new_samples
     
-def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, selected_class):
-    
-    print("GenerateSamplesMDMfiltered start")
-    good_samples_count = 0
-    batch_samples_count = 10000
-    X = np.array([])
-    
-    while (good_samples_count < samples_required):
-        
-        #Sampling from the VAE
-        print("New samples requested: ", samples_required)
-        new_samples = modelVAE.get_prior_samples(num_samples=batch_samples_count)
-        print("Number of new samples generated: ", new_samples.shape[0])
-        
-        # inverse-transform scaling 
-        new_samples = scaler.inverse_transform(new_samples)
-        
-        print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
-        
-        print("Back to original dimensions: ", X.shape)
-        new_samples = new_samples.transpose(0,2,1) #convert back to D,T
-        
-        print("classify")
-        #classify
-        y_pred = modelMDM.predict(new_samples)
-        
-        print("sum(y_pred):", sum(y_pred))
-        
-        #select only the P300 samples
-        filtered_samples =  new_samples[y_pred == selected_class]
-        
-        if (sum(y_pred) != filtered_samples.shape[0]):
-            print("WARNING: potential error")
-        
-        if (filtered_samples.shape[0] > 0):
-            
-            samples_still_needed = samples_required - good_samples_count
-            
-            samples_tobe_taken = min(samples_still_needed, filtered_samples.shape[0])
-            
-            if (X.size == 0):
-                X = np.copy(filtered_samples[0:samples_tobe_taken,:,:])
-            else:
-                X = np.concatenate((X, filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
-                
-            good_samples_count = good_samples_count + samples_tobe_taken
-                
-            print("New filtered samples added:", good_samples_count, "/", samples_required)
-        else:
-            print("Non added samples: ", new_samples.shape[0])
-            print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
-        
-    print("GenerateSamplesMDMfiltered end")
-    return X
-
-# def CreateNormalDataset():
-    
-#     X_train = np.array([])
-#     y_train = np.array([])
-    
-#     X_test = np.array([])
-#     y_test = np.array([])
-    
-#     #we seperate each subject into Train Xy and TestXy
-#     #we train the VAE on the TrainX (P300 class)
-#     #we save both the augmented Train X dataset
-#     #and Test Xy for the classfication later
-    
-#     for dataset in ds:
-        
-#         subjects  = enumerate(dataset.subject_list[20:22])
-
-#         for subject_i, subject in subjects:
-            
-#             # if subject_i > 0:
-#             #     break
-            
-#             print("Loading subject:" , subject) 
-            
-#             X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
-            
-#             y1 = le.fit_transform(y1)
-            
-#             #shuffle
-#             for x in range(7):
-#                 indices = np.arange(X1.shape[0])
-#                 np.random.shuffle(indices)
-#                 X1 = np.array(X1)[indices]
-#                 y1 = np.array(y1)[indices]
-            
-    
-#             #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-#             X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size = 0.10) #, stratify = y
-        
-            
-#             #add to X_train and y_train
-#             if (X_train.size == 0):
-#                 #add subject original data
-#                 X_train = np.copy(X_train1)
-#                 y_train = np.copy(y_train1)
-                
-#             else:
-#                 #add subject original data
-#                 X_train = np.concatenate((X_train, X_train1), axis=0)
-#                 y_train = np.concatenate((y_train, y_train1), axis=0)
-            
-#             #add to X_test and y_test
-#             if (X_test.size == 0):
-#                 X_test = np.copy(X_test1)
-#                 y_test = np.copy(y_test1)
-#             else:
-#                 X_test = np.concatenate((X_test, X_test1), axis=0)
-#                 y_test = np.concatenate((y_test, y_test1), axis=0)
-                
-#     return X_train, y_train, X_test, y_test
-    
 def CreateDataset():
     
     X_train = np.array([])
@@ -348,7 +192,7 @@ def CreateDataset():
     
     for dataset in ds:
         
-        subjects  = enumerate(dataset.subject_list[20:29])
+        subjects  = enumerate(dataset.subject_list[30:39])
 
         for subject_i, subject in subjects:
             
@@ -479,6 +323,13 @@ if __name__ == "__main__":
         #1) Evaluate original dataset
         
         X_train, y_train, X_test, y_test, X_train_a, y_train_a = CreateDataset()
+        
+        if (np.count_nonzero(np.isnan(X_train_a)) > 0):
+            print("NaNs detected ... skipping")
+            del X_train, y_train, X_test, y_test, X_train_a, y_train_a
+            import gc
+            gc.collect()
+            continue
         
         #shuffle the real training data and the augmented data before testing again
         for x in range(3):
