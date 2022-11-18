@@ -31,6 +31,7 @@ import os
 import glob
 import time
 import sys
+import gc
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -63,6 +64,8 @@ from pyriemann.classification import MDM
 paradigm = P300()
 
 le = LabelEncoder()
+
+P300Class = 1 #1 corresponds to P300 samples
 
 # should be changed to be K-fold
 # http://moabb.neurotechx.com/docs/auto_tutorials/tutorial_3_benchmarking_multiple_pipelines.html
@@ -218,17 +221,16 @@ def CreateDataset():
         
             #Perform data augmentation with TimeVAE
             
-            P300Class = 1 #1 corresponds to P300 samples
-    
-            max_ba = -1
-            max_hl = -1
-            max_ls = -1
-            max_percentage = -1
+            #max_ba = -1
+            #max_hl = -1
+            #max_ls = -1
+            #max_percentage = -1
             
-            iterationsVAE = 500 #more means better training
+            iterationsVAE = 600 #more means better training
             
             hl = 500 #hidden layer
             ls = 8 #latent space
+            percentageP300Added = 10    
             
             # for hl in [500]:#700, 900, 2000 , default 500
             #     for ls in [8]: #16 produces NaNs
@@ -241,9 +243,8 @@ def CreateDataset():
             modelVAE, scaler = TrainVAE(X_train1, y_train1, P300Class, iterationsVAE, hl, ls) #latent_dim = 8
                     
             P300ClassCount = sum(y_train1)
-            NonTargetCount = len(y_train1) - P300ClassCount
-            
-            percentageP300Added = 5              
+            #NonTargetCount = len(y_train1) - P300ClassCount
+                      
             print("% P300 Added:", percentageP300Added)
             
             samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
@@ -316,8 +317,11 @@ if __name__ == "__main__":
     
     pure_mdm_scores = []
     aug_mdm_scores = []
+    aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
     
-    for i in range(10):
+    iterations = 5
+    
+    for i in range(iterations):
         
         print("Iteration: ", i)
         #1) Evaluate original dataset
@@ -347,6 +351,15 @@ if __name__ == "__main__":
         
         #2) train on the final Train and Test dataset (that uses augmented data) 
         
+        # we can classify the augmented data with MDM to see if it looks like P300 according to MDM
+        X_train_a_old_count = X_train_a.shape[0]
+        y_pred_a = modelMDM.predict(X_train_a)
+        acc_score_only_augmented_data = sklearn.metrics.accuracy_score(y_train_a, y_pred_a)
+        
+        X_train_a = X_train_a[y_pred_a == P300Class]
+        y_train_a = np.repeat(P300Class,X_train_a.shape[0])
+        X_train_a_new_count = X_train_a.shape[0]
+        
         #merge
         X_train = np.concatenate((X_train, X_train_a), axis=0)
         y_train = np.concatenate((y_train, y_train_a), axis=0)
@@ -364,8 +377,10 @@ if __name__ == "__main__":
         aug_mdm_scores.append(ba_augmented)
         
         del X_train, y_train, X_test, y_test, X_train_a, y_train_a
-        import gc
         gc.collect()
+        
+        print("Augmented samples added filtered / all:", X_train_a_new_count, "/", X_train_a_old_count)
+        aug_filtered_vs_all.append(X_train_a_new_count / X_train_a_old_count)
         
         #print(CR2)
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -374,4 +389,9 @@ if __name__ == "__main__":
     # print("orginal / best:", pure_mdm_ba, "/", max_ba)
     
     #print("orginal / best:", pure_mdm_ba, "/", ba_best)
-    print("orginal / augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
+    print("classification orginal / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
+    
+    #augmented data is only from class 1 (P300)
+    print("Classfication of augmented data (model trained on real data):", acc_score_only_augmented_data)
+    
+    print("Mean of ratio filtered vs all generated: ", np.mean(aug_filtered_vs_all))
