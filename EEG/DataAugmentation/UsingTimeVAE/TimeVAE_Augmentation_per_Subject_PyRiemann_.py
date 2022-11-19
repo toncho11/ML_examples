@@ -195,7 +195,7 @@ def CreateDataset():
     
     for dataset in ds:
         
-        subjects  = enumerate(dataset.subject_list[30:39])
+        subjects  = enumerate(dataset.subject_list[0:30])
 
         for subject_i, subject in subjects:
             
@@ -230,7 +230,7 @@ def CreateDataset():
             
             hl = 500 #hidden layer
             ls = 8 #latent space
-            percentageP300Added = 10    
+            percentageP300Added = 3    
             
             # for hl in [500]:#700, 900, 2000 , default 500
             #     for ls in [8]: #16 produces NaNs
@@ -304,6 +304,9 @@ def CreateDataset():
             # else:
             #     X_test_a = np.concatenate((X_test_a, X_test1), axis=0)
             #     y_test_a = np.concatenate((y_test_a, y_test1), axis=0)
+            
+            del X1, y1, X_train1, X_test1, y_train1, y_test1, X_augmented
+            gc.collect()
                     
                 
     return X_train, y_train, X_test, y_test, X_train_a, y_train_a
@@ -382,6 +385,9 @@ if __name__ == "__main__":
         print("Augmented samples added filtered / all:", X_train_a_new_count, "/", X_train_a_old_count)
         aug_filtered_vs_all.append(X_train_a_new_count / X_train_a_old_count)
         
+        #augmented data is only from class 1 (P300)
+        print("Classfication of augmented data (model trained on real data):", acc_score_only_augmented_data)
+        
         #print(CR2)
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                     
@@ -389,9 +395,6 @@ if __name__ == "__main__":
     # print("orginal / best:", pure_mdm_ba, "/", max_ba)
     
     #print("orginal / best:", pure_mdm_ba, "/", ba_best)
-    print("classification orginal / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
-    
-    #augmented data is only from class 1 (P300)
-    print("Classfication of augmented data (model trained on real data):", acc_score_only_augmented_data)
+    print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
     
     print("Mean of ratio filtered vs all generated: ", np.mean(aug_filtered_vs_all))
