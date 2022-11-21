@@ -320,7 +320,7 @@ if __name__ == "__main__":
     #warning datasets must have the same number of electrodes
     
     # CONFIGURATION
-    ds = [BNCI2014009(), bi2014a()]
+    ds = [BNCI2014009()]#, bi2014a()]
     iterations = 5
     selectedSubjects = list(range(1,10))
     iterationsVAE = 600 #more means better training
