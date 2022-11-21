@@ -95,4 +95,20 @@ def GetFrequency(dataset): #in Hz
         return 256
     else:
         print("Error: Could not get the epoch frequency!")
+
+def GetDataSetInfo(ds):
+    
+    from moabb.paradigms import P300
+    paradigm = P300()
+    
+    #print("Parameters: ", ds.ds.__dict__)
+    print("Dataset name: ", ds.__class__.__name__)
+    print("Subjects: ", ds.subject_list)
+    print("Subjects count: ", len(ds.subject_list))
+    
+    X, y, metadata = paradigm.get_data(dataset=ds, subjects=[ds.subject_list[0]])
+    
+    print("Electrodes count (inferred): ", X.shape[1])
+    print("Epoch length (inferred)    : ", X.shape[2])
+    #print("Description:    : ", ds.__doc__)
     

@@ -19,7 +19,7 @@ from sklearn.metrics import balanced_accuracy_score, make_scorer
 
 #not valid: bi2012a, bi2013a
 #bi2014a - 71 subjects
-from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
+from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, DemonsP300 
 from moabb.paradigms import P300
 
 import numpy as np
@@ -174,7 +174,7 @@ def GenerateSamples(model, scaler, samples_required):
     
     return new_samples
     
-def CreateDataset():
+def CreateDataset(ds, selectedSubjects, iterationsVAE, hl, ls, percentageP300Added):
     
     X_train = np.array([])
     y_train = np.array([])
@@ -192,10 +192,11 @@ def CreateDataset():
     #we train the VAE on the TrainX (P300 class)
     #we save both the augmented Train X dataset
     #and Test Xy for the classfication later
-    
     for dataset in ds:
         
-        subjects  = enumerate(dataset.subject_list[0:30])
+        dataset.subject_list = selectedSubjects
+        
+        subjects  = enumerate(dataset.subject_list)
 
         for subject_i, subject in subjects:
             
@@ -220,17 +221,6 @@ def CreateDataset():
             X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size = 0.10) #, stratify = y
         
             #Perform data augmentation with TimeVAE
-            
-            #max_ba = -1
-            #max_hl = -1
-            #max_ls = -1
-            #max_percentage = -1
-            
-            iterationsVAE = 600 #more means better training
-            
-            hl = 500 #hidden layer
-            ls = 8 #latent space
-            percentageP300Added = 3    
             
             # for hl in [500]:#700, 900, 2000 , default 500
             #     for ls in [8]: #16 produces NaNs
@@ -310,26 +300,51 @@ def CreateDataset():
                     
                 
     return X_train, y_train, X_test, y_test, X_train_a, y_train_a
+
+def GetDataSetInfo(ds):
+    #print("Parameters: ", ds.ds.__dict__)
+    print("Dataset name: ", ds.__class__.__name__)
+    print("Subjects: ", ds.subject_list)
+    print("Subjects count: ", len(ds.subject_list))
+    
+    X, y, metadata = paradigm.get_data(dataset=ds, subjects=[ds.subject_list[0]])
+    
+    print("Electrodes count (inferred): ", X.shape[1])
+    print("Epoch length (inferred)    : ", X.shape[2])
+    #print("Description:    : ", ds.__doc__)
     
 if __name__ == "__main__":
     
     #select dataset to be used
     #ds = [BNCI2014009()] #BNCI2014008()
     #warning datasets must have the same number of electrodes
-    ds = [bi2014a()]
     
+    # CONFIGURATION
+    ds = [BNCI2014009(), bi2014a()]
+    iterations = 5
+    selectedSubjects = list(range(1,10))
+    iterationsVAE = 600 #more means better training
+    hl = 500 #hidden layer
+    ls = 8 #latent space
+    percentageP300Added = 5  
+    filter_aug_data_by_MDM = False
+    
+    # init
     pure_mdm_scores = []
     aug_mdm_scores = []
     aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
-    
-    iterations = 5
+
+    #not available: bi2013a(), Lee2019_ERP()
+    #for d in [DemonsP300()]:#[bi2014a(), bi2014b(), bi2015a(), bi2015b(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300()]:
+    #    GetDataSetInfo(d)
+    #    print("======================================================================================")
     
     for i in range(iterations):
         
         print("Iteration: ", i)
         #1) Evaluate original dataset
         
-        X_train, y_train, X_test, y_test, X_train_a, y_train_a = CreateDataset()
+        X_train, y_train, X_test, y_test, X_train_a, y_train_a = CreateDataset(ds, selectedSubjects, iterationsVAE, hl, ls, percentageP300Added)
         
         if (np.count_nonzero(np.isnan(X_train_a)) > 0):
             print("NaNs detected ... skipping")
@@ -359,9 +374,11 @@ if __name__ == "__main__":
         y_pred_a = modelMDM.predict(X_train_a)
         acc_score_only_augmented_data = sklearn.metrics.accuracy_score(y_train_a, y_pred_a)
         
-        X_train_a = X_train_a[y_pred_a == P300Class]
-        y_train_a = np.repeat(P300Class,X_train_a.shape[0])
-        X_train_a_new_count = X_train_a.shape[0]
+        # replace augmented samples only with these filtered with MDM
+        if filter_aug_data_by_MDM == True:
+            X_train_a = X_train_a[y_pred_a == P300Class]
+            y_train_a = np.repeat(P300Class,X_train_a.shape[0])
+            X_train_a_new_count = X_train_a.shape[0]
         
         #merge
         X_train = np.concatenate((X_train, X_train_a), axis=0)
@@ -382,8 +399,9 @@ if __name__ == "__main__":
         del X_train, y_train, X_test, y_test, X_train_a, y_train_a
         gc.collect()
         
-        print("Augmented samples added filtered / all:", X_train_a_new_count, "/", X_train_a_old_count)
-        aug_filtered_vs_all.append(X_train_a_new_count / X_train_a_old_count)
+        if filter_aug_data_by_MDM == True:
+            print("Augmented samples added filtered / all:", X_train_a_new_count, "/", X_train_a_old_count)
+            aug_filtered_vs_all.append(X_train_a_new_count / X_train_a_old_count)
         
         #augmented data is only from class 1 (P300)
         print("Classfication of augmented data (model trained on real data):", acc_score_only_augmented_data)
