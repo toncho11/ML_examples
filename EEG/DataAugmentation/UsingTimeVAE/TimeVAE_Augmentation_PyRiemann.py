@@ -31,6 +31,7 @@ import os
 import glob
 import time
 import sys
+import gc
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -64,6 +65,18 @@ paradigm = P300()
 
 le = LabelEncoder()
 
+def GetDataSetInfo(ds):
+    #print("Parameters: ", ds.ds.__dict__)
+    print("Dataset name: ", ds.__class__.__name__)
+    print("Subjects: ", ds.subject_list)
+    print("Subjects count: ", len(ds.subject_list))
+    
+    X, y, metadata = paradigm.get_data(dataset=ds, subjects=[ds.subject_list[0]])
+    
+    print("Electrodes count (inferred): ", X.shape[1])
+    print("Epoch length (inferred)    : ", X.shape[2])
+    #print("Description:    : ", ds.__doc__)
+    
 # Puts all subjects in single X,y
 def BuidlDataset(datasets):
     
@@ -72,7 +85,9 @@ def BuidlDataset(datasets):
     
     for dataset in datasets:
         
-        subjects  = enumerate(dataset.subject_list[20:25])
+        GetDataSetInfo(dataset)
+        
+        subjects  = enumerate(dataset.subject_list)
 
         for subject_i, subject in subjects:
             
@@ -269,82 +284,96 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
 if __name__ == "__main__":
     
     #select dataset to be used
-    #ds = [BNCI2014009()] #BNCI2014008()
+    ds = [BNCI2014009()] #BNCI2014008()
     #warning datasets must have the same number of electrodes
-    ds = [bi2014a()]
+    #ds = [bi2014a()]
+    
+    # init
+    pure_mdm_scores = []
+    aug_mdm_scores = []
+    #aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
     
     X, y = BuidlDataset(ds)
     
-    #shuffle
-    for x in range(20):
-        indices = np.arange(X.shape[0])
-        np.random.shuffle(indices)
-        X = np.array(X)[indices]
-        y = np.array(y)[indices]
-    
-    #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
+    iterations = 5
+    iterationsVAE = 3000 #more means better training
         
-    #Perform data augmentation with TimeVAE
-    
-    P300Class = 1 #1 corresponds to P300 samples
-    
-    P300ClassCount = sum(y_train)
-    NonTargetCount = len(y_train) - P300ClassCount
-    #samples_required = NonTargetCount - sum(y_train)
-    #samples_required = 600 #default 100
-    
-    print('Test with PyRiemann, NO data augmentation')
-    #This produces a base result to compare with
-    CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
-    #print(CR1)
-    
-    max_ba = -1
-    max_hl = -1
-    max_ls = -1
-    max_percentage = -1
-    
-    iterations = 3000 #more means better training
-    
-    for hl in [800]:#700, 900, 2000 , default 500
-        for ls in [8]: #16 produces NaNs
-            print ("hidden layers low:", hl)
-            print ("latent_dim:", ls)
-            #train and generate samples
-            model, scaler = TrainVAE(X_train, y_train, P300Class, iterations, hl, ls) #latent_dim = 8
+    for i in range(iterations):
+        
+        #shuffle
+        for x in range(6):
+            indices = np.arange(X.shape[0])
+            np.random.shuffle(indices)
+            X = np.array(X)[indices]
+            y = np.array(y)[indices]
             
-            print("Reports for augmented data:") 
-            for percentageP300Added in [2, 3, 10, 15, 20]: #, 5, 10, 20
+        #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
+            
+        #Perform data augmentation with TimeVAE
+        
+        P300Class = 1 #1 corresponds to P300 samples
+        
+        P300ClassCount = sum(y_train)
+        NonTargetCount = len(y_train) - P300ClassCount
+        #samples_required = NonTargetCount - sum(y_train)
+        #samples_required = 600 #default 100
+        
+        print('Test with PyRiemann, NO data augmentation')
+        #This produces a base result to compare with
+        CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
+        pure_mdm_scores.append(pure_mdm_ba)
+        #print(CR1)
+        
+        max_ba = -1
+        max_hl = -1
+        max_ls = -1
+        max_percentage = -1
+
+        for hl in [700]:#700, 900, 2000 , default 500
+            for ls in [8]: #16 produces NaNs
+                print ("hidden layers low:", hl)
+                print ("latent_dim:", ls)
+                #train and generate samples
+                modelVAE, scaler = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls) #latent_dim = 8
                 
-                print("% P300 Added:", percentageP300Added)
+                print("Reports for augmented data:") 
+                for percentageP300Added in [5]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
+                    
+                    print("% P300 Added:", percentageP300Added)
+                    
+                    samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
+                    
+                    X_augmented = GenerateSamples(modelVAE, scaler, samples_required)
+                    #X_augmented = GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, P300Class)
+                    
+                    #add to X_train and y_train
+                    X_train = np.concatenate((X_train, X_augmented), axis=0)
+                    y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+                    
+                    #shuffle the real training data and the augmented data before testing again
+                    for x in range(6):
+                        indices = np.arange(len(X_train))
+                        np.random.shuffle(indices)
+                        X_train = np.array(X_train)[indices]
+                        y_train = np.array(y_train)[indices]
+                    
+                    print('Test with PyRiemann, WITH data augmentation. Metrics:')
+                    CR2, ba_augmented, _ = Evaluate(X_train, X_test, y_train, y_test)
+                    
+                    aug_mdm_scores.append(ba_augmented)
+                    
+                    if ba_augmented > max_ba:
+                        max_ba = ba_augmented
+                        max_hl = hl
+                        max_ls = ls
+                        max_percentage = percentageP300Added
+                    
+                    #print(CR2)
+                    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        
+        del X_train, X_test, y_train, y_test
+        gc.collect()
                 
-                samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
-                
-                #X_augmented = GenerateSamples(model, scaler, samples_required)
-                X_augmented = GenerateSamplesMDMfiltered(model, scaler, samples_required, modelMDM, P300Class)
-                
-                #add to X_train and y_train
-                X_train = np.concatenate((X_train, X_augmented), axis=0)
-                y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
-                
-                #shuffle the real training data and the augmented data before testing again
-                for x in range(6):
-                    indices = np.arange(len(X_train))
-                    np.random.shuffle(indices)
-                    X_train = np.array(X_train)[indices]
-                    y_train = np.array(y_train)[indices]
-                
-                print('Test with PyRiemann, WITH data augmentation. Metrics:')
-                CR2, ba, _ = Evaluate(X_train, X_test, y_train, y_test)
-                
-                if ba > max_ba:
-                    max_ba = ba
-                    max_hl = hl
-                    max_ls = ls
-                    max_percentage = percentageP300Added
-                
-                #print(CR2)
-                print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-                
-print("max all:", max_ba, max_hl, max_ls, max_percentage)
-print("orginal / best:", pure_mdm_ba, "/", max_ba)
+#print("max all:", max_ba, max_hl, max_ls, max_percentage)
+print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))

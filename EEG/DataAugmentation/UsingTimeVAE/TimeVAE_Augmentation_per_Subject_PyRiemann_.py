@@ -327,7 +327,7 @@ if __name__ == "__main__":
     hl = 500 #hidden layer
     ls = 8 #latent space
     percentageP300Added = 5  
-    filter_aug_data_by_MDM = False
+    filter_aug_data_by_MDM = True
     
     # init
     pure_mdm_scores = []
@@ -335,9 +335,9 @@ if __name__ == "__main__":
     aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
 
     #not available: bi2013a(), Lee2019_ERP()
-    #for d in [DemonsP300()]:#[bi2014a(), bi2014b(), bi2015a(), bi2015b(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300()]:
-    #    GetDataSetInfo(d)
-    #    print("======================================================================================")
+    # for d in [DemonsP300(), bi2014a(), bi2014b(), bi2015a(), bi2015b(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300()]:
+    #     GetDataSetInfo(d)
+    #     print("======================================================================================")
     
     for i in range(iterations):
         
