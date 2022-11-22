@@ -4,7 +4,14 @@ Created on Mon Nov 21 14:19:20 2022
 
 @author: antona
 
-Shows how to extract information such as sampling frequency and channel names from MOABB datasets.
+1) Shows how to extract information such as sampling frequency and channel names from MOABB datasets.
+
+2) Shows how to visualize epochs from a MOABB dataset using MNE. Epochs are show one after another separated by a vertical line.
+
+For the interactive plot backend 'qt' the package 'mne-qt-browser' is required.
+Install with: pip install mne matplotlib mne-qt-browser
+
+More on mne.viz.plot_epochs: https://mne.tools/stable/generated/mne.viz.plot_epochs.html#
 
 """
 
@@ -17,9 +24,16 @@ def PlotEpochs(ds):
     #run1.plot()
     #mne.viz.plot_raw(run1)
     
+    #currently the first subject is selected
     X_epochs, y, metadata = paradigm.get_data(dataset=ds, subjects=[ds.subject_list[0]], return_epochs=True)
     #mne.viz.plot_epochs_image(X_epochs)
-    mne.viz.plot_epochs(X_epochs)
+    
+    #select backend
+    #mne.viz.set_browser_backend('matplotlib',verbose=None)
+    mne.viz.set_browser_backend('qt',verbose=None) #requires: mne-qt-browser package
+    
+    #it shows all epochs one after another
+    mne.viz.plot_epochs(X_epochs, scalings='auto')
     
 def GetDataSetInfo(ds):
     #print("Parameters: ", ds.__dict__)
@@ -45,7 +59,8 @@ def GetDataSetInfo(ds):
 paradigm = P300()
 
 #not available: bi2013a(), Lee2019_ERP()
-for d in [bi2014a(), bi2014b(), bi2015a(), bi2015b(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300(), DemonsP300()]:
+for d in [ BNCI2014009()]:
+#for d in [bi2014a(), bi2014b(), bi2015a(), bi2015b(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300(), DemonsP300()]:
     GetDataSetInfo(d)
     PlotEpochs(d)
     print("======================================================================================")
