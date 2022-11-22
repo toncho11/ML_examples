@@ -78,7 +78,7 @@ def GetDataSetInfo(ds):
     #print("Description:    : ", ds.__doc__)
     
 # Puts all subjects in single X,y
-def BuidlDataset(datasets):
+def BuidlDataset(datasets, selectedSubjects):
     
     X = np.array([])
     y = np.array([])
@@ -86,6 +86,8 @@ def BuidlDataset(datasets):
     for dataset in datasets:
         
         GetDataSetInfo(dataset)
+        
+        dataset.subject_list = selectedSubjects
         
         subjects  = enumerate(dataset.subject_list)
 
@@ -284,19 +286,21 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
 if __name__ == "__main__":
     
     #select dataset to be used
-    ds = [BNCI2014009()] #BNCI2014008()
+    #ds = [BNCI2014009()] #BNCI2014008()
     #warning datasets must have the same number of electrodes
-    #ds = [bi2014a()]
+    
+    # CONFIGURATION
+    ds = [bi2014a()]
+    iterations = 5
+    iterationsVAE = 3000 #more means better training
+    selectedSubjects = list(range(1,10))
     
     # init
     pure_mdm_scores = []
     aug_mdm_scores = []
     #aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
     
-    X, y = BuidlDataset(ds)
-    
-    iterations = 5
-    iterationsVAE = 3000 #more means better training
+    X, y = BuidlDataset(ds, selectedSubjects)
         
     for i in range(iterations):
         
