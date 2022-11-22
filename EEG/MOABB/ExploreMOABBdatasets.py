@@ -9,16 +9,19 @@ from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014
 from moabb.paradigms import P300
 
 def GetDataSetInfo(ds):
-    print("Parameters: ", ds.__dict__)
+    #print("Parameters: ", ds.__dict__)
     print("Dataset name: ", ds.__class__.__name__)
     #print("Subjects: ", ds.subject_list)
     print("Subjects count: ", len(ds.subject_list))
     
-    if hasattr(ds, 'ch_names'):
-        print("Channel names: ", ds.ch_names)
+    # load first subject
+    subject = ds.get_data([1])
+    # subject 1, session 0, run 0
+    run1 = list((list((list(subject.values())[0]).values())[0]).values())[0]
     
-    if hasattr(ds, 'sampling_rate'):
-        print("Sampling rate: ", ds.sampling_rate)
+    print("Channel names: ", run1.ch_names)
+    #print("Channel types: ", run1.get_channel_types())
+    print("Sampling frequency: ", run1.info['sfreq'])
     
     X, y, metadata = paradigm.get_data(dataset=ds, subjects=[ds.subject_list[0]])
     
