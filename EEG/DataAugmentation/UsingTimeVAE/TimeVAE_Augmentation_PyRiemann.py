@@ -344,7 +344,7 @@ if __name__ == "__main__":
     
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
-    iterations = 5
+    iterations = 1
     iterationsVAE = 3000 #more means better training
     selectedSubjects = list(range(1,10))
     
@@ -367,10 +367,11 @@ if __name__ == "__main__":
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
         
-        meanTrainOrig = CalculateMeanEpochs(X_train)
         #Perform data augmentation with TimeVAE
         
         P300Class = 1 #1 corresponds to P300 samples
+        
+        meanTrainOrig = CalculateMeanEpochs(X_train[y_train == P300Class])
         
         P300ClassCount = sum(y_train)
         NonTargetCount = len(y_train) - P300ClassCount
@@ -405,13 +406,14 @@ if __name__ == "__main__":
                     X_augmented = GenerateSamples(modelVAE, scaler, samples_required)
                     #X_augmented = GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, P300Class)
                     meanOnlyAugmented = CalculateMeanEpochs(X_augmented)
-                    PlotEpochs(X_augmented[0:12,:,:]) #let's have look at augmented data
+                    #PlotEpochs(X_augmented[0:12,:,:]) #let's have look at the augmented data
                     
                     #add to X_train and y_train
                     X_train = np.concatenate((X_train, X_augmented), axis=0)
                     y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
                     
-                    meanOrigAndAugmented = CalculateMeanEpochs(X_train)
+                    #meanOrigAndAugmented = CalculateMeanEpochs(X_train)
+                    meanManyAugmentedSamples = CalculateMeanEpochs(GenerateSamples(modelVAE, scaler, 2000))
                     
                     #shuffle the real training data and the augmented data before testing again
                     for x in range(6):
@@ -436,6 +438,8 @@ if __name__ == "__main__":
         
         del X_train, X_test, y_train, y_test
         gc.collect()
-                
+
+meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanManyAugmentedSamples[-1,:,:]])             
 #print("max all:", max_ba, max_hl, max_ls, max_percentage)
 print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
+PlotEpochs(meanEpochs)
