@@ -308,7 +308,14 @@ def PlotEpochs(epochs):
     fig = px.line(df, facet_col='Source', facet_col_wrap=4)
     
     fig.show(renderer='browser')
-    
+
+def SaveVAEModel(model, model_dir, fname):
+    model.save(model_dir, fname)
+
+def LoadVAEModel(model_dir, fname):
+    new_vae = TimeVAE.load(model_dir, fname)
+    return new_vae
+
 if __name__ == "__main__":
     
     #warning when usiung multiple datasets they must have the same number of electrodes 
