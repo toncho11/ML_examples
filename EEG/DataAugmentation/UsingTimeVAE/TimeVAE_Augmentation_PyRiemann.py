@@ -282,15 +282,39 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
         
     print("GenerateSamplesMDMfiltered end")
     return X
+
+def PlotEpochs(epochs):
+    
+    import pandas as pd
+    import plotly.express as px
+    
+    df = pd.DataFrame()
+    
+    for i in range(0,epochs.shape[0]):
+        epoch = epochs[i,:,:]
+        epoch = epoch.transpose(1,0)
+        df_current = pd.DataFrame(data = epoch, columns=[*range(0, epoch.shape[1], 1)])
+        
+        for s in range(0, len(df_current.columns), 1):
+            df_current.iloc[:, s]+= s * 30
+        
+        df_current['Source'] = i
+        
+        if (df.empty):
+            df = df_current.copy()
+        else: 
+            df = pd.concat([df, df_current])
+    
+    fig = px.line(df, facet_col='Source', facet_col_wrap=4)
+    
+    fig.show(renderer='browser')
     
 if __name__ == "__main__":
     
-    #select dataset to be used
-    #ds = [BNCI2014009()] #BNCI2014008()
-    #warning datasets must have the same number of electrodes
+    #warning when usiung multiple datasets they must have the same number of electrodes 
     
     # CONFIGURATION
-    ds = [bi2014a()]
+    ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
     iterationsVAE = 3000 #more means better training
     selectedSubjects = list(range(1,10))
@@ -350,6 +374,8 @@ if __name__ == "__main__":
                     
                     X_augmented = GenerateSamples(modelVAE, scaler, samples_required)
                     #X_augmented = GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, P300Class)
+                    
+                    PlotEpochs(X_augmented[0:12,:,:]) #let's have look at augmented data
                     
                     #add to X_train and y_train
                     X_train = np.concatenate((X_train, X_augmented), axis=0)

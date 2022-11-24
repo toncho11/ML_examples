@@ -22,7 +22,7 @@ import plotly.io as pio
 #pio.renderers.default = 'jpg'
 pio.renderers.default = 'browser'
 
-def  PlotEpochs(ds):
+def PlotEpochs(ds):
     
     subject_i = 4
     # load first subject

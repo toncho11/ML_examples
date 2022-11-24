@@ -59,7 +59,8 @@ def GetDataSetInfo(ds):
 paradigm = P300()
 
 #not available: bi2013a(), Lee2019_ERP()
-for d in [ BNCI2014009()]:
+#for d in [ BNCI2014009()]:
+for d in [ bi2014a()]:
 #for d in [bi2014a(), bi2014b(), bi2015a(), bi2015b(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300(), DemonsP300()]:
     GetDataSetInfo(d)
     PlotEpochs(d)
