@@ -340,9 +340,9 @@ def CalculateMeanEpochs(epochs):
     res = tf.math.reduce_mean(epochs, axis = 0, keepdims = True)
     return res.numpy()
 
-# returns a Test dataset that contains an equal amounts of each class
-# y should contain only two classes 0  and 1
-def TrainSplitEqualBinary(X, y, samples_n): #samplesd_n per class
+# Returns a Test dataset that contains an equal amounts of each class
+# y should contain only two classes 0 and 1
+def TrainSplitEqualBinary(X, y, samples_n): #samples_n per class
     
     indicesClass1 = []
     indicesClass2 = []
@@ -410,7 +410,7 @@ if __name__ == "__main__":
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
         #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
         
-        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 200)
+        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 400)
         
         #shuffle
         for x in range(10):
