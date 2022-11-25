@@ -108,9 +108,11 @@ def BuidlDataset(datasets, selectedSubjects):
             print("Total class target samples available: ", sum(y1))
             print("Total class non-target samples available: ", len(y1) - sum(y1))
             
-            #start = 102
-            #end = 307
-            #X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
+            # bi2014a: (102, 307)
+            # BNCI2014009 (19,136)
+            start = 19
+            end = 136
+            X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
             
             if (X.size == 0):
                 X = np.copy(X1)
@@ -205,7 +207,7 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
         epochs=iterations, #default 500
         shuffle = True,
         #callbacks=[early_stop_callback, reduceLR],
-        verbose = 1
+        verbose = 0
     )
     
     return vae, scaler
@@ -338,15 +340,56 @@ def CalculateMeanEpochs(epochs):
     res = tf.math.reduce_mean(epochs, axis = 0, keepdims = True)
     return res.numpy()
 
+# returns a Test dataset that contains an equal amounts of each class
+# y should contain only two classes 0  and 1
+def TrainSplitEqualBinary(X, y, samples_n): #samplesd_n per class
+    
+    indicesClass1 = []
+    indicesClass2 = []
+    
+    for i in range(0, len(y)):
+        if y[i] == 0 and len(indicesClass1) < samples_n:
+            indicesClass1.append(i)
+        elif y[i] == 1 and len(indicesClass2) < samples_n:
+            indicesClass2.append(i)
+            
+        if len(indicesClass1) == samples_n and len(indicesClass2) == samples_n:
+            break
+    
+    X_test_class1 = X[indicesClass1]
+    X_test_class2 = X[indicesClass2]
+    
+    X_test = np.concatenate((X_test_class1,X_test_class2), axis=0)
+    
+    #remove x_test from X
+    X_train = np.delete(X, indicesClass1 + indicesClass2, axis=0)
+    
+    Y_test_class1 = y[indicesClass1]
+    Y_test_class2 = y[indicesClass2]
+    
+    y_test = np.concatenate((Y_test_class1,Y_test_class2), axis=0)
+    
+    #remove y_test from y
+    y_train = np.delete(y, indicesClass1 + indicesClass2, axis=0)
+    
+    if (X_test.shape[0] != 2 * samples_n or y_test.shape[0] != 2 * samples_n):
+        raise Exception("Problem with split 1!")
+        
+    if (X_train.shape[0] + X_test.shape[0] != X.shape[0] or y_train.shape[0] + y_test.shape[0] != y.shape[0]):
+        raise Exception("Problem with split 2!")
+    
+    return X_train, X_test, y_train, y_test
+    
+
 if __name__ == "__main__":
     
     #warning when usiung multiple datasets they must have the same number of electrodes 
     
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
-    iterations = 1
-    iterationsVAE = 3000 #more means better training
-    selectedSubjects = list(range(1,10))
+    iterations = 5
+    iterationsVAE = 30 #more means better training
+    selectedSubjects = list(range(1,11))
     
     # init
     pure_mdm_scores = []
@@ -358,20 +401,30 @@ if __name__ == "__main__":
     for i in range(iterations):
         
         #shuffle
-        for x in range(6):
+        for x in range(10):
             indices = np.arange(X.shape[0])
             np.random.shuffle(indices)
             X = np.array(X)[indices]
             y = np.array(y)[indices]
             
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
+        #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
+        
+        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 200)
+        
+        #shuffle
+        for x in range(10):
+            indices = np.arange(X_train.shape[0])
+            np.random.shuffle(indices)
+            X_train = np.array(X_train)[indices]
+            y_train = np.array(y_train)[indices]
         
         #Perform data augmentation with TimeVAE
         
         P300Class = 1 #1 corresponds to P300 samples
         
         meanTrainOrig = CalculateMeanEpochs(X_train[y_train == P300Class])
+        meanTest      = CalculateMeanEpochs( X_test[y_test  == P300Class])
         
         P300ClassCount = sum(y_train)
         NonTargetCount = len(y_train) - P300ClassCount
@@ -397,7 +450,7 @@ if __name__ == "__main__":
                 modelVAE, scaler = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls) #latent_dim = 8
                 
                 print("Reports for augmented data:") 
-                for percentageP300Added in [5]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
+                for percentageP300Added in [10]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
                     
                     print("% P300 Added:", percentageP300Added)
                     
@@ -439,7 +492,8 @@ if __name__ == "__main__":
         del X_train, X_test, y_train, y_test
         gc.collect()
 
-meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanManyAugmentedSamples[-1,:,:]])             
+meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanManyAugmentedSamples[-1,:,:], meanTest[-1,:,:] ])             
 #print("max all:", max_ba, max_hl, max_ls, max_percentage)
 print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
+legend = ["Mean P300 train data","Mean P300 Only Augmented used","Mean 2000 Augmented","Mean P300 test"]
 PlotEpochs(meanEpochs)
