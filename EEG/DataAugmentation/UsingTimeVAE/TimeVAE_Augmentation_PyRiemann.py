@@ -58,6 +58,7 @@ from vae_conv_I_model import VariationalAutoencoderConvInterpretable as TimeVAE
 #PyRiemann
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
+from pyriemann.classification import KNearestNeighbor
 
 #START CODE
 
@@ -133,15 +134,20 @@ def Evaluate(X_train, X_test, y_train, y_test):
     
     #0 NonTarget
     #1 Target       
-    print("Total class target samples available: ", sum(y_train))
-    print("Total class non-target samples available: ", len(y_train) - sum(y_train))
+    print("Total train class target samples available: ", sum(y_train))
+    print("Total train class non-target samples available: ", len(y_train) - sum(y_train))
+    print("Total test class target samples available: ", sum(y_test))
+    print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
 
     n_components = 3 
     
     clf = make_pipeline(XdawnCovariances(n_components), MDM())
+    #clf = make_pipeline(XdawnCovariances(n_components),  KNearestNeighbor(n_neighbors=1, n_jobs=10))
     
+    print("Training...")
     clf.fit(X_train, y_train)
     
+    print("Predicting...")
     y_pred = clf.predict(X_test)
     
     ba = balanced_accuracy_score(y_test, y_pred)
@@ -171,7 +177,7 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
 
     X = X[-1,:,:,:] #remove the first exta dimension
     
-    print("Count of P300 samples used by the VAE: ", X.shape)
+    print("Count of P300 samples used by the VAE train: ", X.shape)
     
     #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
@@ -197,8 +203,8 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
     #early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
     #reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
     
-    early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=50) 
-    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=50)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
+    early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
+    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=10)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
     print("Fit VAE")
     vae.fit(
@@ -234,8 +240,8 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
     
     print("GenerateSamplesMDMfiltered start")
     good_samples_count = 0
-    batch_samples_count = 10000
-    X = np.array([])
+    batch_samples_count = 5000
+    Xf = np.array([])
     
     while (good_samples_count < samples_required):
         
@@ -270,10 +276,10 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
             
             samples_tobe_taken = min(samples_still_needed, filtered_samples.shape[0])
             
-            if (X.size == 0):
-                X = np.copy(filtered_samples[0:samples_tobe_taken,:,:])
+            if (Xf.size == 0):
+                Xf = np.copy(filtered_samples[0:samples_tobe_taken,:,:])
             else:
-                X = np.concatenate((X, filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
+                Xf = np.concatenate((Xf, filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
                 
             good_samples_count = good_samples_count + samples_tobe_taken
                 
@@ -283,7 +289,7 @@ def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, sel
             print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
         
     print("GenerateSamplesMDMfiltered end")
-    return X
+    return Xf
 
 def PlotEpoch(epoch):
     
@@ -388,7 +394,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 30 #more means better training
+    iterationsVAE = 200 #more means better training
     selectedSubjects = list(range(1,11))
     
     # init
@@ -401,7 +407,7 @@ if __name__ == "__main__":
     for i in range(iterations):
         
         #shuffle
-        for x in range(10):
+        for x in range(20):
             indices = np.arange(X.shape[0])
             np.random.shuffle(indices)
             X = np.array(X)[indices]
@@ -410,10 +416,12 @@ if __name__ == "__main__":
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
         #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
         
-        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 400)
+        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 100)
+        
+        original_n_count = X_train.shape[0]
         
         #shuffle
-        for x in range(10):
+        for x in range(20):
             indices = np.arange(X_train.shape[0])
             np.random.shuffle(indices)
             X_train = np.array(X_train)[indices]
@@ -423,8 +431,10 @@ if __name__ == "__main__":
         
         P300Class = 1 #1 corresponds to P300 samples
         
-        meanTrainOrig = CalculateMeanEpochs(X_train[y_train == P300Class])
-        meanTest      = CalculateMeanEpochs( X_test[y_test  == P300Class])
+        meanTrainOrig    = CalculateMeanEpochs( X_train[y_train == P300Class])
+        meanTest         = CalculateMeanEpochs( X_test [y_test  == P300Class])
+        meanNonP300Train = CalculateMeanEpochs( X_train[y_train == 0])
+        meanNonP300Test  = CalculateMeanEpochs( X_test [y_test  == 0])
         
         P300ClassCount = sum(y_train)
         NonTargetCount = len(y_train) - P300ClassCount
@@ -461,9 +471,17 @@ if __name__ == "__main__":
                     meanOnlyAugmented = CalculateMeanEpochs(X_augmented)
                     #PlotEpochs(X_augmented[0:12,:,:]) #let's have look at the augmented data
                     
+                    X_train_old_count = X_train.shape[0]
+                    
+                    if (original_n_count != X_train_old_count):
+                        raise Exception("Problem with original data")
+                    
                     #add to X_train and y_train
                     X_train = np.concatenate((X_train, X_augmented), axis=0)
                     y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+                    
+                    if (X_train.shape[0] != X_augmented.shape[0] + X_train_old_count):
+                        raise Exception("Problem adding augmented data")
                     
                     #meanOrigAndAugmented = CalculateMeanEpochs(X_train)
                     meanManyAugmentedSamples = CalculateMeanEpochs(GenerateSamples(modelVAE, scaler, 2000))
@@ -489,11 +507,11 @@ if __name__ == "__main__":
                     #print(CR2)
                     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         
-        del X_train, X_test, y_train, y_test
+        del X_train, X_test, y_train, y_test, X_augmented
         gc.collect()
 
-meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanManyAugmentedSamples[-1,:,:], meanTest[-1,:,:] ])             
+meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanManyAugmentedSamples[-1,:,:], meanTest[-1,:,:], meanNonP300Train[-1,:,:], meanNonP300Test[-1,:,:]])             
 #print("max all:", max_ba, max_hl, max_ls, max_percentage)
-print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores))
-legend = ["Mean P300 train data","Mean P300 Only Augmented used","Mean 2000 Augmented","Mean P300 test"]
+print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores), "Difference: ",np.mean(pure_mdm_scores) - np.mean(aug_mdm_scores))
+legend = ["Mean P300 train data","Mean P300 Only Augmented used","Mean 2000 Augmented","Mean P300 test", "Mean Non P300 Train", "Mean Non P300 test"]
 PlotEpochs(meanEpochs)
