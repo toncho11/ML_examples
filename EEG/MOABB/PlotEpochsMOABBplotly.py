@@ -78,6 +78,11 @@ def GetDataSetInfo(ds):
     print("Epoch length (inferred)    : ", X.shape[2])
     #print("Description:    : ", ds.__doc__)
 
+def CalculateMeanEpochs(epochs):
+    import tensorflow as tf
+    res = tf.math.reduce_mean(epochs, axis = 0, keepdims = True)    
+    return res.numpy()
+
 paradigm = P300()
 
 #not available: bi2013a(), Lee2019_ERP()
