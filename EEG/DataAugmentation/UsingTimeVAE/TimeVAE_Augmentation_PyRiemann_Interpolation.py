@@ -417,7 +417,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 100 #more means better training
+    iterationsVAE = 500 #more means better training
     selectedSubjects = list(range(1,11))
     
     # init
@@ -487,7 +487,7 @@ if __name__ == "__main__":
                     
                     print("% P300 Added:", percentageP300Added)
                     
-                    samples_required = 400#int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
+                    samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
                     
                     #1) Data Augmentation with VAE Auto Encoder
                     
