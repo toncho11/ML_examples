@@ -173,24 +173,24 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
     
     selected_class_indices = np.where(y == selected_class)
     
-    X = X[selected_class_indices,:,:]
+    Xv = X[selected_class_indices,:,:]
 
-    X = X[-1,:,:,:] #remove the first exta dimension
+    Xv = Xv[-1,:,:,:] #remove the first exta dimension
     
     print("Count of P300 samples used by the VAE train: ", X.shape)
     
     #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
+    N, T, D = Xv.shape #N = number of samples, T = time steps, D = feature dimensions
     print(N, T, D)
     # X = X.reshape(N,D,T)
-    X = X.transpose(0,2,1)
-    N, T, D = X.shape
+    Xv = Xv.transpose(0,2,1)
+    N, T, D = Xv.shape
     print(N, T, D)
     
     # min max scale the data    
     scaler = utils.MinMaxScaler()        
    
-    scaled_data = scaler.fit_transform(X)
+    scaled_data = scaler.fit_transform(Xv)
     
     #vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
     vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[hidden_layer_low * 2, hidden_layer_low], )
