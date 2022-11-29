@@ -167,15 +167,17 @@ def Evaluate(X_train, X_test, y_train, y_test):
 
 # Augments the p300 class with TimeVAE
 # latent space = encoded space
-def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
+def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim, onlyP300):
     
     print("In TrainVAE")
     
-    selected_class_indices = np.where(y == selected_class)
+    if onlyP300 == True:
     
-    X = X[selected_class_indices,:,:]
-
-    X = X[-1,:,:,:] #remove the first exta dimension
+        selected_class_indices = np.where(y == selected_class)
+        
+        X = X[selected_class_indices,:,:]
+    
+        X = X[-1,:,:,:] #remove the first exta dimension
     
     print("Count of P300 samples used by the VAE train: ", X.shape)
     
@@ -387,7 +389,7 @@ def TrainSplitEqualBinary(X, y, samples_n): #samples_n per class
     return X_train, X_test, y_train, y_test
 
 # generates interplated samples from the original samples
-def GenerateInterpolated(X,y, selected_class):
+def GenerateInterpolated(X, y , selected_class):
     
     print ("Generating interpolated samples...")
     
@@ -410,17 +412,19 @@ def GenerateInterpolated(X,y, selected_class):
     print("Interpolated samples generated:", len(indicesSelectedClass))
     return Xint[indicesSelectedClass,:,:], np.repeat(selected_class,len(indicesSelectedClass))
 
-def EvaluateWithEncoder(timeVAE, X_train , X_test , y_train , y_test):
+def EvaluateWithEncoder(timeVAE, scaler, X_train , X_test , y_train , y_test):
+    
+    X_train_scaled = scaler.fit_transform(X_train)
     
     #1) Use the auto encoder to produce feature vectors
     # convert to correct format expected by timeVAE
-    N, T, D = X_train.shape #N = number of samples, T = time steps, D = feature dimensions
+    N, T, D = X_train_scaled.shape #N = number of samples, T = time steps, D = feature dimensions
     print(N, T, D)
-    X_train = X_train.transpose(0,2,1)
-    N, T, D = X_train.shape
+    X_train_scaled = X_train_scaled.transpose(0,2,1)
+    N, T, D = X_train_scaled.shape
     print(N, T, D)
     
-    X_train_fv = timeVAE.encoder.predict(X_train)
+    X_train_fv = timeVAE.encoder.predict( X_train_scaled)
     X_train_fv_np = np.array(X_train_fv)[-1,:,:]
     
     X_test = X_test.transpose(0,2,1)
@@ -430,15 +434,16 @@ def EvaluateWithEncoder(timeVAE, X_train , X_test , y_train , y_test):
    
     
     #2) Instantiate the Support Vector Classifier (SVC)
-    from sklearn.svm import SVC
+    from sklearn.svm import LinearSVC, SVC
 
-    clf = SVC(C=1.0, random_state=1, kernel='linear')
+    clf = SVC(C=1.0, random_state=1, kernel='rbf', verbose=False)
+    #clf = LinearSVC(C=1.0, random_state=1, dual=False, verbose=False)
  
     # Fit the model
-    print("Training...")
+    print("Training standard classifier ...")
     clf.fit(X_train_fv_np, y_train)
 
-    print("Predicting...")
+    print("Predicting standard classifier ...")
     y_pred = clf.predict(X_test_fv_np)
     
     ba = balanced_accuracy_score(y_test, y_pred)
@@ -462,8 +467,8 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 10 #more means better training
-    selectedSubjects = list(range(1,4))
+    iterationsVAE = 600 #more means better training
+    selectedSubjects = list(range(1,3))
     
     # init
     pure_mdm_scores = []
@@ -521,13 +526,22 @@ if __name__ == "__main__":
         max_percentage = -1
 
         for hl in [700]:#700, 900, 2000 , default 500
-            for ls in [8]: #16 produces NaNs
+            for ls in [10]: #16 produces NaNs
                 print ("hidden layers low:", hl)
                 print ("latent_dim:", ls)
                 #train and generate samples
-                modelVAE, scaler = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls) #latent_dim = 8
+                modelVAE, scaler = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, False) #latent_dim = 8
                 
-                CR2, ba_augmented, _ = EvaluateWithEncoder(modelVAE, X_train, X_test, y_train, y_test)
+                #Addding samples by revmoving some data and replacing it with interplated data
+                #X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
+                
+                #if (P300ClassCount != X_interpolated.shape[0]):
+                #    raise Exception("Problem with interpolated data 1!")
+                    
+                #X_train = np.concatenate((X_train, X_interpolated), axis=0)
+                #y_train = np.concatenate((y_train, y_interpolated), axis=0)
+                
+                CR2, ba_augmented, _ = EvaluateWithEncoder(modelVAE, scaler, X_train, X_test, y_train, y_test)
                 
                 # print("Reports for augmented data:") 
                 # for percentageP300Added in [10]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
@@ -593,7 +607,8 @@ if __name__ == "__main__":
                 #print(CR2)
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         
-        del X_train, X_test, y_train, y_test, X_augmented
+        #del X_train, X_test, y_train, y_test, X_augmented
+        del X_train, X_test, y_train, y_test
         gc.collect()
 
 #meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanManyAugmentedSamples[-1,:,:], meanTest[-1,:,:], meanNonP300Train[-1,:,:], meanNonP300Test[-1,:,:]])             
