@@ -218,80 +218,7 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim, onl
         verbose = 0
     )
     
-    return vae, scaler
-   
-
-def GenerateSamples(model, scaler, samples_required):
-    
-    #Sampling from the VAE
-    print("New samples requested: ", samples_required)
-    new_samples = model.get_prior_samples(num_samples=samples_required)
-    print("Number of new samples generated: ", new_samples.shape[0])
-    
-    # inverse-transform scaling 
-    new_samples = scaler.inverse_transform(new_samples)
-    
-    print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
-    
-    new_samples = new_samples.transpose(0,2,1) #convert back to D,T
-    print("Back to original dimensions: ", X.shape)
-    
-    return new_samples
-    
-def GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, selected_class):
-    
-    print("GenerateSamplesMDMfiltered start")
-    good_samples_count = 0
-    batch_samples_count = 5000
-    Xf = np.array([])
-    
-    while (good_samples_count < samples_required):
-        
-        #Sampling from the VAE
-        print("New samples requested: ", samples_required)
-        new_samples = modelVAE.get_prior_samples(num_samples=batch_samples_count)
-        print("Number of new samples generated: ", new_samples.shape[0])
-        
-        # inverse-transform scaling 
-        new_samples = scaler.inverse_transform(new_samples)
-        
-        print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
-        
-        print("Back to original dimensions: ", X.shape)
-        new_samples = new_samples.transpose(0,2,1) #convert back to D,T
-        
-        print("classify")
-        #classify
-        y_pred = modelMDM.predict(new_samples)
-        
-        print("sum(y_pred):", sum(y_pred))
-        
-        #select only the P300 samples
-        filtered_samples =  new_samples[y_pred == selected_class]
-        
-        if (sum(y_pred) != filtered_samples.shape[0]):
-            print("WARNING: potential error")
-        
-        if (filtered_samples.shape[0] > 0):
-            
-            samples_still_needed = samples_required - good_samples_count
-            
-            samples_tobe_taken = min(samples_still_needed, filtered_samples.shape[0])
-            
-            if (Xf.size == 0):
-                Xf = np.copy(filtered_samples[0:samples_tobe_taken,:,:])
-            else:
-                Xf = np.concatenate((Xf, filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
-                
-            good_samples_count = good_samples_count + samples_tobe_taken
-                
-            print("New filtered samples added:", good_samples_count, "/", samples_required)
-        else:
-            print("Non added samples: ", new_samples.shape[0])
-            print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
-        
-    print("GenerateSamplesMDMfiltered end")
-    return Xf
+    return vae, scaler 
 
 def PlotEpoch(epoch):
     
@@ -414,6 +341,7 @@ def GenerateInterpolated(X, y , selected_class):
 
 def EvaluateWithEncoder(timeVAE, scaler, X_train , X_test , y_train , y_test):
     
+    # Process X_train
     X_train_scaled = scaler.fit_transform(X_train)
     
     #1) Use the auto encoder to produce feature vectors
@@ -424,12 +352,14 @@ def EvaluateWithEncoder(timeVAE, scaler, X_train , X_test , y_train , y_test):
     N, T, D = X_train_scaled.shape
     print(N, T, D)
     
-    X_train_fv = timeVAE.encoder.predict( X_train_scaled)
+    X_train_fv = timeVAE.encoder.predict(X_train_scaled)
     X_train_fv_np = np.array(X_train_fv)[-1,:,:]
     
-    X_test = X_test.transpose(0,2,1)
+    # Process X_test
+    X_test_scaled = scaler.fit_transform(X_test)
+    X_test_scaled = X_test_scaled.transpose(0,2,1)
     
-    X_test_fv  = timeVAE.encoder.predict(X_test)
+    X_test_fv  = timeVAE.encoder.predict(X_test_scaled)
     X_test_fv_np = np.array(X_test_fv)[-1,:,:]
    
     
@@ -466,9 +396,9 @@ if __name__ == "__main__":
     
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
-    iterations = 5
-    iterationsVAE = 600 #more means better training
-    selectedSubjects = list(range(1,3))
+    iterations = 3
+    iterationsVAE = 3000 #more means better training
+    selectedSubjects = list(range(1,11))
     
     # init
     pure_mdm_scores = []
@@ -487,9 +417,8 @@ if __name__ == "__main__":
             y = np.array(y)[indices]
             
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-        #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
-        
-        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 20)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
+        #X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 20)
         
         original_n_count = X_train.shape[0]
         
@@ -519,95 +448,39 @@ if __name__ == "__main__":
         CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
         pure_mdm_scores.append(pure_mdm_ba)
         #print(CR1)
-        
-        max_ba = -1
-        max_hl = -1
-        max_ls = -1
-        max_percentage = -1
 
         for hl in [700]:#700, 900, 2000 , default 500
-            for ls in [10]: #16 produces NaNs
+            for ls in [12]: #16 produces NaNs
                 print ("hidden layers low:", hl)
                 print ("latent_dim:", ls)
                 #train and generate samples
                 modelVAE, scaler = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, False) #latent_dim = 8
                 
-                #Addding samples by revmoving some data and replacing it with interplated data
-                #X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
+                addInterpolated = False
                 
-                #if (P300ClassCount != X_interpolated.shape[0]):
-                #    raise Exception("Problem with interpolated data 1!")
+                if addInterpolated:
+                    #Addding samples by revmoving some data and replacing it with interpolated one
+                    X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
                     
-                #X_train = np.concatenate((X_train, X_interpolated), axis=0)
-                #y_train = np.concatenate((y_train, y_interpolated), axis=0)
+                    if (P300ClassCount != X_interpolated.shape[0]):
+                        raise Exception("Problem with interpolated data 1!")
+                        
+                    X_train = np.concatenate((X_train, X_interpolated), axis=0)
+                    y_train = np.concatenate((y_train, y_interpolated), axis=0)
+                
+                for x in range(10):
+                        indices = np.arange(len(X_train))
+                        np.random.shuffle(indices)
+                        X_train = np.array(X_train)[indices]
+                        y_train = np.array(y_train)[indices]
                 
                 CR2, ba_augmented, _ = EvaluateWithEncoder(modelVAE, scaler, X_train, X_test, y_train, y_test)
-                
-                # print("Reports for augmented data:") 
-                # for percentageP300Added in [10]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
-                    
-                #     print("% P300 Added:", percentageP300Added)
-                    
-                #     samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
-                    
-                #     #1) Data Augmentation with VAE Auto Encoder
-                    
-                #     X_augmented = GenerateSamples(modelVAE, scaler, samples_required)
-                #     #X_augmented = GenerateSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, P300Class)
-                #     meanOnlyAugmented = CalculateMeanEpochs(X_augmented)
-                #     #PlotEpochs(X_augmented[0:12,:,:]) #let's have look at the augmented data
-                    
-                #     #2) Addding samples by revmoving some data and replacing it with interplated data
-                #     X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
-                #     if (P300ClassCount != X_interpolated.shape[0]):
-                #         raise Exception("Problem with interpolated data 1!")
-                        
-                #     # Adding both the augmented and interpolated data
-                    
-                #     #1)
-                    
-                #     X_train_old_count = X_train.shape[0]
-                    
-                #     if (original_n_count != X_train_old_count):
-                #         raise Exception("Problem with original data")
-                    
-                #     #add to X_train and y_train
-                #     X_train = np.concatenate((X_train, X_augmented), axis=0)
-                #     y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
-                    
-                #     if (X_train.shape[0] != X_augmented.shape[0] + X_train_old_count):
-                #         raise Exception("Problem adding augmented data")
-                    
-                #     #2)
-                #     X_train = np.concatenate((X_train, X_interpolated), axis=0)
-                #     y_train = np.concatenate((y_train, y_interpolated), axis=0)
-                    
-                #     #meanOrigAndAugmented = CalculateMeanEpochs(X_train)
-                #     meanManyAugmentedSamples = CalculateMeanEpochs(GenerateSamples(modelVAE, scaler, 2000))
-                    
-                #     #shuffle the real training data and the augmented data before testing again
-                #     for x in range(10):
-                #         indices = np.arange(len(X_train))
-                #         np.random.shuffle(indices)
-                #         X_train = np.array(X_train)[indices]
-                #         y_train = np.array(y_train)[indices]
-                    
-                #     print('Test with PyRiemann, WITH data augmentation. Metrics:')
-                #     #CR2, ba_augmented, _ = Evaluate(X_train, X_test, y_train, y_test)
-                #     CR2, ba_augmented, _ = EvaluateWithEncoder(modelVAE, X_train, X_test, y_train, y_test)
-                    
+                                    
                 aug_mdm_scores.append(ba_augmented)
-                
-                # if ba_augmented > max_ba:
-                #     max_ba = ba_augmented
-                #     max_hl = hl
-                #     max_ls = ls
-                #     max_percentage = percentageP300Added
                 
                 #print(CR2)
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         
-        #del X_train, X_test, y_train, y_test, X_augmented
         del X_train, X_test, y_train, y_test
         gc.collect()
 
