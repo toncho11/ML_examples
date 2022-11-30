@@ -412,10 +412,10 @@ def EvalauteNN(X_train, X_test, y_train, y_test):
     from tensorflow.keras.layers import Dense
 
     model = Sequential([
-        Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
-        Dense(64, activation='relu'),
-        Dense(1, activation='softmax'),
-        ])
+      Dense(32, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      Dense(8,  activation=tf.nn.relu),
+      Dense(1)
+    ])
     
     model.compile(
         optimizer='adam',
@@ -423,14 +423,19 @@ def EvalauteNN(X_train, X_test, y_train, y_test):
         metrics=['accuracy'],
         )
     
+    print("Training NN ...")
     model.fit(
         X_train, # training data
         y_train, # training targets
-        epochs=5,
+        epochs=60, #how long to train
         batch_size=32,
+        verbose=False,
+        validation_data=(X_test, y_test),
         )
     
     y_pred = model.predict(X_test)
+    
+    y_pred = y_pred.round()
     
     ba = balanced_accuracy_score(y_test, y_pred)
     print("Balanced Accuracy #####: ", ba)
@@ -447,8 +452,8 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 30 #more means better training
-    selectedSubjects = list(range(1,3))
+    iterationsVAE = 200 #more means better training
+    selectedSubjects = list(range(1,11))
     
     # init
     pure_mdm_scores = []
@@ -498,8 +503,8 @@ if __name__ == "__main__":
         pure_mdm_scores.append(pure_mdm_ba)
         #print(CR1)
 
-        for hl in [100]:#700, 900, 2000 , default 500
-            for ls in [8]: #16 produces NaNs
+        for hl in [200]:#700, 900, 2000 , default 500
+            for ls in [10]: #16 produces NaNs
                 print ("hidden layers low:", hl)
                 print ("latent_dim:", ls)
                 
@@ -530,7 +535,9 @@ if __name__ == "__main__":
                                     
                 #aug_mdm_scores.append(ba_augmented)
                 
-                EvalauteNN(X_train, X_test, y_train, y_test)
+                ba = EvalauteNN(X_train, X_test, y_train, y_test)
+                
+                aug_mdm_scores.append(ba)
                 
                 #print(CR2)
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
