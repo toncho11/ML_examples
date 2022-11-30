@@ -342,7 +342,8 @@ def GenerateInterpolated(X, y , selected_class):
     print("Interpolated samples generated:", len(indicesSelectedClass))
     return Xint[indicesSelectedClass,:,:], np.repeat(selected_class,len(indicesSelectedClass))
 
-def EvaluateWithEncoder(timeVAE, scaler, X_train, X_test, y_train, y_test):
+# Uses an encoder provided by a trained TimeVAE to encode the epochs into feature vectors (latent vectors)
+def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     
     #There are 3 outputs of the VAE Encoder
     #encoder = [z_mean, z_log_var, encoder_output]
@@ -374,9 +375,11 @@ def EvaluateWithEncoder(timeVAE, scaler, X_train, X_test, y_train, y_test):
     
     X_test_fv  = timeVAE.encoder.predict(X_test_scaled)
     X_test_fv_np = np.array(X_test_fv)[ output ]
-   
     
-    #2) Instantiate the Support Vector Classifier (SVC)
+    return X_train_fv_np, X_test_fv_np, y_train, y_test
+   
+def EvaluateSVM(X_train, X_test, y_train, y_test):
+    
     from sklearn.svm import LinearSVC, SVC
 
     clf = SVC(C=1.0, random_state=1, kernel='rbf', verbose=False)
@@ -384,10 +387,10 @@ def EvaluateWithEncoder(timeVAE, scaler, X_train, X_test, y_train, y_test):
  
     # Fit the model
     print("Training standard classifier ...")
-    clf.fit(X_train_fv_np, y_train)
+    clf.fit(X_train, y_train)
 
     print("Predicting standard classifier ...")
-    y_pred = clf.predict(X_test_fv_np)
+    y_pred = clf.predict(X_test)
     
     ba = balanced_accuracy_score(y_test, y_pred)
     print("Balanced Accuracy #####: ", ba)
@@ -410,7 +413,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 300 #more means better training
+    iterationsVAE = 30 #more means better training
     selectedSubjects = list(range(1,3))
     
     # init
@@ -461,8 +464,8 @@ if __name__ == "__main__":
         pure_mdm_scores.append(pure_mdm_ba)
         #print(CR1)
 
-        for hl in [700]:#700, 900, 2000 , default 500
-            for ls in [12]: #16 produces NaNs
+        for hl in [100]:#700, 900, 2000 , default 500
+            for ls in [8]: #16 produces NaNs
                 print ("hidden layers low:", hl)
                 print ("latent_dim:", ls)
                 
@@ -487,7 +490,9 @@ if __name__ == "__main__":
                 #train and generate samples
                 modelVAE, scalerVAE = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, False) #latent_dim = 8
                 
-                CR2, ba_augmented, _ = EvaluateWithEncoder(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
+                X_train, X_test, y_train, y_test = EncodeSignal(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
+                
+                CR2, ba_augmented, _ = EvaluateSVM(X_train, X_test, y_train, y_test)
                                     
                 aug_mdm_scores.append(ba_augmented)
                 
