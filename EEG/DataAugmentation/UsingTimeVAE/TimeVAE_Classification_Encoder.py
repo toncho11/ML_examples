@@ -350,7 +350,7 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     #z_mean, z_log_var, z = self.encoder(data)
     output = 2
     
-    #1) Use the auto encoder to produce feature vectors
+    #Use the auto encoder to produce feature vectors
     
     # Process X_train
     X_trained_c = X_train.copy()
@@ -405,6 +405,40 @@ def EvaluateSVM(X_train, X_test, y_train, y_test):
     cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
     #print(cr)
     return cr, ba, clf
+
+def EvalauteNN(X_train, X_test, y_train, y_test):
+    
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense
+
+    model = Sequential([
+        Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+        Dense(64, activation='relu'),
+        Dense(1, activation='softmax'),
+        ])
+    
+    model.compile(
+        optimizer='adam',
+        loss='binary_crossentropy',
+        metrics=['accuracy'],
+        )
+    
+    model.fit(
+        X_train, # training data
+        y_train, # training targets
+        epochs=5,
+        batch_size=32,
+        )
+    
+    y_pred = model.predict(X_test)
+    
+    ba = balanced_accuracy_score(y_test, y_pred)
+    print("Balanced Accuracy #####: ", ba)
+    print("Accuracy score    #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
+    from sklearn.metrics import roc_auc_score
+    print("ROC AUC score     #####: ", roc_auc_score(y_test, y_pred))
+    
+    return ba
     
 if __name__ == "__main__":
     
@@ -492,9 +526,11 @@ if __name__ == "__main__":
                 
                 X_train, X_test, y_train, y_test = EncodeSignal(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
                 
-                CR2, ba_augmented, _ = EvaluateSVM(X_train, X_test, y_train, y_test)
+                #CR2, ba_augmented, _ = EvaluateSVM(X_train, X_test, y_train, y_test)
                                     
-                aug_mdm_scores.append(ba_augmented)
+                #aug_mdm_scores.append(ba_augmented)
+                
+                EvalauteNN(X_train, X_test, y_train, y_test)
                 
                 #print(CR2)
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
