@@ -131,9 +131,9 @@ def BuidlDataset(datasets, selectedSubjects):
 # should be changed to be K-fold
 # http://moabb.neurotechx.com/docs/auto_tutorials/tutorial_3_benchmarking_multiple_pipelines.html
 # PyRiemann MDM example: https://github.com/pyRiemann/pyRiemann/blob/master/examples/ERP/plot_classify_MEG_mdm.py
-def Evaluate(X_train, X_test, y_train, y_test):
+def EvaluateMDM(X_train, X_test, y_train, y_test):
     
-    print ("Evaluating ...================================================================")
+    print ("Evaluating MDM...===================================================")
     
     #0 NonTarget
     #1 Target       
@@ -147,10 +147,10 @@ def Evaluate(X_train, X_test, y_train, y_test):
     clf = make_pipeline(XdawnCovariances(n_components), MDM())
     #clf = make_pipeline(XdawnCovariances(n_components),  KNearestNeighbor(n_neighbors=1, n_jobs=10))
     
-    print("Training...")
+    print("Training MDM...")
     clf.fit(X_train, y_train)
     
-    print("Predicting...")
+    print("Predicting MDM...")
     y_pred = clf.predict(X_test)
     
     ba = balanced_accuracy_score(y_test, y_pred)
@@ -348,7 +348,9 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     #There are 3 outputs of the VAE Encoder
     #encoder = [z_mean, z_log_var, encoder_output]
     #z_mean, z_log_var, z = self.encoder(data)
-    output = 2
+    
+    #There are 3 outputs. We can use one of them as feature vector or all of them together.
+    output = 0
     
     #Use the auto encoder to produce feature vectors
     
@@ -365,7 +367,13 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     X_train_scaled = scaler.fit_transform(X_trained_c)
     
     X_train_fv = timeVAE.encoder.predict(X_train_scaled)
-    X_train_fv_np = np.array(X_train_fv)[ output ]
+    
+    #X_train_fv_np = np.array(X_train_fv)[ output ]    
+    #version that use all 3 outputs from the encoder
+    X_train_fv_all = []
+    for i in range(0, len(y_train)):
+       X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
+    X_train_fv_np = np.array(X_train_fv_all)  
     
     # Process X_test
     X_test_c = X_test.copy()
@@ -374,7 +382,13 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     X_test_scaled = scaler.fit_transform(X_test_c)
     
     X_test_fv  = timeVAE.encoder.predict(X_test_scaled)
-    X_test_fv_np = np.array(X_test_fv)[ output ]
+    
+    #X_test_fv_np = np.array(X_test_fv)[ output ]
+    #version that use all 3 outputs from the encoder
+    X_test_fv_all = []
+    for i in range(0, len(y_test)):
+       X_test_fv_all.append(np.concatenate((X_test_fv[0][i], X_test_fv[1][i], X_test_fv[2][i])))
+    X_test_fv_np = np.array(X_test_fv_all)  
     
     return X_train_fv_np, X_test_fv_np, y_train, y_test
    
@@ -406,15 +420,16 @@ def EvaluateSVM(X_train, X_test, y_train, y_test):
     #print(cr)
     return cr, ba, clf
 
-def EvalauteNN(X_train, X_test, y_train, y_test):
+def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.layers import Dense
 
     model = Sequential([
-      Dense(32, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      Dense(24, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      Dense(16, activation=tf.nn.relu),
       Dense(8,  activation=tf.nn.relu),
-      Dense(1)
+      Dense(1,  activation=tf.nn.sigmoid)
     ])
     
     model.compile(
@@ -427,7 +442,7 @@ def EvalauteNN(X_train, X_test, y_train, y_test):
     model.fit(
         X_train, # training data
         y_train, # training targets
-        epochs=60, #how long to train
+        epochs=epochs, #how long to train
         batch_size=32,
         verbose=False,
         validation_data=(X_test, y_test),
@@ -452,12 +467,13 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 200 #more means better training
-    selectedSubjects = list(range(1,11))
+    iterationsVAE = 100 #more means better training, but going more than 100 does not help much
+    selectedSubjects = list(range(1,3))
+    epochsNN = 25 #iterations training NN
     
     # init
     pure_mdm_scores = []
-    aug_mdm_scores = []
+    encoder_scores = []
     
     X, y = BuidlDataset(ds, selectedSubjects)
         
@@ -499,7 +515,7 @@ if __name__ == "__main__":
         
         print('Test with PyRiemann, NO data augmentation')
         #This produces a base result to compare with
-        CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
+        CR1, pure_mdm_ba, modelMDM = EvaluateMDM(X_train, X_test, y_train, y_test)
         pure_mdm_scores.append(pure_mdm_ba)
         #print(CR1)
 
@@ -527,7 +543,7 @@ if __name__ == "__main__":
                         y_train = np.array(y_train)[indices]
                         
                 #train and generate samples
-                modelVAE, scalerVAE = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, False) #latent_dim = 8
+                modelVAE, scalerVAE = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, True) #latent_dim = 8
                 
                 X_train, X_test, y_train, y_test = EncodeSignal(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
                 
@@ -535,9 +551,9 @@ if __name__ == "__main__":
                                     
                 #aug_mdm_scores.append(ba_augmented)
                 
-                ba = EvalauteNN(X_train, X_test, y_train, y_test)
+                ba = EvalauteNN(X_train, X_test, y_train, y_test, epochsNN)
                 
-                aug_mdm_scores.append(ba)
+                encoder_scores.append(ba)
                 
                 #print(CR2)
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -545,4 +561,4 @@ if __name__ == "__main__":
         del X_train, X_test, y_train, y_test
         gc.collect()
 
-print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores), "Difference: ",np.mean(pure_mdm_scores) - np.mean(aug_mdm_scores))
+print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(encoder_scores), "Difference: ",np.mean(pure_mdm_scores) - np.mean(encoder_scores))
