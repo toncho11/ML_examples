@@ -51,7 +51,7 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
         epochs=epochs, #how long to train
         batch_size=32,
         verbose=True,
-        validation_data=(X_test, y_test),
+        validation_data=(X_test, y_test), #not good because you have a glimpse on the final test dataset
         )
     
     y_pred_test = model.predict(X_test)

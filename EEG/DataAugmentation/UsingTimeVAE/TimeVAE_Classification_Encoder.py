@@ -445,7 +445,7 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
         epochs=epochs, #how long to train
         batch_size=32,
         verbose=False,
-        validation_data=(X_test, y_test),
+        validation_data=(X_test, y_test), #not good because you have a glimpse on the final test dataset
         )
     
     y_pred = model.predict(X_test)
@@ -467,9 +467,9 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 100 #more means better training, but going more than 100 does not help much
+    iterationsVAE = 300 #more means better training, but going more than 100 does not help much
     selectedSubjects = list(range(1,3))
-    epochsNN = 25 #iterations training NN
+    epochsNN = 50 #iterations training NN
     
     # init
     pure_mdm_scores = []
