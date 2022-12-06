@@ -5,8 +5,9 @@ Created on Mon Nov  7 09:56:26 2022
 @author: antona
 
 Trains a TimeVAE - a variational autoencoder on the P300 class in ERP EEG datasets. 
-It uses TimeVAE to train an Encoder,
-Next the Encoder is used for classification
+It uses TimeVAE to train an Encoder.
+Next the Encoder is used to produce the feature vectors which are then classified by
+'standard' classifier such as SVM or Network.
 
 Heplful: https://keras.io/examples/generative/vae/
 """
@@ -426,9 +427,8 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     from tensorflow.keras.layers import Dense
 
     model = Sequential([
-      Dense(24, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      Dense(30, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
       Dense(16, activation=tf.nn.relu),
-      Dense(8,  activation=tf.nn.relu),
       Dense(1,  activation=tf.nn.sigmoid)
     ])
     
@@ -467,7 +467,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 300 #more means better training, but going more than 100 does not help much
+    iterationsVAE = 200 #more means better training, but going more than 100 does not help much
     selectedSubjects = list(range(1,3))
     epochsNN = 50 #iterations training NN
     
