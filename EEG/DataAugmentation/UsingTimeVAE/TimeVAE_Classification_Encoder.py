@@ -49,7 +49,7 @@ import sklearn.datasets
 from sklearn.model_selection import train_test_split
 
 #TimeVAE
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/AutoEncoders/TimeVAE') #should be changed to your TimeVAE code
@@ -115,9 +115,9 @@ def BuidlDataset(datasets, selectedSubjects):
             
             # bi2014a: (102, 307)
             # BNCI2014009 (19,136)
-            start = 19
-            end = 136
-            X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
+            #start = 19
+            #end = 136
+            #X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
             
             if (X.size == 0):
                 X = np.copy(X1)
@@ -155,10 +155,10 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     y_pred = clf.predict(X_test)
     
     ba = balanced_accuracy_score(y_test, y_pred)
-    print("Balanced Accuracy #####: ", ba)
-    print("Accuracy score    #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
+    print("Balanced Accuracy MDM #####: ", ba)
+    print("Accuracy score    MDM #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
     from sklearn.metrics import roc_auc_score
-    print("ROC AUC score     #####: ", roc_auc_score(y_test, y_pred))
+    print("ROC AUC score     MDM #####: ", roc_auc_score(y_test, y_pred))
     
     print("1s     P300: ", sum(y_pred), "/", sum(y_test))
     print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
@@ -168,8 +168,6 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     #print(cr)
     return cr, ba, clf
     
-
-# Augments the p300 class with TimeVAE
 # latent space = encoded space
 def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim, onlyP300):
     
@@ -183,9 +181,9 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim, onl
     
         X = X[-1,:,:,:] #remove the first exta dimension
     
-    print("Count of P300 samples used by the VAE train: ", X.shape)
+    print("Samples count used by the VAE train: ", X.shape)
     
-    #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8)
     N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
     print(N, T, D)
     # X = X.reshape(N,D,T)
@@ -319,7 +317,7 @@ def TrainSplitEqualBinary(X, y, samples_n): #samples_n per class
     
     return X_train, X_test, y_train, y_test
 
-# generates interplated samples from the original samples
+# generates interpolated samples from the original samples
 def GenerateInterpolated(X, y , selected_class):
     
     print ("Generating interpolated samples...")
@@ -408,10 +406,10 @@ def EvaluateSVM(X_train, X_test, y_train, y_test):
     y_pred = clf.predict(X_test)
     
     ba = balanced_accuracy_score(y_test, y_pred)
-    print("Balanced Accuracy #####: ", ba)
-    print("Accuracy score    #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
+    print("Balanced Accuracy SVM #####: ", ba)
+    print("Accuracy score    SVM #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
     from sklearn.metrics import roc_auc_score
-    print("ROC AUC score     #####: ", roc_auc_score(y_test, y_pred))
+    print("ROC AUC score     SVM #####: ", roc_auc_score(y_test, y_pred))
     
     print("1s     P300: ", sum(y_pred), "/", sum(y_test))
     print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
@@ -427,8 +425,8 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     from tensorflow.keras.layers import Dense
 
     model = Sequential([
-      Dense(30, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
-      Dense(16, activation=tf.nn.relu),
+      Dense(24, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      Dense(12, activation=tf.nn.relu),
       Dense(1,  activation=tf.nn.sigmoid)
     ])
     
@@ -453,32 +451,35 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     y_pred = y_pred.round()
     
     ba = balanced_accuracy_score(y_test, y_pred)
-    print("Balanced Accuracy #####: ", ba)
-    print("Accuracy score    #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
+    print("Balanced Accuracy NN #####: ", ba)
+    print("Accuracy score    NN #####: ", sklearn.metrics.accuracy_score(y_test, y_pred))
     from sklearn.metrics import roc_auc_score
-    print("ROC AUC score     #####: ", roc_auc_score(y_test, y_pred))
+    print("ROC AUC score     NN #####: ", roc_auc_score(y_test, y_pred))
     
     return ba
     
 if __name__ == "__main__":
     
-    #warning when usiung multiple datasets they must have the same number of electrodes 
+    #warning when usiung multiple datasets they must have the same number of electrodes/channels 
     
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
-    iterations = 5
-    iterationsVAE = 200 #more means better training, but going more than 100 does not help much
+    iterations = 1
+    iterationsVAE = 100 #more means better training, but going more than 100 does not help much
     selectedSubjects = list(range(1,3))
-    epochsNN = 50 #iterations training NN
+    epochsNN = 100 #iterations training NN
+    addInterpolated = True
+    trainVAEonlyP300class = False
     
     # init
-    pure_mdm_scores = []
-    encoder_scores = []
+    pure_mdm_scores = [] #scores produced by MDM
+    encoder_scores  = [] #scores produced using the VAE encoder and a SVM or NN classifier
     
     X, y = BuidlDataset(ds, selectedSubjects)
         
     for i in range(iterations):
         
+        print("Iteration: ", i)
         #shuffle
         for x in range(20):
             indices = np.arange(X.shape[0])
@@ -519,12 +520,12 @@ if __name__ == "__main__":
         pure_mdm_scores.append(pure_mdm_ba)
         #print(CR1)
 
-        for hl in [200]:#700, 900, 2000 , default 500
-            for ls in [10]: #16 produces NaNs
+        for hl in [500]:#700, 900, 2000 , default 500
+            for ls in [8]: #16 produces NaNs
                 print ("hidden layers low:", hl)
                 print ("latent_dim:", ls)
                 
-                addInterpolated = True
+
                 
                 if addInterpolated:
                     #Addding samples by revmoving some data and replacing it with interpolated one
@@ -543,7 +544,7 @@ if __name__ == "__main__":
                         y_train = np.array(y_train)[indices]
                         
                 #train and generate samples
-                modelVAE, scalerVAE = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, True) #latent_dim = 8
+                modelVAE, scalerVAE = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, trainVAEonlyP300class) #latent_dim = 8
                 
                 X_train, X_test, y_train, y_test = EncodeSignal(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
                 
