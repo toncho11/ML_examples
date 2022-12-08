@@ -22,6 +22,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn import decomposition
 
 import tensorflow as tf
 
@@ -140,14 +141,14 @@ def KMeansClustering(X_train, X_test, y_train, y_test):
     bench_k_means(kmeans=kmeans, name=srategy, data=X_train, labels=y_train)
     
     pred = kmeans.fit_predict(X_train)
-    PlotCluster(X_train, pred)
+    PlotCluster(X_train, pred, "k-means++")
     
     srategy = "random"
     kmeans = KMeans(init=srategy, n_clusters=X_train.shape[1], n_init=4, random_state=0)
     bench_k_means(kmeans=kmeans, name=srategy, data=X_train, labels=y_train)
     
     pred = kmeans.fit_predict(X_train)
-    PlotCluster(X_train, pred)
+    PlotCluster(X_train, pred, "random")
     
     # using initialization strategy where the centers are provided by another algorithm such as PCA
     pca = PCA(n_components=X_train.shape[1]).fit(X_train)
@@ -159,9 +160,9 @@ def KMeansClustering(X_train, X_test, y_train, y_test):
     bench_k_means(kmeans=kmeans, name="PCA-based", data=X_train, labels=y_train)
     
     pred = kmeans.fit_predict(X_train)
-    PlotCluster(X_train, pred)
+    PlotCluster(X_train, pred, "PCA-based")
     
-def PlotCluster(df, label):
+def PlotCluster(df, label, title):
     
     #filter rows of original data
     filtered_label2 = df[label == 0]
@@ -170,7 +171,8 @@ def PlotCluster(df, label):
      
     #Plotting the results
     plt.scatter(filtered_label2[:,0] , filtered_label2[:,1] , color = 'red')
-    plt.scatter(filtered_label8[:,0] , filtered_label8[:,1] , color = 'black')
+    plt.scatter(filtered_label8[:,0] , filtered_label8[:,1] , color = 'blue')
+    plt.title(title)
     plt.show()
 
     
@@ -301,14 +303,19 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = LoadTrainTest()
     print(X_train.shape)
     
+    # pca = decomposition.PCA(n_components=6)
+    # pca.fit(X_train)
+    # X_train = pca.transform(X_train)
+    # X_test  = pca.transform(X_test)
+    
     #PlotAverage(X_train, X_test, y_train, y_test)
     
     #DbscanClustering(X_train, X_test, y_train, y_test) #it needs setting two parameters manually
     
     KMeansClustering(X_train, X_test, y_train, y_test)
     
-    #EvaluateSVM(X_train, X_test, y_train, y_test)
+    EvaluateSVM(X_train, X_test, y_train, y_test)
     
-    #EvalauteNN(X_train, X_test, y_train, y_test, 30)
+    EvalauteNN(X_train, X_test, y_train, y_test, 30)
     
-    #EvalauteXGBoost(X_train, X_test, y_train, y_test)
+    EvalauteXGBoost(X_train, X_test, y_train, y_test)
