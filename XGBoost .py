@@ -8,6 +8,8 @@ and classification tasks. It gives a prediction model in
 the form of an ensemble of weak prediction models, which are typically 
 decision trees.
 
+XGboost has become better than Random Forest.
+
 source: https://www.datacamp.com/community/tutorials/xgboost-in-python
 
 Here the XGBoost is used solve a regression problem (predict price). 
@@ -33,7 +35,7 @@ import numpy as np
 
 X, y = data.iloc[:,:-1],data.iloc[:,-1]
 
-data_dmatrix = xgb.DMatrix(data=X,label=y)
+#data_dmatrix = xgb.DMatrix(data=X,label=y) #DMatrix is an internal data structure that is used by XGBoost, which is optimized for both memory efficiency and training speed. 
 
 from sklearn.model_selection import train_test_split
 
