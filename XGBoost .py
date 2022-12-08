@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 
-An example of Boosting using the XGBoost Python library
+An example of Boosting using the XGBoost Python library.
+
+Gradient boosting is a machine learning technique used in regression 
+and classification tasks. It gives a prediction model in 
+the form of an ensemble of weak prediction models, which are typically 
+decision trees.
 
 source: https://www.datacamp.com/community/tutorials/xgboost-in-python
 

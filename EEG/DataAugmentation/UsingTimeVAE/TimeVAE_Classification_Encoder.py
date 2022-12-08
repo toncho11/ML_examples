@@ -349,7 +349,7 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     #z_mean, z_log_var, z = self.encoder(data)
     
     #There are 3 outputs. We can use one of them as feature vector or all of them together.
-    output = 0
+    output = 2
     
     #Use the auto encoder to produce feature vectors
     
@@ -367,12 +367,12 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     
     X_train_fv = timeVAE.encoder.predict(X_train_scaled)
     
-    #X_train_fv_np = np.array(X_train_fv)[ output ]    
+    X_train_fv_np = np.array(X_train_fv)[ output ]    
     #version that use all 3 outputs from the encoder
-    X_train_fv_all = []
-    for i in range(0, len(y_train)):
-       X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
-    X_train_fv_np = np.array(X_train_fv_all)  
+    # X_train_fv_all = []
+    # for i in range(0, len(y_train)):
+    #    X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
+    # X_train_fv_np = np.array(X_train_fv_all)  
     
     # Process X_test
     X_test_c = X_test.copy()
@@ -382,12 +382,12 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     
     X_test_fv  = timeVAE.encoder.predict(X_test_scaled)
     
-    #X_test_fv_np = np.array(X_test_fv)[ output ]
+    X_test_fv_np = np.array(X_test_fv)[ output ]
     #version that use all 3 outputs from the encoder
-    X_test_fv_all = []
-    for i in range(0, len(y_test)):
-       X_test_fv_all.append(np.concatenate((X_test_fv[0][i], X_test_fv[1][i], X_test_fv[2][i])))
-    X_test_fv_np = np.array(X_test_fv_all)  
+    # X_test_fv_all = []
+    # for i in range(0, len(y_test)):
+    #    X_test_fv_all.append(np.concatenate((X_test_fv[0][i], X_test_fv[1][i], X_test_fv[2][i])))
+    # X_test_fv_np = np.array(X_test_fv_all)  
     
     return X_train_fv_np, X_test_fv_np, y_train, y_test
    
@@ -425,8 +425,11 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     from tensorflow.keras.layers import Dense
 
     model = Sequential([
-      Dense(24, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
-      Dense(12, activation=tf.nn.relu),
+      # Dense(24, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      # Dense(12, activation=tf.nn.relu),
+      # Dense(1,  activation=tf.nn.sigmoid)
+      Dense(8, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+      Dense(4, activation=tf.nn.relu),
       Dense(1,  activation=tf.nn.sigmoid)
     ])
     
@@ -457,6 +460,19 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     print("ROC AUC score     NN #####: ", roc_auc_score(y_test, y_pred))
     
     return ba
+
+def SaveTrainTest(X_train, X_test, y_train, y_test):
+
+    filename = os.path.join(os.getcwd() , "TrainTest")
+    print("Saving Train Test data to: ", filename + ".npz")
+    np.savez(filename, X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test)
+    
+def LoadTrainTest():
+    filename = os.path.join(os.getcwd() , "TrainTest" + ".npz")
+    print("Loading data from: ", filename)
+    data = np.load(filename)
+    
+    return data['X_train'] , data['X_test'], data['y_train'], data['y_test']
     
 if __name__ == "__main__":
     
@@ -465,7 +481,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 1
-    iterationsVAE = 100 #more means better training, but going more than 100 does not help much
+    iterationsVAE = 300 #more means better training, but going more than 100 does not help much
     selectedSubjects = list(range(1,3))
     epochsNN = 100 #iterations training NN
     addInterpolated = True
@@ -546,20 +562,22 @@ if __name__ == "__main__":
                 #train and generate samples
                 modelVAE, scalerVAE = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls, trainVAEonlyP300class) #latent_dim = 8
                 
-                X_train, X_test, y_train, y_test = EncodeSignal(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
+                X_train_enc, X_test_enc, y_train_enc, y_test_enc = EncodeSignal(modelVAE, scalerVAE, X_train, X_test, y_train, y_test)
                 
-                #CR2, ba_augmented, _ = EvaluateSVM(X_train, X_test, y_train, y_test)
+                #CR2, ba_augmented, _ = EvaluateSVM(X_train_enc, X_test_enc, y_train_enc, y_test_enc)
                                     
                 #aug_mdm_scores.append(ba_augmented)
                 
-                ba = EvalauteNN(X_train, X_test, y_train, y_test, epochsNN)
+                ba = EvalauteNN(X_train_enc, X_test_enc, y_train_enc, y_test_enc, epochsNN)
                 
                 encoder_scores.append(ba)
+                
+                SaveTrainTest(X_train_enc, X_test_enc, y_train_enc, y_test_enc)
                 
                 #print(CR2)
                 print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         
-        del X_train, X_test, y_train, y_test
+        del X_train_enc, X_test_enc, y_train_enc, y_test_enc
         gc.collect()
 
 print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(encoder_scores), "Difference: ",np.mean(pure_mdm_scores) - np.mean(encoder_scores))

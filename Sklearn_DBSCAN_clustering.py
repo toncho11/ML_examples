@@ -9,6 +9,11 @@ Unlike k-means, DBSCAN does not require the number of clusters as a parameter.
 Rather it infers the number of clusters based on the data, and it can discover 
 clusters of arbitrary shape (for comparison, k-means usually discovers spherical clusters).
 
+
+How to set minPts and eps:
+https://stackoverflow.com/questions/47533930/how-can-i-choose-eps-and-minpts-two-parameters-for-dbscan-algorithm-for-effici
+The DBSCAN paper suggests to choose minPts based on the dimensionality, and eps based on the elbow in the k-distance graph.
+
 @author: antona
 """
 
