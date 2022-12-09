@@ -37,6 +37,7 @@ import gc
 
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from keras.utils import to_categorical
 
 def LoadTrainTest():
     filename = 'C:\\Work\\PythonCode\\ML_examples\\EEG\\DataAugmentation\\UsingTimeVAE\\TrainTest.npz'
@@ -155,7 +156,7 @@ def KMeansClustering(X_train, X_test, y_train, y_test):
     #pca.components_ is the set of all eigenvectors (aka loadings) for the projection space (one eigenvector for each principal component).
     #Kmeans init requires (n_clusters, n_features) type of input n_clusters = n_components in PCA
     #and n_features = the size of the eigen vector in PCA to be used as a feature vector.
-    indices = [4, 7]
+    indices = [4, 5]
     kmeans = KMeans(init=pca.components_[indices,:], n_clusters=2, n_init=1)
     bench_k_means(kmeans=kmeans, name="PCA-based", data=X_train, labels=y_train)
     
@@ -215,10 +216,10 @@ def EvaluateSVM(X_train, X_test, y_train, y_test):
     #clf = LinearSVC(C=1.0, random_state=1, dual=False, verbose=False)
  
     # Fit the model
-    print("Training standard classifier ...")
+    print("Training SVM ...")
     clf.fit(X_train, y_train)
 
-    print("Predicting standard classifier ...")
+    print("Predicting SVM ...")
     y_pred = clf.predict(X_test)
     
     ba = balanced_accuracy_score(y_test, y_pred)
@@ -227,8 +228,8 @@ def EvaluateSVM(X_train, X_test, y_train, y_test):
     from sklearn.metrics import roc_auc_score
     print("ROC AUC score     SVM #####: ", roc_auc_score(y_test, y_pred))
     
-    print("1s     P300: ", sum(y_pred), "/", sum(y_test))
-    print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
+    print("1s : ", sum(y_pred), "/", sum(y_test))
+    print("0s : ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
     
     from sklearn.metrics import classification_report
     cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
@@ -240,14 +241,20 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.layers import Dense
-
+    
+    layer_1N = X_train.shape[1]
+    layer_2N = round(X_train.shape[1] / 2)
+    print("Layers:", layer_1N, layer_2N)
+    
     model = Sequential([
       # Dense(24, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
       # Dense(12, activation=tf.nn.relu),
       # Dense(1,  activation=tf.nn.sigmoid)
-      Dense(8, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
-      Dense(4, activation=tf.nn.relu),
-      Dense(1,  activation=tf.nn.sigmoid)
+       Dense(layer_1N, activation=tf.nn.relu,input_shape=(X_train.shape[1],)),
+       Dense(layer_2N, activation=tf.nn.relu),
+       Dense(1,  activation=tf.nn.sigmoid)
+      # Dense(2, activation=tf.nn.relu, input_shape=(1,)),
+      # Dense(1, activation=tf.nn.sigmoid)
     ])
     
     model.compile(
@@ -262,7 +269,7 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
         y_train, # training targets
         epochs=epochs, #how long to train
         batch_size=32,
-        verbose=False,
+        verbose=True,
         validation_data=(X_test, y_test), #not good because you have a glimpse on the final test dataset
         )
     
@@ -275,6 +282,8 @@ def EvalauteNN(X_train, X_test, y_train, y_test, epochs):
     print("Accuracy score    NN #####: ", accuracy_score(y_test, y_pred))
     from sklearn.metrics import roc_auc_score
     print("ROC AUC score     NN #####: ", roc_auc_score(y_test, y_pred))
+    print("1s : ", sum(y_pred), "/", sum(y_test))
+    print("0s : ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
     
     return ba
 
@@ -298,15 +307,54 @@ def EvalauteXGBoost(X_train, X_test, y_train, y_test):
     
     return ba
 
+# First we use KMeans in unsupervised manner to generate clusters.
+# Then these clusters are used as feature vectors for the NN 
+def EvalauteKMeansNN(X_train, X_test, y_train, y_test):
+    
+    srategy = "k-means++"
+    
+    ba_accuracy = []
+    
+    for n in range(3,20):
+        
+        print("n =",n)
+        
+        clfKM = KMeans(init=srategy, n_clusters=n, n_init=4)
+        
+        clfKM.fit(X_train)
+        
+        y_pred_km_train = clfKM.predict(X_train)#.reshape(X_train.shape[0],1)
+        
+        y_pred_km_train = to_categorical(y_pred_km_train, dtype ="uint8")
+        
+        y_pred_km_test  = clfKM.predict(X_test )#.reshape(X_test.shape[0] ,1)
+        
+        y_pred_km_test  = to_categorical(y_pred_km_test, dtype ="uint8")
+        
+        ba = EvalauteNN(y_pred_km_train, y_pred_km_test, y_train, y_test, 50) 
+        
+        ba_accuracy.append(ba)
+    
+    print(ba_accuracy)
+    
 if __name__ == "__main__":
     
     X_train, X_test, y_train, y_test = LoadTrainTest()
     print(X_train.shape)
     
-    # pca = decomposition.PCA(n_components=6)
+    # Apply PCA
+    # pca = decomposition.PCA(n_components=0.95)
     # pca.fit(X_train)
     # X_train = pca.transform(X_train)
+    # print(X_train.shape[1])
     # X_test  = pca.transform(X_test)
+    
+    # Feature selection
+    # from sklearn.feature_selection import VarianceThreshold
+    # sel = VarianceThreshold(threshold=(.8 * (1 - .8)))
+    # X_train = sel.fit_transform(X_train)
+    # X_test  = sel.fit_transform(X_test)
+    # print(X_train.shape)
     
     #PlotAverage(X_train, X_test, y_train, y_test)
     
@@ -314,8 +362,11 @@ if __name__ == "__main__":
     
     KMeansClustering(X_train, X_test, y_train, y_test)
     
-    EvaluateSVM(X_train, X_test, y_train, y_test)
+    #EvaluateSVM(X_train, X_test, y_train, y_test)
     
-    EvalauteNN(X_train, X_test, y_train, y_test, 30)
+    #EvalauteNN(X_train, X_test, y_train, y_test, 100)
     
-    EvalauteXGBoost(X_train, X_test, y_train, y_test)
+    #the Kmeans must detect the classes well otherwise it won't work
+    #EvalauteKMeansNN(X_train, X_test, y_train, y_test)
+    
+    #EvalauteXGBoost(X_train, X_test, y_train, y_test)
