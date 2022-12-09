@@ -137,12 +137,17 @@ def KMeansClustering(X_train, X_test, y_train, y_test):
     print(82 * "_")
     print("init\t\ttime\tinertia\thomo\tcompl\tv-meas\tARI\tAMI\tsilhouette")
     
+    PlotCluster(X_train, y_train, "real")
+    
     srategy = "k-means++"
     kmeans = KMeans(init=srategy, n_clusters=X_train.shape[1], n_init=4, random_state=0)
     bench_k_means(kmeans=kmeans, name=srategy, data=X_train, labels=y_train)
     
     pred = kmeans.fit_predict(X_train)
     PlotCluster(X_train, pred, "k-means++")
+    
+    # pred = kmeans.fit_predict(X_test)
+    # PlotClusterReal(X_test, pred, "k-means++ pred", y_test)
     
     srategy = "random"
     kmeans = KMeans(init=srategy, n_clusters=X_train.shape[1], n_init=4, random_state=0)
@@ -156,23 +161,54 @@ def KMeansClustering(X_train, X_test, y_train, y_test):
     #pca.components_ is the set of all eigenvectors (aka loadings) for the projection space (one eigenvector for each principal component).
     #Kmeans init requires (n_clusters, n_features) type of input n_clusters = n_components in PCA
     #and n_features = the size of the eigen vector in PCA to be used as a feature vector.
-    indices = [4, 5]
-    kmeans = KMeans(init=pca.components_[indices,:], n_clusters=2, n_init=1)
-    bench_k_means(kmeans=kmeans, name="PCA-based", data=X_train, labels=y_train)
     
-    pred = kmeans.fit_predict(X_train)
-    PlotCluster(X_train, pred, "PCA-based")
+    # for i in range(0,X_train.shape[1]-2):
+    #     indices = [i, i+2]
+    #     kmeans = KMeans(init=pca.components_[indices,:], n_clusters=2, n_init=1)
+    #     bench_k_means(kmeans=kmeans, name="PCA-based", data=X_train, labels=y_train)
     
-def PlotCluster(df, label, title):
+    #     pred = kmeans.fit_predict(X_test)
+    #     PlotCluster(X_test, pred, "PCA-based")
+        
+    # for i in range(0,X_train.shape[1]-5):
+    #     indices = [i, i+5]
+    #     kmeans = KMeans(init=pca.components_[indices,:], n_clusters=2, n_init=1)
+    #     bench_k_means(kmeans=kmeans, name="PCA-based", data=X_train, labels=y_train)
+    
+    #     pred = kmeans.fit_predict(X_test)
+    #     PlotCluster(X_test, pred, "PCA-based")
+    
+def PlotCluster(X, label, title):
     
     #filter rows of original data
-    filtered_label2 = df[label == 0]
+    filtered_label2 = X[label == 0]
      
-    filtered_label8 = df[label == 1]
+    filtered_label8 = X[label == 1]
      
     #Plotting the results
     plt.scatter(filtered_label2[:,0] , filtered_label2[:,1] , color = 'red')
     plt.scatter(filtered_label8[:,0] , filtered_label8[:,1] , color = 'blue')
+    plt.title(title)
+    plt.show()
+
+    
+def PlotClusterReal(X, y_pred, title, y_real):
+    
+    #filter rows of original data
+    filtered_label2 = X[(y_pred == 0) & (y_real==0)]
+     
+    filtered_label8 = X[(y_pred == 1) & (y_real==1)]
+    
+    rest_indices = (((y_pred == 0) & (y_real==0)) | ((y_pred == 1) & (y_real==1)))
+    rest = X[~rest_indices]
+    
+    #Plotting the results
+    plt.scatter(rest[:,0] , rest[:,1] , color = 'black') # not correctly 
+    
+    plt.scatter(filtered_label2[:,0] , filtered_label2[:,1] , color = 'red')
+    plt.scatter(filtered_label8[:,0] , filtered_label8[:,1] , color = 'blue')
+    
+    
     plt.title(title)
     plt.show()
 
@@ -315,7 +351,7 @@ def EvalauteKMeansNN(X_train, X_test, y_train, y_test):
     
     ba_accuracy = []
     
-    for n in range(3,20):
+    for n in range(2,20):
         
         print("n =",n)
         
