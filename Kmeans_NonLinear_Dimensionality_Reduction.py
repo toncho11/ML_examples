@@ -5,7 +5,7 @@ Created on Fri Dec  9 16:28:48 2022
 source: https://medium.com/analytics-vidhya/less-known-applications-of-k-means-clustering-dimensionality-reduction-anomaly-detection-and-908f4bee155f#:~:text=Non%20Linear%20Dimensionality%20Reduction%20using,number%20of%20clusters%20to%202.
 
 Using KMeans for dimensionality reduction and then for classification.
-New features are created based on the distance between each point and the centroids calcuated by Kmeans.
+New features are created based on the distance between each point and the centroids calculated by Kmeans.
 This improves classification 2%-3%.
 
 @author: antona
@@ -35,6 +35,7 @@ def ScatterPlotCentroidDistance(data):
 
 ### Train Test Split
 X_train, X_test, y_train, y_test = model_selection.train_test_split(data, y, test_size = .2, random_state = 10)
+# note that X_test and y_test are not used in the pipeline bleow
 
 ScatterPlotCentroidDistance(X_train)
 
