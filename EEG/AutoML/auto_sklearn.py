@@ -8,7 +8,7 @@ Created on Wed Jun 15 12:36:50 2022
 import platform
 import sys
 if (platform.system() != "Linux"):
-    print("Auto sklearn is only available on Linux. On Windows you can use WSL.")
+    print("Auto sklearn is only available on Linux. On Windows you can use it on WSL.")
     sys.exit()
 
 # import matplotlib.pyplot as plt
