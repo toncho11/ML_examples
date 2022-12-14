@@ -9,7 +9,7 @@ from tpot import TPOTClassifier
 import numpy as np
 
 def LoadTrainTest():
-    filename = 'C:\\Work\\PythonCode\\ML_examples\\EEG\\DataAugmentation\\UsingTimeVAE\\TrainTest.npz'
+    filename = 'C:\\Work\\PythonCode\\ML_examples\\EEG\\DataAugmentation\\UsingTimeVAE\\data\\TrainTest_BNCI2014009_10subjects_VAE_Encoder_MDM_0.7825.npz'
     print("Loading data from: ", filename)
     data = np.load(filename)
     
@@ -28,4 +28,4 @@ if __name__ == "__main__":
     print(pipeline_optimizer.score(X_train, y_train))
     print(pipeline_optimizer.score(X_test, y_test))
     
-    pipeline_optimizer.export('tpot_exported_pipeline.py')
+    pipeline_optimizer.export('tpot_exported_pipeline_BNCI2014009_10subjects_VAE_Encoder.py')
