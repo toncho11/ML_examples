@@ -9,6 +9,8 @@ It uses TimeVAE to train an Encoder.
 Next the Encoder is used to produce the feature vectors which are then classified by
 'standard' classifier such as SVM or Network.
 
+TensorFlow version used: 2.9.1
+
 Heplful: https://keras.io/examples/generative/vae/
 """
 
@@ -115,9 +117,9 @@ def BuidlDataset(datasets, selectedSubjects):
             
             # bi2014a: (102, 307)
             # BNCI2014009 (19,136)
-            #start = 19
-            #end = 136
-            #X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
+            start = 19
+            end = 136
+            X1 = X1[:,:,start:end] #select just a portion of the signal around the P300
             
             if (X.size == 0):
                 X = np.copy(X1)
@@ -318,7 +320,7 @@ def TrainSplitEqualBinary(X, y, samples_n): #samples_n per class
     return X_train, X_test, y_train, y_test
 
 # generates interpolated samples from the original samples
-def GenerateInterpolated(X, y , selected_class):
+def GenerateInterpolated(X, y , selected_class, shift = 0): #shift the starting point in the epoch
     
     print ("Generating interpolated samples...")
     
@@ -331,7 +333,7 @@ def GenerateInterpolated(X, y , selected_class):
     
     for i in range(0, len(y)):
         if y[i] == selected_class:
-            for j in range(0,epoch_length,every_ith_sample):
+            for j in range(shift, epoch_length, every_ith_sample):
                 if j - 1 > 0 and j + 1 < epoch_length:
                     for m in range(0,channels):
                         #modify it
@@ -367,12 +369,12 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     
     X_train_fv = timeVAE.encoder.predict(X_train_scaled)
     
-    X_train_fv_np = np.array(X_train_fv)[ output ]    
+    #X_train_fv_np = np.array(X_train_fv)[ output ]    
     #version that use all 3 outputs from the encoder
-    # X_train_fv_all = []
-    # for i in range(0, len(y_train)):
-    #    X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
-    # X_train_fv_np = np.array(X_train_fv_all)  
+    X_train_fv_all = []
+    for i in range(0, len(y_train)):
+        X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
+    X_train_fv_np = np.array(X_train_fv_all)  
     
     # Process X_test
     X_test_c = X_test.copy()
@@ -382,12 +384,12 @@ def EncodeSignal(timeVAE, scaler, X_train, X_test, y_train, y_test):
     
     X_test_fv  = timeVAE.encoder.predict(X_test_scaled)
     
-    X_test_fv_np = np.array(X_test_fv)[ output ]
+    #X_test_fv_np = np.array(X_test_fv)[ output ]
     #version that use all 3 outputs from the encoder
-    # X_test_fv_all = []
-    # for i in range(0, len(y_test)):
-    #    X_test_fv_all.append(np.concatenate((X_test_fv[0][i], X_test_fv[1][i], X_test_fv[2][i])))
-    # X_test_fv_np = np.array(X_test_fv_all)  
+    X_test_fv_all = []
+    for i in range(0, len(y_test)):
+        X_test_fv_all.append(np.concatenate((X_test_fv[0][i], X_test_fv[1][i], X_test_fv[2][i])))
+    X_test_fv_np = np.array(X_test_fv_all)  
     
     return X_train_fv_np, X_test_fv_np, y_train, y_test
    
@@ -481,8 +483,8 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 1
-    iterationsVAE = 300 #more means better training, but going more than 100 does not help much
-    selectedSubjects = list(range(1,3))
+    iterationsVAE = 1000 #more means better training, but going more than 100 does not help much
+    selectedSubjects = list(range(1,11))
     epochsNN = 100 #iterations training NN
     addInterpolated = True
     trainVAEonlyP300class = False
@@ -504,8 +506,8 @@ if __name__ == "__main__":
             y = np.array(y)[indices]
             
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
-        #X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 20)
+        #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
+        X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 200)
         
         original_n_count = X_train.shape[0]
         
@@ -541,17 +543,21 @@ if __name__ == "__main__":
                 print ("hidden layers low:", hl)
                 print ("latent_dim:", ls)
                 
-
-                
                 if addInterpolated:
                     #Addding samples by revmoving some data and replacing it with interpolated one
-                    X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
+                    X_interpolated1, y_interpolated1 = GenerateInterpolated(X_train, y_train, P300Class)
                     
-                    if (P300ClassCount != X_interpolated.shape[0]):
+                    if (P300ClassCount != X_interpolated1.shape[0]):
                         raise Exception("Problem with interpolated data 1!")
                         
-                    X_train = np.concatenate((X_train, X_interpolated), axis=0)
-                    y_train = np.concatenate((y_train, y_interpolated), axis=0)
+                    #second interpolated data
+                    #X_interpolated2, y_interpolated2 = GenerateInterpolated(X_train, y_train, P300Class, 5)
+                          
+                    X_train = np.concatenate((X_train, X_interpolated1), axis=0)
+                    y_train = np.concatenate((y_train, y_interpolated1), axis=0)
+                    
+                    # X_train = np.concatenate((X_train, X_interpolated2), axis=0)
+                    # y_train = np.concatenate((y_train, y_interpolated2), axis=0)
                 
                 for x in range(10):
                         indices = np.arange(len(X_train))
@@ -568,9 +574,9 @@ if __name__ == "__main__":
                                     
                 #aug_mdm_scores.append(ba_augmented)
                 
-                ba = EvalauteNN(X_train_enc, X_test_enc, y_train_enc, y_test_enc, epochsNN)
+                #ba = EvalauteNN(X_train_enc, X_test_enc, y_train_enc, y_test_enc, epochsNN)
                 
-                encoder_scores.append(ba)
+                #encoder_scores.append(ba)
                 
                 SaveTrainTest(X_train_enc, X_test_enc, y_train_enc, y_test_enc)
                 

@@ -18,6 +18,7 @@ from tpot.export_utils import set_param_recursive
 
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import *
+from sklearn.neural_network import MLPClassifier
 
 # NOTE: Make sure that the outcome column is labeled 'target' in the data file
 # tpot_data = pd.read_csv('PATH/TO/DATA/FILE', sep='COLUMN_SEPARATOR', dtype=np.float64)
@@ -27,7 +28,7 @@ from sklearn.metrics import *
             
 
 def LoadTrainTest():
-    filename = 'C:\\Work\\PythonCode\\ML_examples\\EEG\\DataAugmentation\\UsingTimeVAE\\data\\TrainTest_BNCI2014009_10subjects_VAE_Encoder_MDM_0.7825.npz'
+    filename = filename = 'C:\\Work\\PythonCode\\ML_examples\\EEG\\DataAugmentation\\UsingTimeVAE\\data\\TrainTest_augmentation_MDMD_77.npz'
     print("Loading data from: ", filename)
     data = np.load(filename)
     
@@ -38,14 +39,11 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test =  LoadTrainTest()
 
     #START PASTE HERE
-    # Average CV score on the training set was: 0.8471672661870503
-    exported_pipeline = make_pipeline(
-        StackingEstimator(estimator=GradientBoostingClassifier(learning_rate=0.01, max_depth=2, max_features=0.6500000000000001, min_samples_leaf=7, min_samples_split=11, n_estimators=100, subsample=0.6500000000000001)),
-        StandardScaler(),
-        RandomForestClassifier(bootstrap=False, criterion="entropy", max_features=0.7000000000000001, min_samples_leaf=5, min_samples_split=11, n_estimators=100)
-    )
-    # Fix random state for all the steps in exported pipeline
-    set_param_recursive(exported_pipeline.steps, 'random_state', 42)
+    #Average CV score on the training set was: 0.8030163599182003
+    exported_pipeline = RandomForestClassifier(bootstrap=False, criterion="entropy", max_features=0.6000000000000001, min_samples_leaf=3, min_samples_split=16, n_estimators=100)
+    # Fix random state in exported estimator
+    if hasattr(exported_pipeline, 'random_state'):
+        setattr(exported_pipeline, 'random_state', 42)
     #END PASTE HERE
     
     exported_pipeline.fit(X_train, y_train)
