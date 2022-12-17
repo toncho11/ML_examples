@@ -6,6 +6,10 @@ Created on Fri Dec 16 11:44:45 2022
 
 pip install ydata-synthetic
 
+An example of how TimeGan can be used to generate synthetic time-series data.
+Dataset is an energy consumation.
+Input is int the form: (epochs, timesteps, features/channels), note that timesteps and features are inversed.
+
 source: https://towardsdatascience.com/modeling-and-generating-time-series-data-using-timegan-29c00804f54d
 source: https://github.com/archity/synthetic-data-gan/blob/main/timeseries-data/energy-data-synthesize.ipynb
 
@@ -20,6 +24,11 @@ import seaborn as sns
 
 from ydata_synthetic.synthesizers.timeseries import TimeGAN
 from ydata_synthetic.synthesizers import ModelParameters
+
+# fixes error: https://discuss.tensorflow.org/t/optimization-loop-failed-cancelled-operation-was-cancelled/1524/27
+import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
 #Define Model Hyperparameters
 # Specific to TimeGANs
@@ -62,7 +71,7 @@ except:
 # Data transformations to be applied prior to be used with the synthesizer model
 energy_data = real_data_loading(energy_df.values, seq_len=seq_len)
 
-print(len(energy_data), energy_data[0].shape)
+print("(epochs, timesteps, features/channels)",np.asarray(energy_data).shape)
 
 #Training the TimeGAN synthetizer
 if path.exists('synth_energy.pkl'):

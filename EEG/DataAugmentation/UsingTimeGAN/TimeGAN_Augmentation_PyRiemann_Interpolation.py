@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov  7 09:56:26 2022
+Created on Sat Dec 17 00:06:10 2022
 
 @author: antona
-
-Trains a TimeVAE - a variational autoencoder on the P300 class in ERP EEG datasets. 
-It tries to generate data for the P300 class - it performs a data augmentation.
-It also replaces some samples with interpolated ones in order to do another data augmentation.
-Next it uses MDM from PyRiemann to classify the data (with and without data augmentation)
 """
 
 import tensorflow as tf
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+# fixes error: https://discuss.tensorflow.org/t/optimization-loop-failed-cancelled-operation-was-cancelled/1524/27
+import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
@@ -50,11 +50,6 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/AutoEncoders/TimeVAE') #should be changed to your TimeVAE code
-#from local files:
-import utils
-from vae_dense_model import VariationalAutoencoderDense as VAE_Dense
-from vae_conv_model import VariationalAutoencoderConv as VAE_Conv
-from vae_conv_I_model import VariationalAutoencoderConvInterpretable as TimeVAE
 
 #PyRiemann
 from pyriemann.estimation import XdawnCovariances
@@ -126,6 +121,60 @@ def BuidlDataset(datasets, selectedSubjects):
     print("Building train data completed: ", X.shape)
     return X,y
 
+def TrainGAN(X, y, selected_class, iterations):
+    
+    print("In TrainGAN")
+    
+    selected_class_indices = np.where(y == selected_class)
+    
+    X_1_class = X[selected_class_indices,:,:]
+
+    X_1_class = X_1_class[-1,:,:,:] #remove the first exta dimension
+    
+    print("Count of P300 samples used by the VAE train: ", X_1_class.shape)
+    
+    from ydata_synthetic.synthesizers.timeseries import TimeGAN
+    from ydata_synthetic.synthesizers import ModelParameters
+
+    #Define Model Hyperparameters
+    # Specific to TimeGANs
+    
+    seq_len = X_1_class.shape[2] # Timesteps
+    n_seq   = X_1_class.shape[1] # Features
+    
+    #data must be in the format (epoch, samples, features)
+    X_1_class = X_1_class.transpose(0,2,1)
+
+    # Hidden units for generator (GRU & LSTM).
+    # Also decides output_units for generator
+    hidden_dim = 24
+
+    gamma = 1           # Used for discriminator loss
+
+    noise_dim = 32      # Used by generator as a starter dimension
+    dim = 128           # UNUSED
+    batch_size = 128
+
+    learning_rate = 5e-4
+    beta_1 = 0          # UNUSED
+    beta_2 = 1          # UNUSED
+    data_dim = 28       # UNUSED
+
+    # batch_size, lr, beta_1, beta_2, noise_dim, data_dim, layers_dim
+    gan_args = ModelParameters(batch_size=batch_size,
+                               lr=learning_rate,
+                               noise_dim=noise_dim,
+                               layers_dim=dim)
+
+    # Read the Input data
+    from ydata_synthetic.preprocessing.timeseries.utils import real_data_loading
+
+    #Training the TimeGAN synthetizer
+    synth = TimeGAN(model_parameters=gan_args, hidden_dim=hidden_dim, seq_len=seq_len, n_seq=n_seq, gamma=1)
+    synth.train(X_1_class, train_steps=iterations)
+    synth.save('synth_energy.pkl') #save trained model
+        
+    return synth
 # should be changed to be K-fold
 # http://moabb.neurotechx.com/docs/auto_tutorials/tutorial_3_benchmarking_multiple_pipelines.html
 # PyRiemann MDM example: https://github.com/pyRiemann/pyRiemann/blob/master/examples/ERP/plot_classify_MEG_mdm.py
@@ -165,135 +214,77 @@ def Evaluate(X_train, X_test, y_train, y_test):
     #print(cr)
     return cr, ba, clf
     
-
-# Augments the p300 class with TimeVAE
-# latent space = encoded space
-def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
-    
-    print("In TrainVAE")
-    
-    selected_class_indices = np.where(y == selected_class)
-    
-    X_1_class = X[selected_class_indices,:,:]
-
-    X_1_class = X_1_class[-1,:,:,:] #remove the first exta dimension
-    
-    print("Count of P300 samples used by the VAE train: ", X_1_class.shape)
-    
-    #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    N, T, D = X_1_class.shape #N = number of samples, T = time steps, D = feature dimensions
-    print(N, T, D)
-    # X = X.reshape(N,D,T)
-    X_1_class = X_1_class.transpose(0,2,1)
-    N, T, D = X_1_class.shape
-    print(N, T, D)
-    
-    # min max scale the data    
-    scaler = utils.MinMaxScaler()        
-   
-    scaled_data = scaler.fit_transform(X_1_class)
-    
-    #vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
-    vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[hidden_layer_low * 2, hidden_layer_low], )
-    
-    vae.compile(optimizer=Adam())
-    # vae.summary()
-
-    early_stop_loss = 'loss'
-    #define two callbacks
-    #early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
-    #reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
-    
-    early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
-    reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=10)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
-
-    print("Fit VAE")
-    vae.fit(
-        scaled_data, 
-        batch_size = 32, #default 32
-        epochs=iterations, #default 500
-        shuffle = True,
-        #callbacks=[early_stop_callback, reduceLR],
-        verbose = 0
-    )
-    
-    return vae, scaler
-   
-
 #uses the VAE encoder to generate new data
-def GenerateAugmentedSamples(model, scaler, samples_required):
+def GenerateAugmentedSamples(model, samples_required):
     
     #Sampling from the VAE
     print("New samples requested: ", samples_required)
-    new_samples = model.get_prior_samples(num_samples=samples_required)
+    
+    new_samples = model.sample(samples_required)
+    
+    #switching from (epochs, timesteps, channels) to (epochs, channels, timesteps)
+    new_samples = new_samples.transpose(0,2,1)
+    
     print("Number of new samples generated: ", new_samples.shape[0])
-    
-    # inverse-transform scaling 
-    new_samples = scaler.inverse_transform(new_samples)
-    
-    print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
-    
-    new_samples = new_samples.transpose(0,2,1) #convert back to D,T
-    print("Back to original dimensions: ", X.shape)
     
     return new_samples
     
-def GenerateAugmentedSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, selected_class):
+# def GenerateAugmentedSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, selected_class):
     
-    print("GenerateAugmentedSamplesMDMfiltered start")
-    good_samples_count = 0
-    batch_samples_count = 5000
-    Xf = np.array([]) #all new generated samples filtered by MDM
+#     print("GenerateAugmentedSamplesMDMfiltered start")
+#     good_samples_count = 0
+#     batch_samples_count = 5000
+#     Xf = np.array([]) #all new generated samples filtered by MDM
     
-    while (good_samples_count < samples_required):
+#     while (good_samples_count < samples_required):
         
-        #Sampling from the VAE
-        print("New samples requested: ", samples_required)
-        new_samples = modelVAE.get_prior_samples(num_samples=batch_samples_count)
-        print("Number of new samples generated: ", new_samples.shape[0])
+#         #Sampling from the VAE
+#         print("New samples requested: ", samples_required)
+#         new_samples = modelVAE.get_prior_samples(num_samples=batch_samples_count)
+#         print("Number of new samples generated: ", new_samples.shape[0])
         
-        # inverse-transform scaling 
-        new_samples = scaler.inverse_transform(new_samples)
+#         # inverse-transform scaling 
+#         new_samples = scaler.inverse_transform(new_samples)
         
-        print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
+#         print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
         
-        print("Back to original dimensions: ", X.shape)
-        new_samples = new_samples.transpose(0,2,1) #convert back to D,T
+#         print("Back to original dimensions: ", X.shape)
+#         new_samples = new_samples.transpose(0,2,1) #convert back to D,T
         
-        print("classify")
-        #classify
-        y_pred = modelMDM.predict(new_samples)
+#         print("classify")
+#         #classify
+#         y_pred = modelMDM.predict(new_samples)
         
-        print("sum(y_pred):", sum(y_pred))
+#         print("sum(y_pred):", sum(y_pred))
         
-        #select only the P300 samples
-        new_filtered_samples =  new_samples[y_pred == selected_class]
+#         #select only the P300 samples
+#         new_filtered_samples =  new_samples[y_pred == selected_class]
         
-        new_filtered_samplesCount = new_filtered_samples.shape[0]
+#         new_filtered_samplesCount = new_filtered_samples.shape[0]
         
-        if (sum(y_pred) != new_filtered_samplesCount):
-            print("WARNING: potential error")
+#         if (sum(y_pred) != new_filtered_samplesCount):
+#             print("WARNING: potential error")
         
-        if (new_filtered_samplesCount > 0):
+#         if (new_filtered_samplesCount > 0):
             
-            samples_still_needed = samples_required - good_samples_count
+#             samples_still_needed = samples_required - good_samples_count
             
-            samples_tobe_taken = min(samples_still_needed, new_filtered_samplesCount)
+#             samples_tobe_taken = min(samples_still_needed, new_filtered_samplesCount)
             
-            if (Xf.size == 0):
-                Xf = np.copy(new_filtered_samples[0:samples_tobe_taken,:,:])
-            else:
-                Xf = np.concatenate((Xf, new_filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
+#             if (Xf.size == 0):
+#                 Xf = np.copy(new_filtered_samples[0:samples_tobe_taken,:,:])
+#             else:
+#                 Xf = np.concatenate((Xf, new_filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
                 
-            good_samples_count = good_samples_count + samples_tobe_taken
+#             good_samples_count = good_samples_count + samples_tobe_taken
                 
-            print("Total filtered samples added:", good_samples_count, "/", samples_required)
-        else:
-            print("Non added samples: ", new_samples.shape[0])
-            print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
+#             print("Total filtered samples added:", good_samples_count, "/", samples_required)
+#         else:
+#             print("Non added samples: ", new_samples.shape[0])
+#             print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
         
-    print("GenerateSamplesMGenerateAugmentedSamplesMDMfilteredDMfiltered end")
-    return Xf
+#     print("GenerateSamplesMGenerateAugmentedSamplesMDMfilteredDMfiltered end")
+#     return Xf
 
 def PlotEpoch(epoch):
     
@@ -337,13 +328,6 @@ def PlotEpochs(epochs):
     fig = px.line(df, facet_col='Source', facet_col_wrap=4)
     
     fig.show(renderer='browser')
-
-def SaveVAEModel(model, model_dir, fname):
-    model.save(model_dir, fname)
-
-def LoadVAEModel(model_dir, fname): #problem ????????
-    new_vae = TimeVAE.load(model_dir, fname)
-    return new_vae
 
 def CalculateMeanEpochs(epochs):   
     import tensorflow as tf    
@@ -421,12 +405,12 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 1000 #more means better training
-    selectedSubjects = list(range(1,11))
+    iterationsGAN = 50 #more means better training
+    selectedSubjects = list(range(1,2))
     
     # init
     pure_mdm_scores = []
-    aug_mdm_scores  = []
+    aug_mdm_scores = []
     #aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
     
     X, y = BuidlDataset(ds, selectedSubjects)
@@ -473,81 +457,66 @@ if __name__ == "__main__":
         CR1, pure_mdm_ba, modelMDM = Evaluate(X_train, X_test, y_train, y_test)
         pure_mdm_scores.append(pure_mdm_ba)
         #print(CR1)
-        
-        max_ba = -1
-        max_hl = -1
-        max_ls = -1
-        max_percentage = -1
 
-        for hl in [700]:#700, 900, 2000 , default 500
-            for ls in [8]: #16 produces NaNs
-                print ("hidden layers low:", hl)
-                print ("latent_dim:", ls)
-                #train and generate samples
-                modelVAE, scaler = TrainVAE(X_train, y_train, P300Class, iterationsVAE, hl, ls) #latent_dim = 8
+        #train and generate samples
+        modelGAN = TrainGAN(X_train, y_train, P300Class, iterationsGAN) #latent_dim = 8
+        
+        print("Reports for augmented data:") 
+        for percentageP300Added in [100]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
+            
+            print("% P300 Added:", percentageP300Added)
+            
+            samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
+            
+            #1) Data Augmentation with GAN
+            
+            X_augmented = GenerateAugmentedSamples(modelGAN, samples_required)
+            #X_augmented = GenerateAugmentedSamplesMDMfiltered(modelGAN, scaler, samples_required, modelMDM, P300Class)
+            meanOnlyAugmented = CalculateMeanEpochs(X_augmented)
+            #PlotEpochs(X_augmented[0:12,:,:]) #let's have look at the augmented data
+            
+            # #2) Addding samples by revmoving some data and replacing it with interplated data
+            # X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
+            # if (P300ClassCount != X_interpolated.shape[0]):
+            #     raise Exception("Problem with interpolated data 1!")
                 
-                print("Reports for augmented data:") 
-                for percentageP300Added in [200]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
-                    
-                    print("% P300 Added:", percentageP300Added)
-                    
-                    samples_required = int(percentageP300Added * P300ClassCount / 100)  #5000 #default 100
-                    
-                    #1) Data Augmentation with VAE Auto Encoder
-                    
-                    #X_augmented = GenerateAugmentedSamples(modelVAE, scaler, samples_required)
-                    X_augmented = GenerateAugmentedSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, P300Class)
-                    meanOnlyAugmented = CalculateMeanEpochs(X_augmented)
-                    #PlotEpochs(X_augmented[0:12,:,:]) #let's have look at the augmented data
-                    
-                    #2) Addding samples by revmoving some data and replacing it with interplated data
-                    X_interpolated, y_interpolated = GenerateInterpolated(X_train, y_train, P300Class)
-                    if (P300ClassCount != X_interpolated.shape[0]):
-                        raise Exception("Problem with interpolated data 1!")
-                        
-                    # Adding both the augmented and interpolated data
-                    
-                    #1)
-                    
-                    X_train_old_count = X_train.shape[0]
-                    
-                    if (original_n_count != X_train_old_count):
-                        raise Exception("Problem with original data")
-                    
-                    #add the VAE augmented data to X_train and y_train 
-                    X_train = np.concatenate((X_train, X_augmented), axis=0)
-                    y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
-                    
-                    if (X_train.shape[0] != X_augmented.shape[0] + X_train_old_count):
-                        raise Exception("Problem adding augmented data")
-                    
-                    #2) add interpolated data (only P300 class)
-                    X_train = np.concatenate((X_train, X_interpolated), axis=0)
-                    y_train = np.concatenate((y_train, y_interpolated), axis=0)
-                    
-                    #meanOrigAndAugmented = CalculateMeanEpochs(X_train)
-                    meanManyAugmentedSamples = CalculateMeanEpochs(GenerateAugmentedSamples(modelVAE, scaler, 2000))
-                    
-                    #shuffle the real training data and the augmented data before testing again
-                    for x in range(20):
-                        indices = np.arange(len(X_train))
-                        np.random.shuffle(indices)
-                        X_train = np.array(X_train)[indices]
-                        y_train = np.array(y_train)[indices]
-                    
-                    print('Test with PyRiemann, WITH data augmentation. Metrics:')
-                    CR2, ba_augmented, _ = Evaluate(X_train, X_test, y_train, y_test)
-                    
-                    aug_mdm_scores.append(ba_augmented)
-                    
-                    if ba_augmented > max_ba:
-                        max_ba = ba_augmented
-                        max_hl = hl
-                        max_ls = ls
-                        max_percentage = percentageP300Added
-                    
-                    #print(CR2)
-                    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            # Adding both the augmented and interpolated data
+            
+            #1)
+            
+            X_train_old_count = X_train.shape[0]
+            
+            if (original_n_count != X_train_old_count):
+                raise Exception("Problem with original data")
+            
+            #add the GAN augmented data to X_train and y_train 
+            X_train = np.concatenate((X_train, X_augmented), axis=0)
+            y_train = np.concatenate((y_train, np.repeat(P300Class,X_augmented.shape[0])), axis=0)
+            
+            if (X_train.shape[0] != X_augmented.shape[0] + X_train_old_count):
+                raise Exception("Problem adding augmented data")
+            
+            #2) add interpolated data (only P300 class)
+            # X_train = np.concatenate((X_train, X_interpolated), axis=0)
+            # y_train = np.concatenate((y_train, y_interpolated), axis=0)
+            
+            #meanOrigAndAugmented = CalculateMeanEpochs(X_train)
+            meanManyAugmentedSamples = CalculateMeanEpochs(GenerateAugmentedSamples(modelGAN, 2000))
+            
+            #shuffle the real training data and the augmented data before testing again
+            for x in range(20):
+                indices = np.arange(len(X_train))
+                np.random.shuffle(indices)
+                X_train = np.array(X_train)[indices]
+                y_train = np.array(y_train)[indices]
+            
+            print('Test with PyRiemann, WITH data augmentation. Metrics:')
+            CR2, ba_augmented, _ = Evaluate(X_train, X_test, y_train, y_test)
+            
+            aug_mdm_scores.append(ba_augmented)
+            
+            #print(CR2)
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         
         del X_train, X_test, y_train, y_test, X_augmented
         gc.collect()
@@ -557,3 +526,4 @@ meanEpochs = np.array([meanTrainOrig[-1,:,:], meanOnlyAugmented[-1,:,:], meanMan
 print("classification original / classification augmented:", np.mean(pure_mdm_scores), "/", np.mean(aug_mdm_scores), "Difference: ",np.mean(pure_mdm_scores) - np.mean(aug_mdm_scores))
 legend = ["Mean P300 train data","Mean P300 Only Augmented used","Mean 2000 Augmented","Mean P300 test", "Mean Non P300 Train", "Mean Non P300 test"]
 PlotEpochs(meanEpochs)
+

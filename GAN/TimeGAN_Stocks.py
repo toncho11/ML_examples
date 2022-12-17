@@ -8,6 +8,7 @@ pip install ydata-synthetic
 
 An example of how TimeGan can be used to generate synthetic time-series data.
 Dataset is Google's stock.
+Input is int the form: (epochs, timesteps, features/channels), note that timesteps and features are inversed.
 
 source: https://github.com/ydataai/ydata-synthetic/blob/dev/examples/timeseries/TimeGAN_Synthetic_stock_data.ipynb
 
@@ -28,8 +29,9 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)
 
 #Specific to TimeGANs
-seq_len=24
-n_seq = 6
+seq_len=24  # Timesteps
+n_seq = 6   # Features
+
 hidden_dim=24
 gamma=1
 
@@ -46,7 +48,7 @@ gan_args = ModelParameters(batch_size=batch_size,
                            layers_dim=dim)
 
 stock_data = processed_stock(path='GOOG.csv', seq_len=seq_len)
-print(len(stock_data),stock_data[0].shape)
+print("(epochs, timesteps, features/channels)",np.asarray(stock_data).shape)
 
 # Training the TimeGAN synthetizer
 if path.exists('synthesizer_stock.pkl'):
@@ -116,7 +118,7 @@ def RNN_regression(units):
     opt = Adam(name='AdamOpt')
     loss = MeanAbsoluteError(name='MAE')
     model = Sequential()
-    model.add(GRU(units=units,
+    model.add(GRU(units=units, #Gated Recurrent Unit
                   name=f'RNN_1'))
     model.add(Dense(units=6,
                     activation='sigmoid',
