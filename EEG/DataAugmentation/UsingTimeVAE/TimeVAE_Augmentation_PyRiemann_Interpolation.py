@@ -421,7 +421,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 5
-    iterationsVAE = 1000 #more means better training
+    iterationsVAE = 1000 #more means better training for VAE
     selectedSubjects = list(range(1,11))
     
     # init

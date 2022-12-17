@@ -46,11 +46,6 @@ import sklearn.datasets
 #import sklearn.metrics
 from sklearn.model_selection import train_test_split
 
-#TimeVAE
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/AutoEncoders/TimeVAE') #should be changed to your TimeVAE code
-
 #PyRiemann
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
@@ -131,7 +126,7 @@ def TrainGAN(X, y, selected_class, iterations):
 
     X_1_class = X_1_class[-1,:,:,:] #remove the first exta dimension
     
-    print("Count of P300 samples used by the VAE train: ", X_1_class.shape)
+    print("Count of P300 samples used by the GAN train: ", X_1_class.shape)
     
     from ydata_synthetic.synthesizers.timeseries import TimeGAN
     from ydata_synthetic.synthesizers import ModelParameters
@@ -172,7 +167,7 @@ def TrainGAN(X, y, selected_class, iterations):
     #Training the TimeGAN synthetizer
     synth = TimeGAN(model_parameters=gan_args, hidden_dim=hidden_dim, seq_len=seq_len, n_seq=n_seq, gamma=1)
     synth.train(X_1_class, train_steps=iterations)
-    synth.save('synth_energy.pkl') #save trained model
+    #synth.save('synth_p300_dataset.pkl') #save trained model
         
     return synth
 # should be changed to be K-fold
@@ -214,10 +209,10 @@ def Evaluate(X_train, X_test, y_train, y_test):
     #print(cr)
     return cr, ba, clf
     
-#uses the VAE encoder to generate new data
+#uses the GAN model to generate new data
 def GenerateAugmentedSamples(model, samples_required):
     
-    #Sampling from the VAE
+    #Sampling from the GAN
     print("New samples requested: ", samples_required)
     
     new_samples = model.sample(samples_required)
@@ -404,8 +399,8 @@ if __name__ == "__main__":
     
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
-    iterations = 5
-    iterationsGAN = 50 #more means better training
+    iterations = 1
+    iterationsGAN = 1500 #more means better training for GAN
     selectedSubjects = list(range(1,2))
     
     # init
@@ -438,7 +433,7 @@ if __name__ == "__main__":
             X_train = np.array(X_train)[indices]
             y_train = np.array(y_train)[indices]
         
-        #Perform data augmentation with TimeVAE
+        #Perform data augmentation with TimeGAN
         
         P300Class = 1 #1 corresponds to P300 samples
         
