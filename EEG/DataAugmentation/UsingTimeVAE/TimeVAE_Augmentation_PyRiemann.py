@@ -26,7 +26,6 @@ import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 
-#import Dither #pip install PyDither
 import os
 import glob
 import time
