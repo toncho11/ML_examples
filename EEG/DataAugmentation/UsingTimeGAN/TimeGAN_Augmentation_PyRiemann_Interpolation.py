@@ -3,15 +3,29 @@
 Created on Sat Dec 17 00:06:10 2022
 
 @author: antona
+
+Trains a TimeGAN on a P300 class in an ERP EEG dataset. 
+It tries to generate data for the P300 class - it performs a data augmentation.
+Next it uses MDM from PyRiemann to classify the data (with and without data augmentation).
+
+pip install -Iv tensorflow==2.9.1
+pip install ydata-synthetic
+ydata-synthetic version used: 0.8.1
+
 """
+import os
 
-import tensorflow as tf
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-# fixes error: https://discuss.tensorflow.org/t/optimization-loop-failed-cancelled-operation-was-cancelled/1524/27
-import tensorflow as tf
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)
+useGPU = True
+if useGPU:
+    # could fix error: https://discuss.tensorflow.org/t/optimization-loop-failed-cancelled-operation-was-cancelled/1524/27
+    import tensorflow as tf
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if len(gpus)>0:
+        tf.config.experimental.set_memory_growth(gpus[0], True)   
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    import tensorflow as tf
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
@@ -28,7 +42,6 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 #import Dither #pip install PyDither
-import os
 import glob
 import time
 import sys
@@ -53,6 +66,37 @@ from pyriemann.classification import KNearestNeighbor
 
 #START CODE
 
+class MinMaxScaler():
+    """Min Max normalizer.
+    Args:
+    - data: original data
+
+    Returns:
+    - norm_data: normalized data
+    """
+    def fit_transform(self, data): 
+        self.fit(data)
+        scaled_data = self.transform(data)
+        return scaled_data
+
+
+    def fit(self, data):    
+        self.mini = np.min(data, 0)
+        self.range = np.max(data, 0) - self.mini
+        return self
+        
+
+    def transform(self, data):
+        numerator = data - self.mini
+        scaled_data = numerator / (self.range + 1e-7)
+        return scaled_data
+
+    
+    def inverse_transform(self, data):
+        data *= self.range
+        data += self.mini
+        return data
+    
 paradigm = P300()
 
 le = LabelEncoder()
@@ -140,6 +184,10 @@ def TrainGAN(X, y, selected_class, iterations):
     #data must be in the format (epoch, samples, features)
     X_1_class = X_1_class.transpose(0,2,1)
 
+    # min max scale the data    
+    scaler = MinMaxScaler()        
+    scaled_data = scaler.fit_transform(X_1_class)
+     
     # Hidden units for generator (GRU & LSTM).
     # Also decides output_units for generator
     hidden_dim = 24
@@ -148,7 +196,7 @@ def TrainGAN(X, y, selected_class, iterations):
 
     noise_dim = 32      # Used by generator as a starter dimension
     dim = 128           # UNUSED
-    batch_size = 128
+    batch_size = 10 #128
 
     learning_rate = 5e-4
     beta_1 = 0          # UNUSED
@@ -161,15 +209,15 @@ def TrainGAN(X, y, selected_class, iterations):
                                noise_dim=noise_dim,
                                layers_dim=dim)
 
-    # Read the Input data
-    from ydata_synthetic.preprocessing.timeseries.utils import real_data_loading
-
     #Training the TimeGAN synthetizer
+    print("Creatre and configure TimeGAN ...")
     synth = TimeGAN(model_parameters=gan_args, hidden_dim=hidden_dim, seq_len=seq_len, n_seq=n_seq, gamma=1)
-    synth.train(X_1_class, train_steps=iterations)
+    print("Start Train TimeGAN ...")
+    synth.train(scaled_data, train_steps=iterations)
     #synth.save('synth_p300_dataset.pkl') #save trained model
         
-    return synth
+    return synth, scaler
+
 # should be changed to be K-fold
 # http://moabb.neurotechx.com/docs/auto_tutorials/tutorial_3_benchmarking_multiple_pipelines.html
 # PyRiemann MDM example: https://github.com/pyRiemann/pyRiemann/blob/master/examples/ERP/plot_classify_MEG_mdm.py
@@ -210,12 +258,15 @@ def Evaluate(X_train, X_test, y_train, y_test):
     return cr, ba, clf
     
 #uses the GAN model to generate new data
-def GenerateAugmentedSamples(model, samples_required):
+def GenerateAugmentedSamples(model, scaler, samples_required):
     
     #Sampling from the GAN
     print("New samples requested: ", samples_required)
     
     new_samples = model.sample(samples_required)
+    
+    # inverse-transform scaling 
+    new_samples = scaler.inverse_transform(new_samples)
     
     #switching from (epochs, timesteps, channels) to (epochs, channels, timesteps)
     new_samples = new_samples.transpose(0,2,1)
@@ -223,63 +274,6 @@ def GenerateAugmentedSamples(model, samples_required):
     print("Number of new samples generated: ", new_samples.shape[0])
     
     return new_samples
-    
-# def GenerateAugmentedSamplesMDMfiltered(modelVAE, scaler, samples_required, modelMDM, selected_class):
-    
-#     print("GenerateAugmentedSamplesMDMfiltered start")
-#     good_samples_count = 0
-#     batch_samples_count = 5000
-#     Xf = np.array([]) #all new generated samples filtered by MDM
-    
-#     while (good_samples_count < samples_required):
-        
-#         #Sampling from the VAE
-#         print("New samples requested: ", samples_required)
-#         new_samples = modelVAE.get_prior_samples(num_samples=batch_samples_count)
-#         print("Number of new samples generated: ", new_samples.shape[0])
-        
-#         # inverse-transform scaling 
-#         new_samples = scaler.inverse_transform(new_samples)
-        
-#         print("X augmented NANs: ", np.count_nonzero(np.isnan(new_samples)))
-        
-#         print("Back to original dimensions: ", X.shape)
-#         new_samples = new_samples.transpose(0,2,1) #convert back to D,T
-        
-#         print("classify")
-#         #classify
-#         y_pred = modelMDM.predict(new_samples)
-        
-#         print("sum(y_pred):", sum(y_pred))
-        
-#         #select only the P300 samples
-#         new_filtered_samples =  new_samples[y_pred == selected_class]
-        
-#         new_filtered_samplesCount = new_filtered_samples.shape[0]
-        
-#         if (sum(y_pred) != new_filtered_samplesCount):
-#             print("WARNING: potential error")
-        
-#         if (new_filtered_samplesCount > 0):
-            
-#             samples_still_needed = samples_required - good_samples_count
-            
-#             samples_tobe_taken = min(samples_still_needed, new_filtered_samplesCount)
-            
-#             if (Xf.size == 0):
-#                 Xf = np.copy(new_filtered_samples[0:samples_tobe_taken,:,:])
-#             else:
-#                 Xf = np.concatenate((Xf, new_filtered_samples[0:samples_tobe_taken,:,:]), axis=0)
-                
-#             good_samples_count = good_samples_count + samples_tobe_taken
-                
-#             print("Total filtered samples added:", good_samples_count, "/", samples_required)
-#         else:
-#             print("Non added samples: ", new_samples.shape[0])
-#             print("Samples still needed: ", samples_required - good_samples_count, "/", samples_required)
-        
-#     print("GenerateSamplesMGenerateAugmentedSamplesMDMfilteredDMfiltered end")
-#     return Xf
 
 def PlotEpoch(epoch):
     
@@ -400,8 +394,8 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 1
-    iterationsGAN = 1500 #more means better training for GAN
-    selectedSubjects = list(range(1,2))
+    iterationsGAN = 50000 #more means better training for GAN
+    selectedSubjects = list(range(1,3))
     
     # init
     pure_mdm_scores = []
@@ -454,7 +448,7 @@ if __name__ == "__main__":
         #print(CR1)
 
         #train and generate samples
-        modelGAN = TrainGAN(X_train, y_train, P300Class, iterationsGAN) #latent_dim = 8
+        modelGAN, scaler = TrainGAN(X_train, y_train, P300Class, iterationsGAN) #latent_dim = 8
         
         print("Reports for augmented data:") 
         for percentageP300Added in [100]:#[2, 3, 10, 15, 20]: #, 5, 10, 20
@@ -465,7 +459,7 @@ if __name__ == "__main__":
             
             #1) Data Augmentation with GAN
             
-            X_augmented = GenerateAugmentedSamples(modelGAN, samples_required)
+            X_augmented = GenerateAugmentedSamples(modelGAN, scaler, samples_required)
             #X_augmented = GenerateAugmentedSamplesMDMfiltered(modelGAN, scaler, samples_required, modelMDM, P300Class)
             meanOnlyAugmented = CalculateMeanEpochs(X_augmented)
             #PlotEpochs(X_augmented[0:12,:,:]) #let's have look at the augmented data
@@ -496,7 +490,7 @@ if __name__ == "__main__":
             # y_train = np.concatenate((y_train, y_interpolated), axis=0)
             
             #meanOrigAndAugmented = CalculateMeanEpochs(X_train)
-            meanManyAugmentedSamples = CalculateMeanEpochs(GenerateAugmentedSamples(modelGAN, 2000))
+            meanManyAugmentedSamples = CalculateMeanEpochs(GenerateAugmentedSamples(modelGAN, scaler, 2000))
             
             #shuffle the real training data and the augmented data before testing again
             for x in range(20):

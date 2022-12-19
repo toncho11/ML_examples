@@ -179,10 +179,9 @@ def TrainVAE(X, y, selected_class, iterations, hidden_layer_low, latent_dim):
     
     print("Count of P300 samples used by the VAE train: ", X.shape)
     
-    #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     N, T, D = Xv.shape #N = number of samples, T = time steps, D = feature dimensions
     print(N, T, D)
-    # X = X.reshape(N,D,T)
+    #data must be in the format (epoch, samples, features)
     Xv = Xv.transpose(0,2,1)
     N, T, D = Xv.shape
     print(N, T, D)
