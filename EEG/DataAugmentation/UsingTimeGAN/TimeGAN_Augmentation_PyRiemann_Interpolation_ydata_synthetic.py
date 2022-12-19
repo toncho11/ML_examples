@@ -4,7 +4,8 @@ Created on Sat Dec 17 00:06:10 2022
 
 @author: antona
 
-Trains a TimeGAN on a P300 class in an ERP EEG dataset. 
+Trains a TimeGAN on a P300 class in an ERP EEG dataset.
+TimeGAN implementation is provided by ydata-synthetic.
 It tries to generate data for the P300 class - it performs a data augmentation.
 Next it uses MDM from PyRiemann to classify the data (with and without data augmentation).
 
