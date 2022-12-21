@@ -4,6 +4,7 @@ matplotlib>=3.5.2
 
 mne>=1.0.3
 mne-qt-browser>=0.4.0
+
 moabb>=0.4.6
 
 numpy>=1.23.5
@@ -39,6 +40,8 @@ seaborn>=0.11.2
 tensorflow>=2.11.0
 
 torch>=1.11.0+cu113
+torchaudio>=0.11.0
+torchvision>=0.12.0+cu113
 
 TPOT>=0.11.7
 
