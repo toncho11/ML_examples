@@ -32,6 +32,8 @@ Spyder 4.2.5
 TensorFlow 2.3.0
 Keras is installed as part of TensorFlow 2
 
+This is a simple NN. It does not use the Conv2D layers typical for Deep Learning
+
 """
 
 # TensorFlow and tf.keras
@@ -66,7 +68,7 @@ model.compile(optimizer='adam', #This is how the model is updated based on the d
 
 model.fit(train_images, train_labels, epochs=10)
 
-#training results
+#test dataset results
 test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
 print('\nTest accuracy:', test_acc)
 
