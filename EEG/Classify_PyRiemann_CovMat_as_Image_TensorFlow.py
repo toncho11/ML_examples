@@ -3,6 +3,10 @@
 Created on Wed Jan  4 11:52:58 2023
 
 @author: antona
+
+An example of converting EEG signal to covariance matrices and then classifying them using CNN and TensorFlow.
+The covariance matrices are used as images.
+
 """
 
 import numpy as np
@@ -163,7 +167,7 @@ if __name__ == "__main__":
     # CONFIGURATION
     ds = [BNCI2014009()] #bi2014a() 
     iterations = 10
-    epochsTF = 50 #more means better training for GAN
+    epochsTF = 50 #more means better training of CNN
     selectedSubjects = list(range(1,11))
     
     # init
@@ -209,7 +213,7 @@ if __name__ == "__main__":
         ba_mdm = EvaluateMDM(X_train, X_test, y_train, y_test)
         pure_mdm_scores.append(ba_mdm)
             
-        #tensorflow image classification
+        #Tensorflow image classification
         X_train, covestm_train = BuildCov(X_train,y_train)
         print("Cov matrix size: ", X_train.shape)
         
@@ -220,7 +224,6 @@ if __name__ == "__main__":
         print('\nTF Trainig accuracy:', test_acc)
         
         #testing results
-        #X_test, covestm_test = BuildCov(X_test,y_test)
         X_test = covestm_train.transform(X_test)
         
         y_pred = model.predict(X_test)
@@ -230,8 +233,8 @@ if __name__ == "__main__":
         
         print('\nTF Testing balanced accuracy:', ba)        
         tf_scores.append(ba)
-        print("_______________________________________")
+        print("_______________________________________ end iteration")
 
 print("===================================================")        
-print("Mean of Test dataset accuracy  TF:", np.mean(tf_scores))
-print("Mean of Test dataset accuracy MDM:", np.mean(pure_mdm_scores))
+print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores))
+print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores))
