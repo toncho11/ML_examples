@@ -24,6 +24,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
 from tensorflow.keras import backend as K
+from tensorflow.keras import callbacks
 
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
@@ -36,6 +37,8 @@ from pyriemann.estimation import (
 
 paradigm = P300()
 le = LabelEncoder()
+
+xdawn_filters = 4
 
 # Puts all subjects in single X,y
 def BuidlDataset(datasets, selectedSubjects):
@@ -87,10 +90,11 @@ def BuidlDataset(datasets, selectedSubjects):
 def BuildCov(X,y):
 
     #Covariances, XdawnCovariances, ERPCovariances
-    #covestm = Covariances(estimator="scm").fit(X) 
-    covestm = XdawnCovariances(estimator="scm").fit(X,y) 
+    #covestm = Covariances(estimator="scm").fit()
+    covestm = XdawnCovariances(nfilter = xdawn_filters, estimator="scm")#.fit(X,y)
     covmats = covestm.fit_transform(X,y)
     
+    print("Covmats:", covmats.shape)
     return covmats, covestm
 
 def BuildModel(input_shape):
@@ -121,7 +125,8 @@ def BuildModel(input_shape):
                   #optimizer='rmsprop',
                   optimizer='adam',
                   #optimizer='SGD',
-                  metrics=['accuracy'])
+                  metrics=['accuracy'],
+                  )
     
     return model
 
@@ -135,10 +140,8 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     print("Total train class non-target samples available: ", len(y_train) - sum(y_train))
     print("Total test class target samples available: ", sum(y_test))
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
-
-    n_components = 3 
     
-    clf = make_pipeline(XdawnCovariances(n_components), MDM())
+    clf = make_pipeline(XdawnCovariances(2), MDM())
     #clf = make_pipeline(XdawnCovariances(n_components),  KNearestNeighbor(n_neighbors=1, n_jobs=10))
     
     print("Training MDM...")
@@ -166,11 +169,17 @@ if __name__ == "__main__":
     #warning when usiung multiple datasets they must have the same number of electrodes 
     
     # CONFIGURATION
-    ds = [BNCI2014008()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2015003(), BNCI2014008()
+    #name, electrodes, subjects
+    #bi2013a	     16	24
+    #bi2014a    	16	64
+    #BNCI2014009	16	10
+    #BNCI2014008	8	8
+    #BNCI2015003	8	10
+    ds = [BNCI2015003()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2014008(), BNCI2015003(), 
     iterations = 10
     epochsTF = 50 #more means better training of CNN
-    selectedSubjects = list(range(1,3))
-    
+    selectedSubjects = list(range(1,9))
+
     # init
     pure_mdm_scores = []
     tf_scores = []
@@ -178,12 +187,15 @@ if __name__ == "__main__":
     
     X, y = BuidlDataset(ds, selectedSubjects)
     
+    # Currently both 16 ch and 8 ch datasets prouduce 16 x 16 cov matrix 
+    cov_mat_size = BuildCov(X[0:100,:,:],y[0:100])[0].shape[1]
+    
     #build model
-    # Checking format of Image:
+    # Checking format of Image and setting the input shape
     if K.image_data_format() == 'channels_first': #these are image channels and here we do not have color, so it should be 1
-        input_shape = (1, X.shape[1], X.shape[1])
+        input_shape = (1, cov_mat_size, cov_mat_size)
     else:
-        input_shape = (X.shape[1], X.shape[1], 1)
+        input_shape = (cov_mat_size, cov_mat_size, 1)
     print("Input shape:",input_shape)
     
     model = BuildModel(input_shape)
@@ -219,7 +231,8 @@ if __name__ == "__main__":
         print("Cov matrix size: ", X_train.shape)
         
         #should X_train be normalized between 0 and 1?
-        model.fit(X_train,  y_train, epochs = epochsTF)
+        callback = callbacks.EarlyStopping(monitor='loss', patience=3)
+        model.fit(X_train,  y_train, epochs = epochsTF, callbacks=[callback])
         
         #training results
         test_loss, test_acc = model.evaluate(X_train, y_train, verbose=2)
