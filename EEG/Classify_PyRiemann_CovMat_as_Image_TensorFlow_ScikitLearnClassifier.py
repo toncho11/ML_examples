@@ -54,9 +54,6 @@ def BuidlDataset(datasets, selectedSubjects):
 
         for subject_i, subject in subjects:
             
-            # if subject_i > 0:
-            #     break
-            
             print("Loading subject:" , subject) 
             
             X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
@@ -135,26 +132,26 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         self.xdawn_filters = xdawn_filters
     
-    def __buildCov(self, X, y):
+    # def __buildCov(self, X, y):
 
-        #Covariances, XdawnCovariances, ERPCovariances
-        #covestm = Covariances(estimator="scm").fit()
-        covestm = XdawnCovariances(nfilter = self.xdawn_filters, estimator="scm")#.fit(X,y)
-        covmats = covestm.fit_transform(X,y)
+    #     #Covariances, XdawnCovariances, ERPCovariances
+    #     #covestm = Covariances(estimator="scm").fit()
+    #     covestm = XdawnCovariances(nfilter = self.xdawn_filters, estimator="scm")#.fit(X,y)
+    #     covmats = covestm.fit_transform(X,y)
         
-        print("Covmats:", covmats.shape)
-        return covmats, covestm
+    #     print("Covmats:", covmats.shape)
+    #     return covmats, covestm
     
     def fit(self, X, y):
-        X, self.covestm_train = self.__buildCov(X, y)
-        print("Cov matrix size: ", X.shape)
+        #X, self.covestm_train = self.__buildCov(X, y)
+        #print("Cov matrix size: ", X.shape)
         
         #should X_train be normalized between 0 and 1?
         callback = callbacks.EarlyStopping(monitor='loss', patience=3)
         self.model.fit(X,  y, epochs = epochsTF, callbacks=[callback])
     
     def predict_proba(self, X):
-        X = self.covestm_train.transform(X)
+        #X = self.covestm_train.transform(X)
         return self.model.predict(X)
     
     def fit_predict(self, X, y):
@@ -211,7 +208,7 @@ def EvaluateTF(X_train, X_test, y_train, y_test):
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
     
     cov_mat_size = 16
-    clf = make_pipeline(CovCNNClassifier(cov_mat_size, xdawn_filters = xdawn_filters_all))
+    clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(cov_mat_size))
     
     print("Training TF...")
     clf.fit(X_train, y_train)
