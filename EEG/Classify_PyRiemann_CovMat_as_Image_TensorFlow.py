@@ -120,6 +120,7 @@ def BuildModel(input_shape):
     model.compile(loss='binary_crossentropy',
                   #optimizer='rmsprop',
                   optimizer='adam',
+                  #optimizer='SGD',
                   metrics=['accuracy'])
     
     return model
@@ -165,10 +166,10 @@ if __name__ == "__main__":
     #warning when usiung multiple datasets they must have the same number of electrodes 
     
     # CONFIGURATION
-    ds = [BNCI2014009()] #bi2014a() 
+    ds = [BNCI2014008()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2015003(), BNCI2014008()
     iterations = 10
     epochsTF = 50 #more means better training of CNN
-    selectedSubjects = list(range(1,11))
+    selectedSubjects = list(range(1,3))
     
     # init
     pure_mdm_scores = []
@@ -217,6 +218,7 @@ if __name__ == "__main__":
         X_train, covestm_train = BuildCov(X_train,y_train)
         print("Cov matrix size: ", X_train.shape)
         
+        #should X_train be normalized between 0 and 1?
         model.fit(X_train,  y_train, epochs = epochsTF)
         
         #training results
@@ -229,10 +231,11 @@ if __name__ == "__main__":
         y_pred = model.predict(X_test)
         
         y_pred=np.rint(y_pred)
-        ba = balanced_accuracy_score(y_test, y_pred)
+        ba_tf = balanced_accuracy_score(y_test, y_pred)
         
-        print('\nTF Testing balanced accuracy:', ba)        
-        tf_scores.append(ba)
+        print('\nTF Testing balanced accuracy:', ba_tf)        
+        tf_scores.append(ba_tf)
+        print('\nTF / MDM:', ba_tf ," / ", ba_mdm)    
         print("_______________________________________ end iteration")
 
 print("===================================================")        
