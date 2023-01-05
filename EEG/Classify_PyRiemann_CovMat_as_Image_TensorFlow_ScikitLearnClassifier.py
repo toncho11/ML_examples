@@ -148,7 +148,7 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         #should X_train be normalized between 0 and 1?
         callback = callbacks.EarlyStopping(monitor='loss', patience=3)
-        self.model.fit(X,  y, epochs = epochsTF, callbacks=[callback])
+        self.model.fit(X,  y, epochs = 60, callbacks=[callback])
     
     def predict_proba(self, X):
         #X = self.covestm_train.transform(X)
@@ -225,8 +225,8 @@ def EvaluateTF(X_train, X_test, y_train, y_test):
     print("1s     P300: ", sum(y_pred), "/", sum(y_test))
     print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
     
-    from sklearn.metrics import classification_report
-    cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
+    #from sklearn.metrics import classification_report
+    #cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
     #print(cr)
     return ba
 
@@ -244,7 +244,6 @@ if __name__ == "__main__":
     #bi2015a        32  43
     ds = [BNCI2014009()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2014008(), BNCI2015003(), 
     iterations = 10
-    epochsTF = 50 #more means better training of CNN
     selectedSubjects = list(range(1,11))
 
     # init
@@ -267,7 +266,6 @@ if __name__ == "__main__":
             
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
-        #X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 200)
         
         #shuffle
         for x in range(20):
