@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan  4 11:52:58 2023
+Created on Thu Jan  5 14:30:05 2023
 
 @author: antona
-
-An example of converting EEG signal to covariance matrices and then classifying them using CNN and TensorFlow.
-The covariance matrices are used as images.
-
 """
 
 import numpy as np
@@ -26,6 +22,8 @@ from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
 from tensorflow.keras import backend as K
 from tensorflow.keras import callbacks
 
+from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
+
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
 
@@ -38,7 +36,7 @@ from pyriemann.estimation import (
 paradigm = P300()
 le = LabelEncoder()
 
-xdawn_filters = 4
+xdawn_filters_all = 4
 
 # Puts all subjects in single X,y
 def BuidlDataset(datasets, selectedSubjects):
@@ -87,49 +85,87 @@ def BuidlDataset(datasets, selectedSubjects):
     print("Building train data completed: ", X.shape)
     return X,y
 
-def BuildCov(X,y):
+class CovCNNClassifier(BaseEstimator, ClassifierMixin):
 
-    #Covariances, XdawnCovariances, ERPCovariances
-    #covestm = Covariances(estimator="scm").fit()
-    covestm = XdawnCovariances(nfilter = xdawn_filters, estimator="scm")#.fit(X,y)
-    covmats = covestm.fit_transform(X,y)
+    def __buildModel(self, input_shape):
+        
+        #create model
+        model = Sequential()
+        model.add(Conv2D(32, (2, 2), input_shape=input_shape))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+          
+        model.add(Conv2D(32, (2, 2)))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+          
+        model.add(Conv2D(64, (2, 2)))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+          
+        model.add(Flatten())
+        model.add(Dense(64))
+        model.add(Activation('relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(1))
+        model.add(Activation('sigmoid'))
+
+        # compile model
+        model.compile(loss='binary_crossentropy',
+                      #optimizer='rmsprop',
+                      optimizer='adam',
+                      #optimizer='SGD',
+                      metrics=['accuracy'],
+                      )
+        
+        return model
     
-    print("Covmats:", covmats.shape)
-    return covmats, covestm
-
-def BuildModel(input_shape):
+    def __init__(self, cov_mat_size, xdawn_filters = 4):
+        
+        # # Checking format of Image and setting the input shape
+        if K.image_data_format() == 'channels_first': #these are image channels and here we do not have color, so it should be 1
+            input_shape = (1, cov_mat_size, cov_mat_size)
+        else:
+            input_shape = (cov_mat_size, cov_mat_size, 1)
+        print("Input shape:",input_shape)
+        
+        #self.covestm_train = None
+        
+        self.model = self.__buildModel(input_shape)
+        
+        self.xdawn_filters = xdawn_filters
     
-    #create model
-    model = Sequential()
-    model.add(Conv2D(32, (2, 2), input_shape=input_shape))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-      
-    model.add(Conv2D(32, (2, 2)))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-      
-    model.add(Conv2D(64, (2, 2)))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-      
-    model.add(Flatten())
-    model.add(Dense(64))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(1))
-    model.add(Activation('sigmoid'))
+    def __buildCov(self, X, y):
 
-    # compile model
-    model.compile(loss='binary_crossentropy',
-                  #optimizer='rmsprop',
-                  optimizer='adam',
-                  #optimizer='SGD',
-                  metrics=['accuracy'],
-                  )
+        #Covariances, XdawnCovariances, ERPCovariances
+        #covestm = Covariances(estimator="scm").fit()
+        covestm = XdawnCovariances(nfilter = self.xdawn_filters, estimator="scm")#.fit(X,y)
+        covmats = covestm.fit_transform(X,y)
+        
+        print("Covmats:", covmats.shape)
+        return covmats, covestm
     
-    return model
-
+    def fit(self, X, y):
+        X, self.covestm_train = self.__buildCov(X, y)
+        print("Cov matrix size: ", X.shape)
+        
+        #should X_train be normalized between 0 and 1?
+        callback = callbacks.EarlyStopping(monitor='loss', patience=3)
+        self.model.fit(X,  y, epochs = epochsTF, callbacks=[callback])
+    
+    def predict_proba(self, X):
+        X = self.covestm_train.transform(X)
+        return self.model.predict(X)
+    
+    def fit_predict(self, X, y):
+        self.fit(X, y)
+        return self.predict(X)
+    
+    def predict(self, X):
+        y_pred = self.predict_proba(X)
+        y_pred = np.rint(y_pred)
+        return y_pred
+        
 def EvaluateMDM(X_train, X_test, y_train, y_test):
     
     print ("Evaluating ...================================================================")
@@ -141,8 +177,7 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     print("Total test class target samples available: ", sum(y_test))
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
     
-    clf = make_pipeline(XdawnCovariances(xdawn_filters), MDM())
-    #clf = make_pipeline(XdawnCovariances(n_components),  KNearestNeighbor(n_neighbors=1, n_jobs=10))
+    clf = make_pipeline(XdawnCovariances(xdawn_filters_all), MDM())
     
     print("Training MDM...")
     clf.fit(X_train, y_train)
@@ -164,22 +199,56 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     #print(cr)
     return ba
 
+def EvaluateTF(X_train, X_test, y_train, y_test):
+    
+    print ("Evaluating ...================================================================")
+    
+    #0 NonTarget
+    #1 Target       
+    print("Total train class target samples available: ", sum(y_train))
+    print("Total train class non-target samples available: ", len(y_train) - sum(y_train))
+    print("Total test class target samples available: ", sum(y_test))
+    print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
+    
+    cov_mat_size = 16
+    clf = make_pipeline(CovCNNClassifier(cov_mat_size, xdawn_filters = xdawn_filters_all))
+    
+    print("Training TF...")
+    clf.fit(X_train, y_train)
+    
+    print("Predicting TF...")
+    y_pred = clf.predict(X_test)
+    
+    ba = balanced_accuracy_score(y_test, y_pred)
+    print("Balanced Accuracy TF #####: ", ba)
+    print("Accuracy score    TF #####: ", accuracy_score(y_test, y_pred))
+    from sklearn.metrics import roc_auc_score
+    print("ROC AUC score     TF #####: ", roc_auc_score(y_test, y_pred))
+    
+    print("1s     P300: ", sum(y_pred), "/", sum(y_test))
+    print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
+    
+    from sklearn.metrics import classification_report
+    cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
+    #print(cr)
+    return ba
+
 if __name__ == "__main__":
     
     #warning when usiung multiple datasets they must have the same number of electrodes 
     
     # CONFIGURATION
     #name, electrodes, subjects
-    #bi2013a	     16	24
+    #bi2013a	    16	24
     #bi2014a    	16	64
     #BNCI2014009	16	10
-    #BNCI2014008	8	8
-    #BNCI2015003	8	10
-    #bi2015a       32   43
+    #BNCI2014008	 8	 8
+    #BNCI2015003	 8	10
+    #bi2015a        32  43
     ds = [BNCI2014009()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2014008(), BNCI2015003(), 
     iterations = 10
     epochsTF = 50 #more means better training of CNN
-    selectedSubjects = list(range(1,40))
+    selectedSubjects = list(range(1,11))
 
     # init
     pure_mdm_scores = []
@@ -187,19 +256,6 @@ if __name__ == "__main__":
     #aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
     
     X, y = BuidlDataset(ds, selectedSubjects)
-    
-    # Currently both 16 ch and 8 ch datasets prouduce 16 x 16 cov matrix 
-    cov_mat_size = BuildCov(X,y)[0].shape[1]
-    
-    #build model
-    # Checking format of Image and setting the input shape
-    if K.image_data_format() == 'channels_first': #these are image channels and here we do not have color, so it should be 1
-        input_shape = (1, cov_mat_size, cov_mat_size)
-    else:
-        input_shape = (cov_mat_size, cov_mat_size, 1)
-    print("Input shape:",input_shape)
-    
-    model = BuildModel(input_shape)
 
     for i in range(iterations):
         
@@ -228,26 +284,7 @@ if __name__ == "__main__":
         pure_mdm_scores.append(ba_mdm)
             
         #Tensorflow image classification
-        X_train, covestm_train = BuildCov(X_train,y_train)
-        print("Cov matrix size: ", X_train.shape)
-        
-        #should X_train be normalized between 0 and 1?
-        callback = callbacks.EarlyStopping(monitor='loss', patience=3)
-        model.fit(X_train,  y_train, epochs = epochsTF, callbacks=[callback])
-        
-        #training results
-        test_loss, test_acc = model.evaluate(X_train, y_train, verbose=2)
-        print('\nTF Trainig accuracy:', test_acc)
-        
-        #testing results
-        X_test = covestm_train.transform(X_test)
-        
-        y_pred = model.predict(X_test)
-        
-        y_pred=np.rint(y_pred)
-        ba_tf = balanced_accuracy_score(y_test, y_pred)
-        
-        print('\nTF Testing balanced accuracy:', ba_tf)        
+        ba_tf  = EvaluateTF(X_train, X_test, y_train, y_test)
         tf_scores.append(ba_tf)
         print('\nTF / MDM:', ba_tf ," / ", ba_mdm)    
         print("_______________________________________ end iteration")
