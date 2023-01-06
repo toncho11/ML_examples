@@ -171,15 +171,15 @@ if __name__ == "__main__":
     # CONFIGURATION
     #name, electrodes, subjects
     #bi2013a	     16	24
-    #bi2014a    	16	64
-    #BNCI2014009	16	10
-    #BNCI2014008	8	8
-    #BNCI2015003	8	10
-    #bi2015a       32   43
+    #bi2014a    	 16	64
+    #BNCI2014009	 16	10
+    #BNCI2014008	 8	8
+    #BNCI2015003	 8	10
+    #bi2015a        32  43
     ds = [BNCI2014009()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2014008(), BNCI2015003(), 
     iterations = 10
     epochsTF = 50 #more means better training of CNN
-    selectedSubjects = list(range(1,40))
+    selectedSubjects = list(range(1,11))
 
     # init
     pure_mdm_scores = []
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
         #X_train, X_test, y_train, y_test = TrainSplitEqualBinary(X , y, 200)
         
-        #shuffle
+        #shuffle the train data
         for x in range(20):
             indices = np.arange(X_train.shape[0])
             np.random.shuffle(indices)

@@ -117,20 +117,11 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         return model
     
-    def __init__(self, cov_mat_size, xdawn_filters = 4):
-        
-        # # Checking format of Image and setting the input shape
-        if K.image_data_format() == 'channels_first': #these are image channels and here we do not have color, so it should be 1
-            input_shape = (1, cov_mat_size, cov_mat_size)
-        else:
-            input_shape = (cov_mat_size, cov_mat_size, 1)
-        print("Input shape:",input_shape)
-        
+    def __init__(self):
+        pass
         #self.covestm_train = None
         
-        self.model = self.__buildModel(input_shape)
-        
-        self.xdawn_filters = xdawn_filters
+        #self.xdawn_filters = xdawn_filters
     
     # def __buildCov(self, X, y):
 
@@ -143,29 +134,46 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
     #     return covmats, covestm
     
     def fit(self, X, y):
+        
+        #print("fit")
+        
+        cov_mat_size = 16
+        
+        # # Checking format of Image and setting the input shape
+        if K.image_data_format() == 'channels_first': #these are image channels and here we do not have color, so it should be 1
+            input_shape = (1, cov_mat_size, cov_mat_size)
+        else:
+            input_shape = (cov_mat_size, cov_mat_size, 1)
+        print("Input shape:",input_shape)
+        
+        self.model = self.__buildModel(input_shape)
+        
         #X, self.covestm_train = self.__buildCov(X, y)
         #print("Cov matrix size: ", X.shape)
         
         #should X_train be normalized between 0 and 1?
-        callback = callbacks.EarlyStopping(monitor='loss', patience=3)
-        self.model.fit(X,  y, epochs = 60, callbacks=[callback])
+        #callback = callbacks.EarlyStopping(monitor='loss', patience=3)
+        self.model.fit(X,  y, epochs = 180, verbose = 0) #callbacks=[callback]
     
     def predict_proba(self, X):
+        #print("predict_proba")
         #X = self.covestm_train.transform(X)
         return self.model.predict(X)
     
     def fit_predict(self, X, y):
+        #print("fit_predict")
         self.fit(X, y)
         return self.predict(X)
     
     def predict(self, X):
+        #print("predict")
         y_pred = self.predict_proba(X)
         y_pred = np.rint(y_pred)
         return y_pred
         
 def EvaluateMDM(X_train, X_test, y_train, y_test):
     
-    print ("Evaluating ...================================================================")
+    print ("Evaluating MDM start ...================================================================")
     
     #0 NonTarget
     #1 Target       
@@ -198,7 +206,7 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
 
 def EvaluateTF(X_train, X_test, y_train, y_test):
     
-    print ("Evaluating ...================================================================")
+    print ("Evaluating TF start ...================================================================")
     
     #0 NonTarget
     #1 Target       
@@ -208,7 +216,7 @@ def EvaluateTF(X_train, X_test, y_train, y_test):
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
     
     cov_mat_size = 16
-    clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(cov_mat_size))
+    clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier())
     
     print("Training TF...")
     clf.fit(X_train, y_train)
@@ -216,6 +224,7 @@ def EvaluateTF(X_train, X_test, y_train, y_test):
     print("Predicting TF...")
     y_pred = clf.predict(X_test)
     
+    print("Calculating accuracy TF...")
     ba = balanced_accuracy_score(y_test, y_pred)
     print("Balanced Accuracy TF #####: ", ba)
     print("Accuracy score    TF #####: ", accuracy_score(y_test, y_pred))
@@ -235,16 +244,20 @@ if __name__ == "__main__":
     #warning when usiung multiple datasets they must have the same number of electrodes 
     
     # CONFIGURATION
+    #https://github.com/toncho11/ML_examples/wiki/EEG-datasets
     #name, electrodes, subjects
     #bi2013a	    16	24
-    #bi2014a    	16	64
-    #BNCI2014009	16	10
+    #bi2014a    	16	64 (usually low performance)
+    #BNCI2014009	16	10 (usually high performance)
     #BNCI2014008	 8	 8
     #BNCI2015003	 8	10
     #bi2015a        32  43
-    ds = [BNCI2014009()] #16ch: BNCI2014009(), bi2014a(), bi2013a(); 8ch: BNCI2014008(), BNCI2015003(), 
+    #bi2015b        32  44
+    #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
+    #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
+    ds = [bi2013a(), bi2014a()] 
     iterations = 10
-    selectedSubjects = list(range(1,11))
+    selectedSubjects = list(range(1,25))
 
     # init
     pure_mdm_scores = []
@@ -265,14 +278,14 @@ if __name__ == "__main__":
             y = np.array(y)[indices]
             
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20) #, stratify = y
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
         
-        #shuffle
-        for x in range(20):
-            indices = np.arange(X_train.shape[0])
-            np.random.shuffle(indices)
-            X_train = np.array(X_train)[indices]
-            y_train = np.array(y_train)[indices]
+        # #shuffle the train data
+        # for x in range(20):
+        #     indices = np.arange(X_train.shape[0])
+        #     np.random.shuffle(indices)
+        #     X_train = np.array(X_train)[indices]
+        #     y_train = np.array(y_train)[indices]
             
         #MDM
         ba_mdm = EvaluateMDM(X_train, X_test, y_train, y_test)
