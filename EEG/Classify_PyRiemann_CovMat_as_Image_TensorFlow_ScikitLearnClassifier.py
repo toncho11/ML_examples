@@ -3,6 +3,11 @@
 Created on Thu Jan  5 14:30:05 2023
 
 @author: antona
+
+An example of converting EEG signal to covariance matrices and then classifying them using CNN and TensorFlow.
+The covariance matrices are used as images.
+
+Uses a scikitlearn classifier and thus allows scikitlearn pipelines to be used.
 """
 
 import numpy as np
@@ -21,6 +26,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
 from tensorflow.keras import backend as K
 from tensorflow.keras import callbacks
+from tensorflow.keras.initializers import HeNormal
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
@@ -86,6 +92,8 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
 
     def __buildModel(self, input_shape):
         
+        #initializer = HeNormal() #not clear if the initializer will help
+
         #create model
         model = Sequential()
         model.add(Conv2D(32, (2, 2), input_shape=input_shape))
@@ -117,8 +125,8 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         return model
     
-    def __init__(self):
-        pass
+    def __init__(self, epochs):
+        self.epochs = epochs
         #self.covestm_train = None
         
         #self.xdawn_filters = xdawn_filters
@@ -137,7 +145,7 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         #print("fit")
         
-        cov_mat_size = 16
+        cov_mat_size = X.shape[1]
         
         # # Checking format of Image and setting the input shape
         if K.image_data_format() == 'channels_first': #these are image channels and here we do not have color, so it should be 1
@@ -153,7 +161,7 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         #should X_train be normalized between 0 and 1?
         #callback = callbacks.EarlyStopping(monitor='loss', patience=3)
-        self.model.fit(X,  y, epochs = 180, verbose = 0) #callbacks=[callback]
+        self.model.fit(X,  y, epochs = self.epochs, verbose = 0) #callbacks=[callback]
     
     def predict_proba(self, X):
         #print("predict_proba")
@@ -183,6 +191,7 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
     
     clf = make_pipeline(XdawnCovariances(xdawn_filters_all), MDM())
+    #clf = make_pipeline(Covariances(), MDM())
     
     print("Training MDM...")
     clf.fit(X_train, y_train)
@@ -199,12 +208,12 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
     print("1s     P300: ", sum(y_pred), "/", sum(y_test))
     print("0s Non P300: ", len(y_pred) - sum(y_pred) , "/", len(y_test) - sum(y_test))
     
-    from sklearn.metrics import classification_report
-    cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
+    #from sklearn.metrics import classification_report
+    #cr = classification_report(y_test, y_pred, target_names=['Non P300', 'P300'])
     #print(cr)
     return ba
 
-def EvaluateTF(X_train, X_test, y_train, y_test):
+def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
     
     print ("Evaluating TF start ...================================================================")
     
@@ -215,8 +224,9 @@ def EvaluateTF(X_train, X_test, y_train, y_test):
     print("Total test class target samples available: ", sum(y_test))
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
     
-    cov_mat_size = 16
-    clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier())
+    #cov_mat_size = 16
+    clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
+    #clf = make_pipeline(ERPCovariances(), CovCNNClassifier(epochs))
     
     print("Training TF...")
     clf.fit(X_train, y_train)
@@ -239,6 +249,28 @@ def EvaluateTF(X_train, X_test, y_train, y_test):
     #print(cr)
     return ba
 
+def AdjustSamplesCount(X, y): #samples_n per class
+    
+    samples_n = sum(y)
+
+    indicesClass1 = []
+    indicesClass2 = []
+    
+    for i in range(0, len(y)):
+        if y[i] == 0 and len(indicesClass1) < samples_n:
+            indicesClass1.append(i)
+        elif y[i] == 1: # and len(indicesClass2) < samples_n:
+            indicesClass2.append(i)
+    
+    X_class1 = X[indicesClass1]
+    X_class2 = X[indicesClass2]
+    
+    y = y[indicesClass1 + indicesClass2] 
+    
+    X = np.concatenate((X_class1,X_class2), axis=0)
+    
+    return X,y
+    
 if __name__ == "__main__":
     
     #warning when usiung multiple datasets they must have the same number of electrodes 
@@ -255,17 +287,18 @@ if __name__ == "__main__":
     #bi2015b        32  44
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
-    ds = [bi2013a(), bi2014a()] 
+    ds = [bi2014a()] 
     iterations = 10
     selectedSubjects = list(range(1,25))
-
+    epochs = 80
+    
     # init
     pure_mdm_scores = []
     tf_scores = []
     #aug_filtered_vs_all = [] #what portion of the newly generated samples looked like P300 according to MDM
     
-    X, y = BuidlDataset(ds, selectedSubjects)
-
+    X, y = BuidlDataset(ds, list(range(1,25)))
+    
     for i in range(iterations):
         
         print("Iteration: ", i)
@@ -277,8 +310,10 @@ if __name__ == "__main__":
             X = np.array(X)[indices]
             y = np.array(y)[indices]
             
+        X1,y1 = AdjustSamplesCount(X,y) #preserve class 1, limit class 0
+            
         #stratify - ensures that both the train and test sets have the proportion of examples in each class that is present in the provided “y” array
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10) #, stratify = y
+        X_train, X_test, y_train, y_test = train_test_split(X1, y1, test_size = 0.10) #, stratify = y
         
         # #shuffle the train data
         # for x in range(20):
@@ -292,11 +327,13 @@ if __name__ == "__main__":
         pure_mdm_scores.append(ba_mdm)
             
         #Tensorflow image classification
-        ba_tf  = EvaluateTF(X_train, X_test, y_train, y_test)
+        ba_tf  = EvaluateTF(X_train, X_test, y_train, y_test, epochs)
         tf_scores.append(ba_tf)
-        print('\nTF / MDM:', ba_tf ," / ", ba_mdm)    
+        print('\n[[ TF / MDM:', ba_tf ," / ", ba_mdm," ]]")    
         print("_______________________________________ end iteration")
 
-print("===================================================")        
+print("===================================================")
+print(tf_scores)
+print(pure_mdm_scores)         
 print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores))
 print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores))
