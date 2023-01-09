@@ -42,8 +42,6 @@ from pyriemann.estimation import (
 paradigm = P300()
 le = LabelEncoder()
 
-xdawn_filters_all = 4
-
 # Puts all subjects in single X,y
 def BuidlDataset(datasets, selectedSubjects):
     
@@ -63,6 +61,8 @@ def BuidlDataset(datasets, selectedSubjects):
             print("Loading subject:" , subject) 
             
             X1, y1, _ = paradigm.get_data(dataset=dataset, subjects=[subject])
+            
+            X1 = X1.astype('float32') #possible data loss? float32 should be the correct one
             
             y1 = le.fit_transform(y1)
             print(X1.shape)  
@@ -85,7 +85,7 @@ def BuidlDataset(datasets, selectedSubjects):
                 X = np.concatenate((X, X1), axis=0)
                 y = np.concatenate((y, y1), axis=0)
     
-    print("Building train data completed: ", X.shape)
+    print("Building data completed: ", X.shape)
     return X,y
 
 class CovCNNClassifier(BaseEstimator, ClassifierMixin):
@@ -287,9 +287,10 @@ if __name__ == "__main__":
     #bi2015b        32  44
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
-    n = 24
-    ds = [bi2013a()]
-    epochs = 80
+    n = 30
+    ds = [bi2015b()]
+    epochs = 100
+    xdawn_filters_all = 4 #default 4
     
     # init
     pure_mdm_scores = []
@@ -328,9 +329,10 @@ if __name__ == "__main__":
         tf_scores.append(ba_tf)
         print('\n[[ TF / MDM:', ba_tf ," / ", ba_mdm," ]]")    
         print("_______________________________________ end iteration")
+        del X_train,y_train,X_test,y_test
 
 print("===================================================")
 print(tf_scores)
 print(pure_mdm_scores)         
-print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores))
-print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores))
+print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores), "std:",np.std(tf_scores))
+print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores), "std:",np.std(pure_mdm_scores))
