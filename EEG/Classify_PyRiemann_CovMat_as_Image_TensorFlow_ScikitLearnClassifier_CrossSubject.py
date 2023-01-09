@@ -92,21 +92,23 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
 
     def __buildModel(self, input_shape):
         
-        #initializer = HeNormal() #not clear if the initializer will help
-
+        #https://pyimagesearch.com/2018/12/31/keras-conv2d-and-convolutional-layers/
+        ks = 2
+        ps = 2
+        
         #create model
         model = Sequential()
-        model.add(Conv2D(32, (2, 2), input_shape=input_shape))
+        model.add(Conv2D(filters=32, kernel_size=(ks, ks), input_shape=input_shape))
         model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(ps, ps)))
           
-        model.add(Conv2D(32, (2, 2)))
+        model.add(Conv2D(filters=32, kernel_size=(ks, ks)))
         model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(ps,ps)))
           
-        model.add(Conv2D(64, (2, 2)))
+        model.add(Conv2D(filters=64, kernel_size=(ks, ks)))
         model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(ps, ps)))
           
         model.add(Flatten())
         model.add(Dense(64))
@@ -287,9 +289,9 @@ if __name__ == "__main__":
     #bi2015b        32  44
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
-    n = 30
-    ds = [bi2015b()]
-    epochs = 100
+    n = 3
+    ds = [BNCI2014009()]
+    epochs = 80
     xdawn_filters_all = 4 #default 4
     
     # init
