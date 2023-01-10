@@ -222,7 +222,7 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
     
     #get same data to evaluate and then choose the best model 
     
-    p = 0.15 
+    p = 0.20 
     n = X_train.shape[0]
     validate_count = int(np.rint(p * n))
     
@@ -241,45 +241,24 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
     print("Total test class target samples available: ", sum(y_test))
     print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
     
-    #cov_mat_size = 16
-    clf1 = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
-    #clf = make_pipeline(ERPCovariances(), CovCNNClassifier(epochs))
-    clf1.fit(X_train, y_train)
-    y_pred = clf1.predict(X_validate)
-    print("Calculating accuracy TF 1...")
-    ba1 = balanced_accuracy_score(y_validate, y_pred)
+    models = [
+        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
+        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
+        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
+        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
+        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
+        ]
     
-    clf2 = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
-    #clf = make_pipeline(ERPCovariances(), CovCNNClassifier(epochs))
-    clf2.fit(X_train, y_train)
-    y_pred = clf2.predict(X_validate)
-    print("Calculating accuracy TF 2...")
-    ba2 = balanced_accuracy_score(y_validate, y_pred)
-    
-    clf3 = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
-    #clf = make_pipeline(ERPCovariances(), CovCNNClassifier(epochs))
-    clf3.fit(X_train, y_train)
-    y_pred = clf3.predict(X_validate)
-    print("Calculating accuracy TF 3...")
-    ba3 = balanced_accuracy_score(y_validate, y_pred)
-    
-    clf4 = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
-    #clf = make_pipeline(ERPCovariances(), CovCNNClassifier(epochs))
-    clf4.fit(X_train, y_train)
-    y_pred = clf4.predict(X_validate)
-    print("Calculating accuracy TF 4...")
-    ba4 = balanced_accuracy_score(y_validate, y_pred)
-    
-    clf5 = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
-    #clf = make_pipeline(ERPCovariances(), CovCNNClassifier(epochs))
-    clf5.fit(X_train, y_train)
-    y_pred = clf5.predict(X_validate)
-    print("Calculating accuracy TF 5...")
-    ba5 = balanced_accuracy_score(y_validate, y_pred)
-    
-    max_ind = np.argmax([ba1, ba2, ba3, ba4, ba5])
-    
-    models = [clf1, clf2, clf3, clf4, clf5]
+    results_ba = []
+    for x in range(len(models)):
+        clf = models[x]
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_validate)
+        print("Calculating balanced accuracy TF,",x,"...")
+        ba_current = balanced_accuracy_score(y_validate, y_pred)
+        results_ba.append(ba_current)
+        
+    max_ind = np.argmax(results_ba)
     
     y_pred = models[max_ind].predict(X_test)
     ba = balanced_accuracy_score(y_test, y_pred)
@@ -325,8 +304,8 @@ if __name__ == "__main__":
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
     n = 10
-    ds = [bi2014a()]
-    epochs = 50
+    ds = [BNCI2014009()]
+    epochs = 70
     xdawn_filters_all = 4 #default 4
     train_data_adjustment_equal = True
     shuffle_train_data = True #required if train_data_adjustment_equal = true 
@@ -377,3 +356,4 @@ print(tf_scores)
 print(pure_mdm_scores)         
 print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores), "std:",np.std(tf_scores))
 print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores), "std:",np.std(pure_mdm_scores))
+print("Average difference:", round(np.mean(np.array(pure_mdm_scores)-np.array(tf_scores)), 2) * 100 , "%")
