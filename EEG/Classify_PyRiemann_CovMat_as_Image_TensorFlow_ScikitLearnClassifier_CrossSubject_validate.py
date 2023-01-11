@@ -11,6 +11,7 @@ Uses a scikitlearn classifier and thus allows scikitlearn pipelines to be used.
 """
 
 import numpy as np
+import sys
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -131,19 +132,6 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
     
     def __init__(self, epochs):
         self.epochs = epochs
-        #self.covestm_train = None
-        
-        #self.xdawn_filters = xdawn_filters
-    
-    # def __buildCov(self, X, y):
-
-    #     #Covariances, XdawnCovariances, ERPCovariances
-    #     #covestm = Covariances(estimator="scm").fit()
-    #     covestm = XdawnCovariances(nfilter = self.xdawn_filters, estimator="scm")#.fit(X,y)
-    #     covmats = covestm.fit_transform(X,y)
-        
-    #     print("Covmats:", covmats.shape)
-    #     return covmats, covestm
     
     def fit(self, X, y):
         
@@ -159,9 +147,6 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         print("Input shape:",input_shape)
         
         self.model = self.__buildModel(input_shape)
-        
-        #X, self.covestm_train = self.__buildCov(X, y)
-        #print("Cov matrix size: ", X.shape)
         
         #should X_train be normalized between 0 and 1?
         #callback = callbacks.EarlyStopping(monitor='loss', patience=3)
@@ -220,9 +205,17 @@ def EvaluateMDM(X_train, X_test, y_train, y_test):
 #data must be very well shuffled before providing it to this method
 def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
     
+    print ("Evaluating TF start ...================================================================")
+    #0 NonTarget
+    #1 Target       
+    print("Total train class target samples available: ", sum(y_train))
+    print("Total train class non-target samples available: ", len(y_train) - sum(y_train))
+    print("Total test class target samples available: ", sum(y_test))
+    print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
+    
     #get same data to evaluate and then choose the best model 
     
-    p = 0.20 
+    p = 0.10 #percentage to be used as validation dataset
     n = X_train.shape[0]
     validate_count = int(np.rint(p * n))
     
@@ -232,33 +225,36 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
     X_train = X_train[validate_count:n,:,:]
     y_train = y_train[validate_count:n]
     
-    print ("Evaluating TF start ...================================================================")
-    
-    #0 NonTarget
-    #1 Target       
-    print("Total train class target samples available: ", sum(y_train))
-    print("Total train class non-target samples available: ", len(y_train) - sum(y_train))
-    print("Total test class target samples available: ", sum(y_test))
-    print("Total test class non-target samples available: ", len(y_test) - sum(y_test))
-    
-    models = [
-        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
-        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
-        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
-        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
-        make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs)),
-        ]
-    
+    models = []
     results_ba = []
-    for x in range(len(models)):
-        clf = models[x]
+    classifiers_count = 5
+    for x in range(classifiers_count):
+        
+        clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
+        models.append(clf)
+        
+        if (len(np.unique(y_train)) != 2):
+            print("Problem with y_train.")
+            sys.exit()
+        
+        print("Fitting TF",x,"...")
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_validate)
-        print("Calculating balanced accuracy TF,",x,"...")
+        
+        if (len(np.unique(y_pred)) != 2):
+            print("Warning y_pred has only one class!")
+            
+        if (len(np.unique(y_validate)) != 2):
+            print("Problem with y validate.")
+            sys.exit()
+            
+        print("Calculating balanced accuracy TF",x,"...")
         ba_current = balanced_accuracy_score(y_validate, y_pred)
         results_ba.append(ba_current)
-        
+    
+    print("Results TF models:", results_ba)
     max_ind = np.argmax(results_ba)
+    print("Selected TF model:", max_ind)
     
     y_pred = models[max_ind].predict(X_test)
     ba = balanced_accuracy_score(y_test, y_pred)
@@ -285,6 +281,17 @@ def AdjustSamplesCount(X, y): #samples_n per class
     
     X = np.concatenate((X_class1,X_class2), axis=0)
     
+    #shuffle because this function orders them
+    for x in range(20):
+        indices = np.arange(X.shape[0])
+        np.random.shuffle(indices)
+        X = np.array(X)[indices]
+        y = np.array(y)[indices]
+        
+    if (X.shape[0] != (len(indicesClass1) + len(indicesClass2))):
+        print("Error AdjustSamplesCount")
+        sys.exit()
+    
     return X,y
     
 if __name__ == "__main__":
@@ -305,7 +312,7 @@ if __name__ == "__main__":
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
     n = 10
     ds = [BNCI2014009()]
-    epochs = 70
+    epochs = 80 #default 60
     xdawn_filters_all = 4 #default 4
     train_data_adjustment_equal = True
     shuffle_train_data = True #required if train_data_adjustment_equal = true 
@@ -337,8 +344,15 @@ if __name__ == "__main__":
                 X_train = np.array(X_train)[indices]
                 y_train = np.array(y_train)[indices]
         
+        
+        #so maybe trainig only on the non P300 class works good 
         if (train_data_adjustment_equal):
             X_train,y_train = AdjustSamplesCount(X_train, y_train) #preserve class 1, limit class 0
+        
+        print("y check: ",np.unique(y_train), np.unique(y_test))
+        if not (np.array_equal(np.unique(y_train),np.unique(y_test))):   
+            print("Problem with y train/test!")
+            sys.exit()
             
         #MDM
         ba_mdm = EvaluateMDM(X_train, X_test, y_train, y_test)
@@ -347,6 +361,8 @@ if __name__ == "__main__":
         #Tensorflow image classification
         ba_tf  = EvaluateTF(X_train, X_test, y_train, y_test, epochs)
         tf_scores.append(ba_tf)
+        
+        #result
         print('\n[[ TF / MDM:', ba_tf ," / ", ba_mdm," ]]")    
         print("_______________________________________ end iteration")
         del X_train,y_train,X_test,y_test
