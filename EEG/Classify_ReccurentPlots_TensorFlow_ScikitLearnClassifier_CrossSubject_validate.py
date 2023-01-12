@@ -16,9 +16,12 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, make_scorer
 from sklearn.pipeline import make_pipeline
+from skimage import data, io, filters
 
 from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
+
+import tensorflow as tf
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
@@ -28,6 +31,7 @@ from tensorflow.keras import backend as K
 from tensorflow.keras import callbacks
 from tensorflow.keras.initializers import HeNormal
 from tensorflow.keras.layers import Rescaling
+from tensorflow import map_fn
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
@@ -91,11 +95,21 @@ def BuidlDataset(datasets, selectedSubjects):
                 y = np.concatenate((y, y1), axis=0)
     
     print("Building data completed: ", X.shape)
+    print("Total class target samples available: ", sum(y))
+    print("Total class non-target samples available: ", len(y) - sum(y))
     return X,y
 
 class ReccurentPlots(BaseEstimator, TransformerMixin):
     
-    def __multivariateRP(self, sample, electrodes, dimension, time_delay, percentage):
+    #@tf.function
+    def __multivariateRP(self, sample):
+        
+        #print(sample.shape)
+        
+        electrodes = self.electrodes
+        dimension  = self.dimension
+        time_delay = self.time_delay
+        percentage = self.percentage
         
         channels_N = sample.shape[0]
         
@@ -111,7 +125,7 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
         T = sample.shape[1] - ((dimension-1) * time_delay)
          
         #print("T=",T, "/", sample.shape[1])
-        X_traj = np.zeros((T,points_n * channels_N))
+        X_traj = np.zeros((T,points_n * channels_N),dtype='float32')
                 
         for i in range(0,T): #delta is number of vectors with  length points_n
             
@@ -121,13 +135,13 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
                 
                 for e in electrodes:
                     #print(e)
-                    pos_e = (e * points_n) + j
+                    pos_e = (int(e) * points_n) + j
                     #print(pos_e)
                     #all points first channel, 
-                    X_traj[i, pos_e ] = sample[e,pos] #i is the vector, j is indexing isnide the vector 
+                    X_traj[i, pos_e ] = sample[e, pos] #i is the vector, j is indexing isnide the vector 
                 #print(pos)
                 
-        X_dist = np.zeros((T,T))
+        X_dist = np.zeros((T,T),dtype='float32')
         
         #calculate distances
         for i in range(0,T): #i is the vector
@@ -136,11 +150,25 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
                  v2 = X_traj[j,:]
                  X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
         
-        percents = np.percentile(X_dist, percentage)
+        # is_dither = True
         
-        X_rp = X_dist < percents
+        # if (is_dither):
+        #     out = Dither.dither(X_dist, 'floyd-steinberg', resize=False)
+        #     return out
+        # else:
+        #     #there is a problem here - it returns true / false
+        #     percents = np.percentile(X_dist, percentage)
+        #     X_rp = X_dist < percents #becomes true and false
         
-        return X_rp #out
+        #     return X_rp #out
+        #t = filters.threshold_otsu(X_dist)
+        #new_image = X_dist > t
+        #return new_image
+        
+        new_image = X_dist
+        new_image[new_image > np.percentile(new_image,percentage)] = 0
+        new_image_scaled = new_image / 255.0
+        return new_image_scaled
     
     def __init__(self, electrodes, dimension, time_delay, percentage):
         self.percentage = percentage
@@ -152,22 +180,37 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
         return self
     
     def transform(self, X, y=None):
-    
-       print("ReccurentPlots transform start")
-       out = np.array([])
         
-       for i in range(X.shape[0]):
+       if (len(self.electrodes) != X.shape[1]):
+           print("Problem with number of electrodes and input data")
+           sys.exit()
            
-           rp = self.__multivariateRP(X[i], self.electrodes, self.dimension, self.time_delay, self.percentage)
+       print("ReccurentPlots transform start", X.shape)
+       
+       #return map_fn(self.__multivariateRP, X, parallel_iterations=10) #too slow and parallel processing does not work
+       
+       X = X.astype('float32')
            
-           resizeImage = False #resize image to fit into memory
+       out = np.array([],dtype='float32')
+       
+       n = X.shape[0]
+       
+       for i in range(n):
            
-           rp = rp[np.newaxis,...]
-           if (out.size == 0):
-               out = np.copy(rp)
-           else:
-               out = np.concatenate((out, rp), axis=0)
-        
+            rp = self.__multivariateRP(X[i])
+           
+            resizeImage = False #resize image to fit into memory
+            #tf.image.resize
+            
+            rp = rp[np.newaxis,...]
+            if (out.size == 0):
+                out = np.copy(rp)
+            else:
+                out = np.concatenate((out, rp), axis=0)
+                
+            if i % 200 == 0:
+                print(i, " / ", n)
+               
        print("ReccurentPlots transform end", out.shape)
        return out
 
@@ -183,7 +226,7 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         #create model
         model = Sequential()
         #model.add(Rescaling(1./255, input_shape=input_shape))
-        model.add(Conv2D(filters=32, kernel_size=(ks, ks), input_shape=input_shape))
+        model.add(Conv2D(filters=32, kernel_size=(ks, ks), input_shape=input_shape)) #, input_shape=input_shape
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(ps, ps)))
           
@@ -251,7 +294,7 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         y_pred = np.rint(y_pred).astype(int)
         
         if (len(np.unique(y_pred)) != 2):
-            print("Problem with y prediction. Only one class detected!")
+            print("Problem with y prediction. Only one class detected!", np.unique(y_pred))
             sys.exit()
             
         return y_pred
@@ -317,7 +360,6 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
         y_train = y_train[validate_count:n]
     
     #electrodes = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] #must be improved!
-    electrodes = list(range(0, X_train.shape[1]))
     
     if validate:
         
@@ -325,7 +367,9 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
         models = []
         results_ba = []
 
+        electrodes = list(range(0, X_train.shape[1])) 
         for x in range(classifiers_count):
+            
             
             #clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
             clf = make_pipeline(ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
@@ -361,14 +405,36 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
         
         return ba
     else:
+        
+        if (len(np.unique(y_train)) != 2):
+            print("Problem with y_train.")
+            sys.exit()
+            
         #xd = Xdawn(n_components=4) #output channels = 2 * n_components
         #X_train = np.asarray(xd.fit_transform(X_epochs))
         #X_test = np.asarray(xd.fit_transform(X_epochs))
-        clf = make_pipeline(Xdawn(nfilter=xdawn_filters_all),ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
+        electrodes = list(range(0, xdawn_filters_all * 2))
+        electrodes = list(range(0, X_train.shape[1]))
+        
+        #clf = make_pipeline(Xdawn(nfilter=xdawn_filters_all), ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
+        clf = make_pipeline(ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
+        
         clf.fit(X_train, y_train)
-        y_pred = clf.predict(X_test)
-        ba = balanced_accuracy_score(y_test, y_pred)
-        print("Balanced accuracy TF",ba)
+        
+        print("Predicting on TRAIN data ...")
+        y_pred_train = clf.predict(X_train)
+        ba_t = balanced_accuracy_score(y_train, y_pred_train)
+        print("Balanced accuracy on TRAIN data TF", ba_t)
+        
+        if (len(np.unique(y_test)) != 2):
+            print("Problem with y_test.")
+            sys.exit()
+        
+        print("Predicting on TEST data ...")
+        y_pred_test = clf.predict(X_test)
+        
+        ba = balanced_accuracy_score(y_test, y_pred_test)
+        print("Balanced accuracy on TEST data TF",ba)
         return ba
 
 def AdjustSamplesCount(X, y): #samples_n per class
@@ -421,10 +487,10 @@ if __name__ == "__main__":
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
     n = 10
-    ds = [bi2013a()]
-    epochs = 80 #default 60
+    ds = [BNCI2014009()]
+    epochs = 40 #default 60
     xdawn_filters_all = 4 #default 4
-    train_data_adjustment_equal = True
+    train_data_adjustment_equal = False
     shuffle_train_data = True #required if train_data_adjustment_equal = true 
     
     # init
@@ -458,6 +524,7 @@ if __name__ == "__main__":
         #so maybe trainig only on the non P300 class works good 
         if (train_data_adjustment_equal):
             X_train,y_train = AdjustSamplesCount(X_train, y_train) #preserve class 1, limit class 0
+            X_test,y_test   = AdjustSamplesCount(X_test,  y_test) #preserve class 1, limit class 0
         
         print("y check: ",np.unique(y_train), np.unique(y_test))
         if not (np.array_equal(np.unique(y_train),np.unique(y_test))):   
