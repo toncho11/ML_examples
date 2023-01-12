@@ -101,6 +101,20 @@ def BuidlDataset(datasets, selectedSubjects):
 
 class ReccurentPlots(BaseEstimator, TransformerMixin):
     
+    #https://stackoverflow.com/questions/22937589/how-to-add-noise-gaussian-salt-and-pepper-etc-to-image-in-python-with-opencv
+    def __noisy(self, noise_typ, image):
+       if noise_typ == "gauss":
+          row,col= image.shape
+          ch = 1 
+          mean = 0
+          var = 0.1
+          sigma = var**0.5
+          gauss = np.random.normal(mean,sigma,(row,col,ch))
+          gauss = gauss.reshape(row,col,ch)
+          noisy = image + gauss[-1]
+          
+          return noisy
+  
     #@tf.function
     def __multivariateRP(self, sample):
         
@@ -150,24 +164,10 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
                  v2 = X_traj[j,:]
                  X_dist[i,j] = np.sqrt( np.sum((v1 - v2) ** 2) ) 
         
-        # is_dither = True
-        
-        # if (is_dither):
-        #     out = Dither.dither(X_dist, 'floyd-steinberg', resize=False)
-        #     return out
-        # else:
-        #     #there is a problem here - it returns true / false
-        #     percents = np.percentile(X_dist, percentage)
-        #     X_rp = X_dist < percents #becomes true and false
-        
-        #     return X_rp #out
-        #t = filters.threshold_otsu(X_dist)
-        #new_image = X_dist > t
-        #return new_image
-        
-        new_image = X_dist
+        new_image = X_dist.copy()
         new_image[new_image > np.percentile(new_image,percentage)] = 0
-        new_image_scaled = new_image / 255.0
+        new_image_noise = self.__noisy("gauss", new_image)
+        new_image_scaled = new_image_noise / 255.0
         return new_image_scaled
     
     def __init__(self, electrodes, dimension, time_delay, percentage):
@@ -488,7 +488,7 @@ if __name__ == "__main__":
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
     n = 10
     ds = [BNCI2014009()]
-    epochs = 40 #default 60
+    epochs = 60 #default 60
     xdawn_filters_all = 4 #default 4
     train_data_adjustment_equal = False
     shuffle_train_data = True #required if train_data_adjustment_equal = true 
