@@ -11,6 +11,7 @@ Uses a scikitlearn classifier and thus allows scikitlearn pipelines to be used.
 
 import numpy as np
 import sys
+import gc
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -32,6 +33,10 @@ from tensorflow.keras import callbacks
 from tensorflow.keras.initializers import HeNormal
 from tensorflow.keras.layers import Rescaling
 from tensorflow import map_fn
+import tensorflow as tf
+# physical_devices = tf.config.experimental.list_physical_devices('GPU')
+# if len(physical_devices) > 0:
+#     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
@@ -41,6 +46,9 @@ from pyriemann.classification import MDM
 import Dither
 #from mne.preprocessing import Xdawn
 from pyriemann.spatialfilters import Xdawn
+
+from joblib import Parallel, delayed
+from multiprocessing import Process, Manager
 
 from pyriemann.estimation import (
     Covariances,
@@ -104,16 +112,22 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
     #https://stackoverflow.com/questions/22937589/how-to-add-noise-gaussian-salt-and-pepper-etc-to-image-in-python-with-opencv
     def __noisy(self, noise_typ, image):
        if noise_typ == "gauss":
-          row,col= image.shape
-          ch = 1 
-          mean = 0
-          var = 0.1
-          sigma = var**0.5
-          gauss = np.random.normal(mean,sigma,(row,col,ch))
-          gauss = gauss.reshape(row,col,ch)
-          noisy = image + gauss[-1]
-          
-          return noisy
+           row,col= image.shape
+           ch = 1 
+           mean = 0
+           var = 5 #default 0.1
+           sigma = var**0.5
+           gauss = np.random.normal(mean,sigma,(row,col))
+           gauss = gauss.reshape(row,col)
+           noisy = image + gauss
+           return noisy
+          # from PIL import Image, ImageFilter
+          # im = image / 255.0
+          # img = Image.fromarray(np.float(im)) #"L"
+          # #img = img.rotate(45)
+          # im1 = img.filter(ImageFilter.BoxBlur(1))#
+          # return np.asarray(im1)
+         
   
     #@tf.function
     def __multivariateRP(self, sample):
@@ -166,9 +180,24 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
         
         new_image = X_dist.copy()
         new_image[new_image > np.percentile(new_image,percentage)] = 0
-        new_image_noise = self.__noisy("gauss", new_image)
-        new_image_scaled = new_image_noise / 255.0
+        #new_image_noise = self.__noisy("gauss", new_image)
+        #new_image_scaled = new_image_noise / 255.0
+        new_image_scaled = new_image / 255.0 #it does not train at all if the data is not normalized
         return new_image_scaled
+    
+    def processSamples(self, samples, X, y, lst):
+
+        result = lst[0]
+        
+        for sample_i in samples:
+            
+            #print("Process Sample:",sample_i)
+            #label = y[sample_i]
+            sample = X[sample_i]
+     
+            single_epoch_subject_rp = self.__multivariateRP(sample)
+        
+            result[sample_i] = single_epoch_subject_rp
     
     def __init__(self, electrodes, dimension, time_delay, percentage):
         self.percentage = percentage
@@ -191,29 +220,60 @@ class ReccurentPlots(BaseEstimator, TransformerMixin):
        
        X = X.astype('float32')
            
-       out = np.array([],dtype='float32')
-       
        n = X.shape[0]
        
-       for i in range(n):
+       parallel = False #not finished = gives pickle error
+      
+       if (parallel):
+           pass
+           # self.manager = Manager()
+           # lst = self.manager.list()
            
-            rp = self.__multivariateRP(X[i])
+           # s = self.__multivariateRP(X[0]).shape[0]
+           # n_jobs = 3
+           # processes = [None] * n_jobs 
+           # i=0
+           # #the shape is current unknown (not calculated at this phase) !!!!!!!!!!!!!!!!
+           # result = np.ndarray((X.shape[0],s,s),dtype='float32') 
+           # all_indices = list(range(0,n))
            
-            resizeImage = False #resize image to fit into memory
-            #tf.image.resize
+           # print("Starting parallel processes")
+           
+           # for section in np.array_split(all_indices, n_jobs):
+           #     processes[i] = Process(target=self.processSamples, args=(section, X, y, lst))
+           #     processes[i].start()
+           #     print(i)
+           #     i = i + 1
+           
+           # print("Setting threads to join:")
+           # for p in processes:
+           #      p.join()
+           
+           # print("ReccurentPlots transform end", result.shape)
+           # return result
             
-            rp = rp[np.newaxis,...]
-            if (out.size == 0):
-                out = np.copy(rp)
-            else:
-                out = np.concatenate((out, rp), axis=0)
-                
-            if i % 200 == 0:
-                print(i, " / ", n)
+       else:
+           
+           out = np.array([],dtype='float32')
+           
+           for i in range(n):
                
-       print("ReccurentPlots transform end", out.shape)
-       return out
-
+                rp = self.__multivariateRP(X[i])
+               
+                resizeImage = False #resize image to fit into memory
+                #tf.image.resize
+                
+                rp = rp[np.newaxis,...]
+                if (out.size == 0):
+                    out = np.copy(rp)
+                else:
+                    out = np.concatenate((out, rp), axis=0)
+                    
+                if i % 200 == 0:
+                    print(i, " / ", n)
+                
+           print("ReccurentPlots transform end", out.shape)
+           return out
 
 class CovCNNClassifier(BaseEstimator, ClassifierMixin):
 
@@ -234,9 +294,9 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(ps,ps)))
           
-        model.add(Conv2D(filters=64, kernel_size=(ks, ks)))
-        model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(ps, ps)))
+        # model.add(Conv2D(filters=64, kernel_size=(ks, ks)))
+        # model.add(Activation('relu'))
+        # model.add(MaxPooling2D(pool_size=(ps, ps)))
           
         model.add(Flatten())
         model.add(Dense(64))
@@ -275,7 +335,7 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         
         #should X_train be normalized between 0 and 1?
         #callback = callbacks.EarlyStopping(monitor='loss', patience=3)
-        self.model.fit(X,  y, epochs = self.epochs, verbose = 0) #callbacks=[callback]
+        self.model.fit(X,  y, epochs = self.epochs, verbose = 1) #callbacks=[callback]
     
     # def predict_proba(self, X):
     #     #print("predict_proba")
@@ -362,48 +422,48 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
     #electrodes = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] #must be improved!
     
     if validate:
-        
-        classifiers_count = 5
-        models = []
-        results_ba = []
+        pass
+        # classifiers_count = 5
+        # models = []
+        # results_ba = []
 
-        electrodes = list(range(0, X_train.shape[1])) 
-        for x in range(classifiers_count):
+        # electrodes = list(range(0, X_train.shape[1])) 
+        # for x in range(classifiers_count):
             
             
-            #clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
-            clf = make_pipeline(ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
-            models.append(clf)
+        #     #clf = make_pipeline(XdawnCovariances(xdawn_filters_all), CovCNNClassifier(epochs))
+        #     clf = make_pipeline(ReccurentPlots(electrodes, 6, 30, 40), CovCNNClassifier(epochs))
+        #     models.append(clf)
             
-            if (len(np.unique(y_train)) != 2):
-                print("Problem with y_train.")
-                sys.exit()
+        #     if (len(np.unique(y_train)) != 2):
+        #         print("Problem with y_train.")
+        #         sys.exit()
             
-            print("Fitting TF",x,"...")
+        #     print("Fitting TF",x,"...")
             
-            clf.fit(X_train, y_train)
+        #     clf.fit(X_train, y_train)
             
-            y_pred = clf.predict(X_validate)
+        #     y_pred = clf.predict(X_validate)
             
-            if (len(np.unique(y_pred)) != 2):
-                print("Warning y_pred has only one class!")
+        #     if (len(np.unique(y_pred)) != 2):
+        #         print("Warning y_pred has only one class!")
                 
-            if (len(np.unique(y_validate)) != 2):
-                print("Problem with y validate.")
-                sys.exit()
+        #     if (len(np.unique(y_validate)) != 2):
+        #         print("Problem with y validate.")
+        #         sys.exit()
                 
-            print("Calculating balanced accuracy TF",x,"...")
-            ba_current = balanced_accuracy_score(y_validate, y_pred)
-            results_ba.append(ba_current)
+        #     print("Calculating balanced accuracy TF",x,"...")
+        #     ba_current = balanced_accuracy_score(y_validate, y_pred)
+        #     results_ba.append(ba_current)
         
-        print("Results TF models:", results_ba)
-        max_ind = np.argmax(results_ba)
-        print("Selected TF model:", max_ind)
+        # print("Results TF models:", results_ba)
+        # max_ind = np.argmax(results_ba)
+        # print("Selected TF model:", max_ind)
         
-        y_pred = models[max_ind].predict(X_test)
-        ba = balanced_accuracy_score(y_test, y_pred)
+        # y_pred = models[max_ind].predict(X_test)
+        # ba = balanced_accuracy_score(y_test, y_pred)
         
-        return ba
+        # return ba
     else:
         
         if (len(np.unique(y_train)) != 2):
@@ -417,14 +477,14 @@ def EvaluateTF(X_train, X_test, y_train, y_test, epochs):
         electrodes = list(range(0, X_train.shape[1]))
         
         #clf = make_pipeline(Xdawn(nfilter=xdawn_filters_all), ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
-        clf = make_pipeline(ReccurentPlots(electrodes, 6, 30, 20), CovCNNClassifier(epochs))
+        clf = make_pipeline(ReccurentPlots(electrodes, 6, 30, 20),CovCNNClassifier(epochs))
         
         clf.fit(X_train, y_train)
         
-        print("Predicting on TRAIN data ...")
-        y_pred_train = clf.predict(X_train)
-        ba_t = balanced_accuracy_score(y_train, y_pred_train)
-        print("Balanced accuracy on TRAIN data TF", ba_t)
+        # print("Predicting on TRAIN data ...")
+        # y_pred_train = clf.predict(X_train)
+        # ba_t = balanced_accuracy_score(y_train, y_pred_train)
+        # print("Balanced accuracy on TRAIN data TF", ba_t)
         
         if (len(np.unique(y_test)) != 2):
             print("Problem with y_test.")
@@ -467,6 +527,10 @@ def AdjustSamplesCount(X, y): #samples_n per class
     if (X.shape[0] != (len(indicesClass1) + len(indicesClass2))):
         print("Error AdjustSamplesCount")
         sys.exit()
+        
+    if (len(np.unique(y)) != 2):
+        print("Problem with y in AdjustSamplesCount!")
+        sys.exit()
     
     return X,y
     
@@ -487,10 +551,10 @@ if __name__ == "__main__":
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
     n = 10
-    ds = [BNCI2014009()]
-    epochs = 60 #default 60
+    ds = [BNCI2014009()] #Warning all datasets different from BNCI2014009 have too big epochs to be fit in the video memory
+    epochs = 45 #default 60
     xdawn_filters_all = 4 #default 4
-    train_data_adjustment_equal = False
+    train_data_adjustment_equal = True
     shuffle_train_data = True #required if train_data_adjustment_equal = true 
     
     # init
@@ -544,9 +608,9 @@ if __name__ == "__main__":
         print("_______________________________________ end iteration")
         del X_train,y_train,X_test,y_test
 
-print("===================================================")
-print(tf_scores)
-print(pure_mdm_scores)         
-print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores), "std:",np.std(tf_scores))
-#print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores), "std:",np.std(pure_mdm_scores))
-#print("Average difference:", round(np.mean(np.array(pure_mdm_scores)-np.array(tf_scores)), 2) * 100 , "%")
+    print("===================================================")
+    print(tf_scores)
+    print(pure_mdm_scores)         
+    print("Mean of Test dataset balanced accuracy  TF:", np.mean(tf_scores), "std:", np.std(tf_scores))
+    #print("Mean of Test dataset balanced accuracy MDM:", np.mean(pure_mdm_scores), "std:",np.std(pure_mdm_scores))
+    #print("Average difference:", round(np.mean(np.array(pure_mdm_scores)-np.array(tf_scores)), 2) * 100 , "%")
