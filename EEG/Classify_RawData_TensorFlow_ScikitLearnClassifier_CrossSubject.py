@@ -17,13 +17,11 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, make_scorer
 from sklearn.pipeline import make_pipeline
-from skimage import data, io, filters
 
 from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 from moabb.paradigms import P300
 
 import tensorflow as tf
-
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
@@ -42,14 +40,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
-
-import Dither
-#from mne.preprocessing import Xdawn
 from pyriemann.spatialfilters import Xdawn
-
-from joblib import Parallel, delayed
-from multiprocessing import Process, Manager
-
 from pyriemann.estimation import (
     Covariances,
     ERPCovariances,
@@ -316,7 +307,7 @@ if __name__ == "__main__":
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
     n = 10
-    ds = [BNCI2014009()] #Warning all datasets different from BNCI2014009 have too big epochs to be fit in the video memory
+    ds = [bi2014a()] #Warning all datasets different from BNCI2014009 have too big epochs to be fit in the video memory
     epochs = 45 #default 60
     xdawn_filters_all = 4 #default 4
     train_data_adjustment_equal = False
