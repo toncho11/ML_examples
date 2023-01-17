@@ -8,6 +8,10 @@ Classificaion of P300 with Deep Learning (CNN) on raw data.
 
 Uses a scikitlearn classifier and thus allows scikitlearn pipelines to be used.
 This version uses the CrossSubject evaluation provided by MOABB.
+
+Notes:
+- Scikit-leran 1.2 requires the attribute classes_ is provided 
+- Video memory might not be enough if tf.config.experimental.set_memory_growth is not used
 """
 
 import numpy as np
@@ -102,6 +106,8 @@ def BuidlDataset(datasets, selectedSubjects):
 
 class CovCNNClassifier(BaseEstimator, ClassifierMixin):
 
+    classes_ = np.array([0, 1])
+    
     def __buildModel(self, input_shape):
         
         #https://pyimagesearch.com/2018/12/31/keras-conv2d-and-convolutional-layers/
