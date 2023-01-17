@@ -34,9 +34,9 @@ from tensorflow.keras.initializers import HeNormal
 from tensorflow.keras.layers import Rescaling
 from tensorflow import map_fn
 import tensorflow as tf
-# physical_devices = tf.config.experimental.list_physical_devices('GPU')
-# if len(physical_devices) > 0:
-#     tf.config.experimental.set_memory_growth(physical_devices[0], True)
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 
