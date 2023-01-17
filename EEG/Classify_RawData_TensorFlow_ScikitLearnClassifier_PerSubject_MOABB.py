@@ -9,6 +9,10 @@ Classificaion of P300 with Deep Learning (CNN) on raw data.
 Uses a scikitlearn classifier and thus allows scikitlearn pipelines to be used.
 This version uses the CrossSubject evaluation provided by MOABB.
 
+It can be used in two modes (see below):
+    - CrossSubjectEvaluation
+    - WithinSessionEvaluation
+
 Notes:
 - Scikit-leran 1.2 requires the attribute classes_ is provided 
 - Video memory might not be enough if tf.config.experimental.set_memory_growth is not used
@@ -231,7 +235,8 @@ if __name__ == "__main__":
     pipelines["TF"] =  make_pipeline(CovCNNClassifier(epochs))
     
     #CrossSubjectEvaluation
-    evaluation = CrossSubjectEvaluation(
+    #WithinSessionEvaluation
+    evaluation = WithinSessionEvaluation(
         paradigm=paradigm,
         datasets=ds,
         overwrite=True
