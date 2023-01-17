@@ -178,6 +178,8 @@ class CovCNNClassifier(BaseEstimator, ClassifierMixin):
         column0 = y_proba[:,0:1]  # Use 0:1 as a dummy slice to maintain a 2d array
         new_column = 1.0 - column0
         y_proba_exta_column = np.hstack((y_proba, new_column))
+        
+        y_proba_exta_column[:, [1, 0]] = y_proba_exta_column[:, [0, 1]] #needed because we converting sigmoid to probabilities
 
         return y_proba_exta_column
 
