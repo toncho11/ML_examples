@@ -231,8 +231,8 @@ if __name__ == "__main__":
     #bi2015b        32  44
     #ds = [bi2014a(), bi2013a()] #both 16ch, 512 freq
     #ds = [bi2015a(), bi2015b()] #both 32ch, 512 freq
-    n = 10
-    ds = [BNCI2014009()] #Warning all datasets different from BNCI2014009 have too big epochs to be fit in the video memory
+    n = 20
+    ds = [bi2013a()] #Warning all datasets different from BNCI2014009 have too big epochs to be fit in the video memory
     #epochs = 45 #default 60
     xdawn_filters_all = 4 #default 4
     
@@ -243,15 +243,29 @@ if __name__ == "__main__":
     #create pipelines
     pipelines = {}
     pipelines["MDM"] = make_pipeline(XdawnCovariances(xdawn_filters_all), MDM())
-    pipelines["BBC"] =  make_pipeline(
+    pipelines["TS+BBC"] =  make_pipeline(
         XdawnCovariances(xdawn_filters_all),
         TangentSpace(),
         BalancedBaggingClassifier(
-         estimator=HistGradientBoostingClassifier(random_state=42),
-         n_estimators=10,
-         random_state=42,
-         n_jobs=2,
-     ))
+          estimator=HistGradientBoostingClassifier(random_state=42),
+          n_estimators=10,
+          random_state=42,
+          n_jobs=2,
+      ))
+    
+    # from sklearn.svm import SVC
+    # pipelines["TS+SVC"] =  make_pipeline(
+    #     XdawnCovariances(xdawn_filters_all),
+    #     TangentSpace(),
+    #     SVC()
+    #   )
+    
+    # from lightgbm import LGBMClassifier
+    # pipelines["TS+LGBM"] =  make_pipeline(
+    #     XdawnCovariances(xdawn_filters_all),
+    #     TangentSpace(),
+    #     LGBMClassifier()
+    #  )
     
     #CrossSubjectEvaluation
     #WithinSessionEvaluation
