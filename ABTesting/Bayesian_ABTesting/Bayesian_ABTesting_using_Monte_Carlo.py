@@ -15,6 +15,7 @@ Main advantages of the Bayesian method:
     - Bayesian A/B testing may always lead to usable results, whatever the volumes
     - Interesting results may be reached sooner than with the frequentist approach
 
+The Monte Carlo method is implemented with no more than usual libraries as numpy and scipy.
 """
 
 import pandas as pd

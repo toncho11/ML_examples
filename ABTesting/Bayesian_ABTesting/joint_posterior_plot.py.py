@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from data_conversion_rate import data
+from data_conversion_rate import data #data is provided in a .py file
 
 N_plot = 1000
 day = 8
@@ -54,4 +54,4 @@ ax2.set_axis_off()
 ax1.legend()
 plt.show()
 
-print("in the figure variation B seems to be more promising than variation A because the main of the contour plot is above the orange line.")
+print("In the figure variation B seems to be more promising than variation A because the main of the contour plot is above the orange line.")
