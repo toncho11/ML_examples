@@ -86,7 +86,7 @@ class Generator(nn.Module):
 generator = Generator().to(device=device)
 
 lr = 0.0001
-num_epochs = 50
+num_epochs = 50 #default 50
 loss_function = nn.BCELoss()
 
 optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=lr)
