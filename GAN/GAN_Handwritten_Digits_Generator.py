@@ -17,8 +17,8 @@ import torchvision.transforms as transforms
 torch.manual_seed(111)
 
 device =  device = torch.device("cpu")
-# if torch.cuda.is_available():
-#     device = torch.device("cuda")
+if torch.cuda.is_available():
+    device = torch.device("cuda")
 
 transform = transforms.Compose(
     [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
@@ -94,6 +94,7 @@ optimizer_generator = torch.optim.Adam(generator.parameters(), lr=lr)
 
 for epoch in range(num_epochs):
     for n, (real_samples, mnist_labels) in enumerate(train_loader):
+        
         # Data for training the discriminator
         real_samples = real_samples.to(device=device)
         real_samples_labels = torch.ones((batch_size, 1)).to(
@@ -146,6 +147,7 @@ latent_space_samples = torch.randn(batch_size, 100).to(device=device)
 generated_samples = generator(latent_space_samples)
 
 generated_samples = generated_samples.cpu().detach()
+
 for i in range(16):
     ax = plt.subplot(4, 4, i + 1)
     plt.imshow(generated_samples[i].reshape(28, 28), cmap="gray_r")
