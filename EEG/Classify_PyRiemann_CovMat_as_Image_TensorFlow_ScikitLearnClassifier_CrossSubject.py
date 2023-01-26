@@ -11,6 +11,7 @@ Uses a scikitlearn classifier and thus allows scikitlearn pipelines to be used.
 """
 
 import numpy as np
+import sys
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -272,6 +273,21 @@ def AdjustSamplesCount(X, y): #samples_n per class
     y = y[indicesClass1 + indicesClass2] 
     
     X = np.concatenate((X_class1,X_class2), axis=0)
+    
+    #shuffle because this function orders them
+    for x in range(20):
+        indices = np.arange(X.shape[0])
+        np.random.shuffle(indices)
+        X = np.array(X)[indices]
+        y = np.array(y)[indices]
+        
+    if (X.shape[0] != (len(indicesClass1) + len(indicesClass2))):
+        print("Error AdjustSamplesCount")
+        sys.exit()
+        
+    if (len(np.unique(y)) != 2):
+        print("Problem with y in AdjustSamplesCount!")
+        sys.exit()
     
     return X,y
     
