@@ -1,6 +1,6 @@
 # ML examples
 
-A list of examples for Machine Learning: 
+A repository of Machine Learning/Data Science code samples: 
   * Keras for Deep Learning
   * Transfer Learning with PyTorch for Image Classification
   * EEG ERP Classification
