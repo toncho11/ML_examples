@@ -25,6 +25,15 @@ the parameters of D to minimize a loss function. After the parameters of D are u
 you train G to produce better generated samples. The output of G is connected to D, whose 
 parameters are kept frozen 
 
+PyTotch Training Loop:
+
+ - Forward propagation — compute the predicted y and calculate the current loss e.g.: loss_discriminator = loss_function(...)
+ - After each epoch we set the gradients to zero before starting to do backpropagation e.g.: .zero_grad()
+ - Perfrom the back propagation: loss.backaward()
+ - Gradient descent — Finally, we will update model parameters by calling optimizer.step() function
+
+torch version: 1.11.0+cu113
+
 """
 
 import torch
@@ -137,8 +146,8 @@ for epoch in range(num_epochs):
         loss_discriminator = loss_function(
             output_discriminator, all_samples_labels)
         #You calculate the gradients and update the descriminator weights.
-        loss_discriminator.backward()  #backward propagation - updating the gradients
-        optimizer_discriminator.step() #gradient descent
+        loss_discriminator.backward()  
+        optimizer_discriminator.step()
 
         # Data for training the generator
         latent_space_samples = torch.randn((batch_size, 2)).to(device=device)
@@ -155,8 +164,8 @@ for epoch in range(num_epochs):
         )
         
         #You calculate the gradients and update the generator weights.
-        loss_generator.backward()  #backward propagation - updating the gradients
-        optimizer_generator.step() #gradient descent
+        loss_generator.backward()
+        optimizer_generator.step()
 
         # Show loss
         if epoch % 10 == 0 and n == batch_size - 1:
