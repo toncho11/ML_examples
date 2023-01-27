@@ -1,4 +1,4 @@
-# ML examples
+# ML Examples
 
 A repository of Machine Learning/Data Science code samples: 
   * Keras for Deep Learning
