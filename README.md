@@ -9,5 +9,6 @@ A list of examples for Machine Learning:
   * A/B Testing
   * Autoencoders
   * Generative Adversarial Network (GAN)
+  * Transformers (with HuggingFace)
 
-The idea is to download an example quickly, be able to run it right away, go through the comments and links, modify it for your own needs and have a prototype in less than 30 minutes.
+The idea is to download an example quickly, be able to run it right away, go through the comments and links, modify it for your own needs and have a POC prototype in less than 15 minutes.
