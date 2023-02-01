@@ -3,8 +3,10 @@
 Created on Fri Jan 27 17:15:28 2023
 
 @author: antona
+From HuggingFace tutorial
 
 Demonstrates how easy is to use HuggingFace models for various tasks.
+This is from high level perspective.
 
 pip install transformers
 pip install transformers[sentencepiece]
