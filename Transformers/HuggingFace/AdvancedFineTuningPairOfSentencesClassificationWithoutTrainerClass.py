@@ -39,7 +39,7 @@ def tokenize_function(example):
 
 
 tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
-data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer) #it pads all items in a batch so they have the same length.
 
 tokenized_datasets = tokenized_datasets.remove_columns(["sentence1", "sentence2", "idx"])
 tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
@@ -71,6 +71,7 @@ from transformers import get_scheduler
 
 num_epochs = 3
 num_training_steps = num_epochs * len(train_dataloader)
+#lr - learning rate scheduler - it will progressively set the lr to 0
 lr_scheduler = get_scheduler(
     "linear",
     optimizer=optimizer,
@@ -85,13 +86,13 @@ import torch
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 model.to(device)
 
-#=====================================================================
+#Our own train loop===================================================
 
 from tqdm.auto import tqdm
 
 progress_bar = tqdm(range(num_training_steps))
 
-model.train()
+model.train() #set the model into training mode (Dropout and BatchNorm are designed to behave differently during training and evaluation)
 for epoch in range(num_epochs):
     for batch in train_dataloader:
         
@@ -103,18 +104,19 @@ for epoch in range(num_epochs):
         loss.backward()
 
         optimizer.step()
-        lr_scheduler.step()
+        lr_scheduler.step() #always after the optimizer step
         optimizer.zero_grad()
         
         progress_bar.update(1)
 
 print("Training Done")
-#=====================================================================
+
+#Evaluate model=======================================================
 
 import evaluate
 
 metric = evaluate.load("glue", "mrpc")
-model.eval()
+model.eval() #put the model into evaluation mode
 
 for batch in eval_dataloader:
     

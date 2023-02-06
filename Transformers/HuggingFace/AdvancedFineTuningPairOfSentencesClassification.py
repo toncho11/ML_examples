@@ -15,7 +15,9 @@ the MRPC dataset in order to be able to say if two sentences are "equivalent".
 
 Both the fine-tuning and evaluation are performed on the MRPC dataset (by separating them into Train and Validate datasets first)
 
-This is achieved by using 'token_type_ids' which allows us to select the first and the second sentence.
+Here the Trainer class is used to make the training process easier.
+
+The processing of a pair of sentences is achieved by using 'token_type_ids' which allows us to select the first and the second sentence.
 Note that if you select a different checkpoint, you won’t necessarily have the token_type_ids in your tokenized inputs.
 
 It uses "dynamic padding" with a DataCollator which does the padding according to the batch instead of a fixed max number for all sentences.
@@ -44,7 +46,7 @@ def tokenize_function(example):
     return tokenizer(example["sentence1"], example["sentence2"], truncation=True)
 
 tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
-data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer) #It pads all items in a batch so they have the same length.
 
 from transformers import TrainingArguments
 
