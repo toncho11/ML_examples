@@ -101,12 +101,16 @@ plt.ylabel('Converted (proportion)', labelpad=15);
 from statsmodels.stats.proportion import proportions_ztest, proportion_confint
 control_results = ab_test[ab_test['group'] == 'control']['converted']
 treatment_results = ab_test[ab_test['group'] == 'treatment']['converted']
+
 n_con = control_results.count()
 n_treat = treatment_results.count()
-successes = [control_results.sum(), treatment_results.sum()]
-nobs = [n_con, n_treat]
+
+successes = [control_results.sum(), treatment_results.sum()] #the number of conversions (out of the total number of observations)
+nobs = [n_con, n_treat] #total Number of Observations
 
 z_stat, pval = proportions_ztest(successes, nobs=nobs)
+
+#calucalte confident intervals
 (lower_con, lower_treat), (upper_con, upper_treat) = proportion_confint(successes, nobs=nobs, alpha=0.05)
 
 print(f'z statistic: {z_stat:.2f}')
@@ -118,5 +122,5 @@ if pval < 0.5:
     print("H0 rejected.") #We have enough statistical evidence to support the alternative claim (H1)
 else:
     print("H0 not rejected.")
-    print("This means that our new design did not perform significantly different (let alone better) than our old one")
+    print("This means that our new design did not perform significantly different (let alone better) than our old one.")
     
