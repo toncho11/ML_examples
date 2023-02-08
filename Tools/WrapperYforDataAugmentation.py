@@ -2,8 +2,8 @@
 
 Authors: Gregoire CATTAN, Anton ANDREEV
 
-It is a POC code that changes the X (which is normal) and y (usually immutable) when using ScikitLearn.
-This allows for a DataAugmentation scikitleran transformer.
+It is a POC code that changes the X (which is kind of normal) and y (usually immutable) when using ScikitLearn.
+This allows for a DataAugmentation ScikitLearn transformer.
 
 '''
 
@@ -58,17 +58,23 @@ class DataAugmentation(TransformerMixin):
         return X
 
     def fit_transform(self, X, y):
-        randomlist = sample(range(10, 30), X.shape[1])
-        X = np.append(X, [randomlist], axis=0)
-        y.array = np.append(y.array, 1)
+        #add two  extra sample
+        sample1 = sample(range(10, 30), X.shape[1])
+        sample2 = sample(range(10, 30), X.shape[1])
+        X = np.append(X, [sample1, sample2], axis=0)
+        
+        y.array = np.append(y.array, 1) #label sample 1
+        y.array = np.append(y.array, 0) #label sample 2
+        
         return X
 
 class Debug(TransformerMixin):
     def fit(self, X, y, **params):
-        print(X, y)
+        print("Debug_fit:",X.shape, y.shape)
         return self
 
     def transform(self, X):
+        print("Debug_transform:",X.shape, y.shape)
         return X
 
 #X = np.array([[100], [100]])
@@ -78,7 +84,7 @@ X_train , X_test , y_train, y_test = train_test_split(X, y, random_state=0)
 
 handler = Handler(y_train)
 
-clf = make_pipeline(DataAugmentation(), SVC())
+clf = make_pipeline(DataAugmentation(), Debug(), SVC())
 
 clf.fit(X_train, handler)
 
