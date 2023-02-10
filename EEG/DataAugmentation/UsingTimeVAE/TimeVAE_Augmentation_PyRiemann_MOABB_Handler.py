@@ -8,17 +8,17 @@ Performing data augmentation on the P300 class in an EEG dataset and classificat
 
 """
 
-def clear_all():
-    """Clears all the variables from the workspace of the spyder application."""
-    gl = globals().copy()
-    for var in gl:
-        if var[0] == '_': continue
-        if 'func' in str(globals()[var]): continue
-        if 'module' in str(globals()[var]): continue
+# def clear_all():
+#     """Clears all the variables from the workspace of the spyder application."""
+#     gl = globals().copy()
+#     for var in gl:
+#         if var[0] == '_': continue
+#         if 'func' in str(globals()[var]): continue
+#         if 'module' in str(globals()[var]): continue
 
-        del globals()[var]
+#         del globals()[var]
 
-clear_all()
+# clear_all()
 
 import os
 import glob
@@ -70,7 +70,6 @@ class Handler():
     def __init__(self, array) -> None:
         
         self.array = np.array(array)
-        #add another line here??????????????????????
         
         if(not self.supports_np_asarray()):
             self.inject_handler_asarray()
@@ -78,10 +77,19 @@ class Handler():
         if(not self.supports_np_asanyarray()):
             self.inject_handler_asanyarray()
     
+    def as_array_func(self, y, **params):
+        
+        if type(y) is Handler:
+            self.asarray0(y.array, **params) 
+        else:
+            self.asarray0(y, **params)
+    
     def inject_handler_asarray(self):
         self.asarray0 = np.asarray #save old one
         #numpy.asarray(a, dtype=None, order=None, *, like=None)
-        np.asarray = lambda y, **params: y.array if type(y) is Handler else self.asarray0(y, **params)
+        #np.asarray = lambda y, **params: y.array if type(y) is Handler else self.asarray0(y, **params)
+        #np.asarray = lambda y, **params: self.asarray0(y.array, **params) if type(y) is Handler else self.asarray0(y, **params)
+        np.asarray = self.as_array_func
 
     def restore_np_as_array(self):
         if hasattr(self, 'asarray0'):
@@ -92,20 +100,31 @@ class Handler():
         shape = np.shape(test)
         return not len(shape) == 0
     
+    def as_anyarray_func(self, y, **params):
+        
+        if type(y) is Handler:
+            self.asanyarray0(y.array, **params)
+        else:
+            self.asanyarray0(y, **params)
     
     def inject_handler_asanyarray(self):
         self.asanyarray0 = np.asanyarray #save old one
         #numpy.asanyarray(a, dtype=None, order=None, *, like=None)
-        np.asanyarray = lambda y, **params: y.array if type(y) is Handler else self.asanyarray0(y, **params)
+        #np.asanyarray = lambda y, **params: y.array if type(y) is Handler else self.asanyarray0(y, **params)
+        #np.asanyarray = lambda y, **params: self.asanyarray0(y.array, **params) if type(y) is Handler else self.asanyarray0(y, **params)
+        np.asanyarray = self.as_anyarray_func
 
     def restore_np_as_anyarray(self):
         if hasattr(self, 'asanyarray0'):
             np.asanyarray = self.asanyarray0
 
     def supports_np_asanyarray(self):
-        test = np.asanyarray(self)
+        #test = np.asanyarray(self) ###############changed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        test = np.asanyarray(self.array)
         shape = np.shape(test)
         return not len(shape) == 0
+    
+    #add flatten????????????????????????????????????????????
 
     @property
     def shape(self):
@@ -131,7 +150,6 @@ class P300Enchanced(P300):
 
         X, y, metadata = super().get_data(dataset, subjects, return_epochs)
         
-        #self.hy = Handler(y)
         return X, Handler(y) , metadata
 
 class DataAugment(BaseEstimator, TransformerMixin):
@@ -152,48 +170,50 @@ class DataAugment(BaseEstimator, TransformerMixin):
         
         print("\nfit_transform")
         
-        #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
-        print(N, T, D)
+        # #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
+        # print(N, T, D)
         
-        np.random.shuffle(X)
+        # np.random.shuffle(X)
         
-        # min max scale the data    
-        scaler = utils.MinMaxScaler()        
+        # # min max scale the data    
+        # scaler = utils.MinMaxScaler()        
        
-        scaled_data = scaler.fit_transform(X)
+        # scaled_data = scaler.fit_transform(X)
         
-        latent_dim = 8
+        # latent_dim = 8
         
-        vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
+        # vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
         
-        vae.compile(optimizer=Adam())
-        # vae.summary()
+        # vae.compile(optimizer=Adam())
+        # # vae.summary()
 
-        early_stop_loss = 'loss'
-        #define two callbacks
-        early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
-        reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
+        # early_stop_loss = 'loss'
+        # #define two callbacks
+        # early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
+        # reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
-        print("Fit VAE")
-        vae.fit(
-            scaled_data, 
-            batch_size = 32,
-            epochs=500,
-            shuffle = True,
-            callbacks=[early_stop_callback, reduceLR],
-            verbose = 1
-        )
+        # print("Fit VAE")
+        # vae.fit(
+        #     scaled_data, 
+        #     batch_size = 32,
+        #     epochs=500,
+        #     shuffle = True,
+        #     callbacks=[early_stop_callback, reduceLR],
+        #     verbose = 1
+        # )
         
-        #Final sampling from the vae
-        num_samples = 100 #FIX: set to the correct number we need
-        new_samples = vae.get_prior_samples(num_samples=num_samples)
-        print("New samples generated")
+        # #Final sampling from the vae
+        # num_samples = 100 #FIX: set to the correct number we need
+        # new_samples = vae.get_prior_samples(num_samples=num_samples)
+        # print("New samples generated")
         
-        # inverse-transform scaling 
-        new_samples = scaler.inverse_transform(new_samples)
+        # # inverse-transform scaling 
+        # new_samples = scaler.inverse_transform(new_samples)
         
-        return X, y #return the same data for now
+        #y = new_samples
+        
+        return X
 
 
 if __name__ == "__main__":
