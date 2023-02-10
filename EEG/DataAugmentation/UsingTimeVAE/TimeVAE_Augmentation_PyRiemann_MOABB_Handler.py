@@ -8,6 +8,18 @@ Performing data augmentation on the P300 class in an EEG dataset and classificat
 
 """
 
+def clear_all():
+    """Clears all the variables from the workspace of the spyder application."""
+    gl = globals().copy()
+    for var in gl:
+        if var[0] == '_': continue
+        if 'func' in str(globals()[var]): continue
+        if 'module' in str(globals()[var]): continue
+
+        del globals()[var]
+
+clear_all()
+
 import os
 import glob
 import time
@@ -108,19 +120,19 @@ class Handler():
     def __setitem__(self, a, b):
         return self.array.__setitem__(a, b)
     
+    def __del__(self): #restore functions
+        print("=======================Handler destructor======================================")
+        self.restore_np_as_array()
+        self.restore_np_as_anyarray()        
+    
 class P300Enchanced(P300):
     
     def get_data(self, dataset, subjects, return_epochs):   
 
         X, y, metadata = super().get_data(dataset, subjects, return_epochs)
         
-        self.hy = Handler(y)
-        return X, self.hy , metadata
-    
-    def __del__(self): #restore functions
-        print("P300Enchanced destructor")
-        self.hy.restore_np_as_array()
-        self.hy.restore_np_as_anyarray()        
+        #self.hy = Handler(y)
+        return X, Handler(y) , metadata
 
 class DataAugment(BaseEstimator, TransformerMixin):
     
@@ -183,21 +195,25 @@ class DataAugment(BaseEstimator, TransformerMixin):
         
         return X, y #return the same data for now
 
-pipelines = {}
-#XdawnCovariances can be used
 
-#should test with other than MDM pipelines!
-#pipelines["MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
-pipelines["DataAugment+MDM"] = make_pipeline(DataAugment(), Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
-
-print("Total pipelines to evaluate: ", len(pipelines))
-
-datasets = [BNCI2014008()]
-
-paradigm = P300Enchanced()
-
-evaluation = WithinSessionEvaluation(paradigm=paradigm, datasets=datasets, overwrite=True)
-
-results = evaluation.process(pipelines)
-
-print(results.groupby('pipeline').mean('score')[['score', 'time']])
+if __name__ == "__main__":
+    
+    # insert here your code
+    pipelines = {}
+    #XdawnCovariances can be used
+    
+    #should test with other than MDM pipelines!
+    #pipelines["MDM"] = make_pipeline(Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
+    pipelines["DataAugment+MDM"] = make_pipeline(DataAugment(), Covariances("oas"), MDM(metric="riemann")) #requires xdawn to improve result
+    
+    print("Total pipelines to evaluate: ", len(pipelines))
+    
+    datasets = [BNCI2014008()]
+    
+    paradigm = P300Enchanced()
+    
+    evaluation = WithinSessionEvaluation(paradigm=paradigm, datasets=datasets, overwrite=True)
+    
+    results = evaluation.process(pipelines)
+    
+    print(results.groupby('pipeline').mean('score')[['score', 'time']])
