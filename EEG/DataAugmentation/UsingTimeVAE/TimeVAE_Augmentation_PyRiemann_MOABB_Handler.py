@@ -77,19 +77,22 @@ class Handler():
         if(not self.supports_np_asanyarray()):
             self.inject_handler_asanyarray()
     
-    def as_array_func(self, y, **params):
-        
-        if type(y) is Handler:
-            self.asarray0(y.array, **params) 
-        else:
-            self.asarray0(y, **params)
-    
     def inject_handler_asarray(self):
+        
+        def as_array_func(y, dtype=None, order=None, *, like=None):
+            
+            if type(y) is Handler:
+                print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                y.array = self.asarray0(y.array, dtype, order)
+                return y
+            else:
+                return self.asarray0(y, dtype, order)
+            
         self.asarray0 = np.asarray #save old one
         #numpy.asarray(a, dtype=None, order=None, *, like=None)
         #np.asarray = lambda y, **params: y.array if type(y) is Handler else self.asarray0(y, **params)
         #np.asarray = lambda y, **params: self.asarray0(y.array, **params) if type(y) is Handler else self.asarray0(y, **params)
-        np.asarray = self.as_array_func
+        np.asarray = as_array_func
 
     def restore_np_as_array(self):
         if hasattr(self, 'asarray0'):
@@ -100,19 +103,22 @@ class Handler():
         shape = np.shape(test)
         return not len(shape) == 0
     
-    def as_anyarray_func(self, y, **params):
-        
-        if type(y) is Handler:
-            self.asanyarray0(y.array, **params)
-        else:
-            self.asanyarray0(y, **params)
-    
     def inject_handler_asanyarray(self):
+        
+        def as_anyarray_func(y, dtype=None, order=None, *, like=None):
+            
+            if type(y) is Handler:
+                print("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+                y.array = self.asanyarray0(y.array, dtype, order)
+                return y
+            else:
+                return self.asanyarray0(y, dtype, order)
+                
         self.asanyarray0 = np.asanyarray #save old one
         #numpy.asanyarray(a, dtype=None, order=None, *, like=None)
         #np.asanyarray = lambda y, **params: y.array if type(y) is Handler else self.asanyarray0(y, **params)
         #np.asanyarray = lambda y, **params: self.asanyarray0(y.array, **params) if type(y) is Handler else self.asanyarray0(y, **params)
-        np.asanyarray = self.as_anyarray_func
+        np.asanyarray = as_anyarray_func
 
     def restore_np_as_anyarray(self):
         if hasattr(self, 'asanyarray0'):
@@ -134,7 +140,8 @@ class Handler():
         return str(self.array)
     
     def __getitem__(self, a):
-        return self.array.__getitem__(a)
+        print("ccccccccccccccccccccccccccccccccc")
+        return self.array.__getitem__(a) #put here Handler ?????????????????????????????????????????????????
 
     def __setitem__(self, a, b):
         return self.array.__setitem__(a, b)
@@ -169,49 +176,57 @@ class DataAugment(BaseEstimator, TransformerMixin):
     def fit_transform(self, X, y):
         
         print("\nfit_transform")
+        if type(y) is Handler:
+            print("Y is Handler")
+        else:
+            print("Y is NOT Handler")
+            sys.exit()
         
-        # #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
-        # print(N, T, D)
+        #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
+        print(N, T, D)
         
-        # np.random.shuffle(X)
+        np.random.shuffle(X)
         
-        # # min max scale the data    
-        # scaler = utils.MinMaxScaler()        
+        # min max scale the data    
+        scaler = utils.MinMaxScaler()        
        
-        # scaled_data = scaler.fit_transform(X)
+        scaled_data = scaler.fit_transform(X)
         
-        # latent_dim = 8
+        latent_dim = 8
         
-        # vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
+        vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
         
-        # vae.compile(optimizer=Adam())
-        # # vae.summary()
+        vae.compile(optimizer=Adam())
+        # vae.summary()
 
-        # early_stop_loss = 'loss'
-        # #define two callbacks
-        # early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
-        # reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
+        early_stop_loss = 'loss'
+        #define two callbacks
+        early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
+        reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
-        # print("Fit VAE")
-        # vae.fit(
-        #     scaled_data, 
-        #     batch_size = 32,
-        #     epochs=500,
-        #     shuffle = True,
-        #     callbacks=[early_stop_callback, reduceLR],
-        #     verbose = 1
-        # )
+        print("Fit VAE")
+        vae.fit(
+            scaled_data, 
+            batch_size = 32,
+            epochs=5,
+            shuffle = True,
+            callbacks=[early_stop_callback, reduceLR],
+            verbose = 1
+        )
         
-        # #Final sampling from the vae
-        # num_samples = 100 #FIX: set to the correct number we need
-        # new_samples = vae.get_prior_samples(num_samples=num_samples)
-        # print("New samples generated")
+        #Final sampling from the vae
+        num_samples = 100 #FIX: set to the correct number we need
+        new_samples = vae.get_prior_samples(num_samples=num_samples)
+        print("New samples generated")
         
-        # # inverse-transform scaling 
-        # new_samples = scaler.inverse_transform(new_samples)
+        # inverse-transform scaling 
+        new_samples = scaler.inverse_transform(new_samples)
         
-        #y = new_samples
+        y_new=np.empty(100); y_new.fill(1)
+        
+        #y.array = np.append(y.array, 1) #label sample 1
+        #y.array = np.append(y.array, 1)
         
         return X
 
