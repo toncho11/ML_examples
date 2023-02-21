@@ -2,10 +2,18 @@
 """
 Created on Mon Feb 20 16:36:45 2023
 
-Semantic search with FAISS (PyTorch)
+Semantic search with FAISS (Facebook AI Similarity Search)
+
+Dataset: github repository issues
+First we pre-process the dataset and then we create embeddings that can be utilized by the FAISS library.
+
+This use case is an example of asymmetric semantic search because we have a short query whose answer 
+we’d like to find in a longer document, like a an issue comment.
 
 pip install datasets evaluate transformers[sentencepiece]
 pip install faiss-gpu
+
+Alternatively: pip install faiss-cpu
 """
 
 from datasets import load_dataset
@@ -74,31 +82,35 @@ import torch
 device = torch.device("cuda")
 model.to(device)
 
-#CLS 
+#create the embeddings 
 def cls_pooling(model_output):
-    return model_output.last_hidden_state[:, 0]
+    return model_output.last_hidden_state[:, 0] #we collect the last hidden state for the special [CLS] token, the CLS is always in the beginning and that is why the 0 index.
 
+#create a helper function that will tokenize a list of documents, place the tensors on the GPU
 def get_embeddings(text_list):
-    encoded_input = tokenizer(
+    encoded_input = tokenizer( #tokenize the documents
         text_list, padding=True, truncation=True, return_tensors="pt"
     )
-    encoded_input = {k: v.to(device) for k, v in encoded_input.items()}
-    model_output = model(**encoded_input)
-    return cls_pooling(model_output)
+    encoded_input = {k: v.to(device) for k, v in encoded_input.items()} #to gpu
+    model_output = model(**encoded_input) #feed to tokenized documents
+    return cls_pooling(model_output) #finally apply CLS pooling to the outputs of the model
 
 #embedding = get_embeddings(comments_dataset["text"][0])
 
+#generate an embedding for each document in the form of a 768-dimensional vector
+#result needs to be a numpy array in order to be used with FAISS
 embeddings_dataset = comments_dataset.map(
     lambda x: {"embeddings": get_embeddings(x["text"]).detach().cpu().numpy()[0]}
 )
 
-#FAISS
+#FAISS semantic search with embeddings
 
+#we need to create an index over the column that will be used to find which embeddings are similar to an input embedding
 embeddings_dataset.add_faiss_index(column="embeddings")
 
 #question and its embedding
 question = "How can I load a dataset offline?"
-question_embedding = get_embeddings([question]).cpu().detach().numpy()
+question_embedding = get_embeddings([question]).cpu().detach().numpy() #input embedding for the query
 
 #perform search
 scores, samples = embeddings_dataset.get_nearest_examples(
@@ -110,7 +122,7 @@ samples_df = pd.DataFrame.from_dict(samples)
 samples_df["scores"] = scores
 samples_df.sort_values("scores", ascending=False, inplace=True)
 
-# print sorted results
+# print sorted comments that best answer the question
 for _, row in samples_df.iterrows():
     print(f"COMMENT: {row.comments}")
     print(f"SCORE: {row.scores}")
