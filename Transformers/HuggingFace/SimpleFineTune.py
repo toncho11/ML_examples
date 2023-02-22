@@ -4,9 +4,9 @@ Created on Mon Feb  6 09:56:08 2023
 
 
 Fine-tuning trains a pretrained model on a new dataset without training from scratch. 
-This process, also known as "transfer learning".
+This process is known as "transfer learning".
 We access the pre-trained model using the checkpoint "bert-base-uncased.
-Tthen we train (fine-tune) using a only two samples.
+Then we train (fine-tune) using only two samples.
 """
 
 import torch

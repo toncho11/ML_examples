@@ -76,12 +76,30 @@ comments_dataset = comments_dataset.map(concatenate_text)
 
 #2. Creating text embeddings ==============================================================================
 
+'''
+Pooling
+The process of converting a sequence of embeddings into a sentence embedding is called “pooling”. 
+Intuitively, this entails compressing the granular token-level representations into a single 
+fixed-length representation that is supposed to reflect the meaning of the entire sequence.
+
+CLS pooling
+The first commonly used pooling method is CLS pooling. Essentially, this method entails appending a 
+special <CLS> token to the start of every sequence. This special token is meant to capture the 
+sequence-level information. Therefore, the pooling layer aggregates by simply taking the CLS token
+embedding and using this as the sentence embedding.
+'''
+
 from transformers import AutoTokenizer, AutoModel
 
+'''
+multi-qa-mpnet-base-dot-v1
+This is a sentence-transformers model: It maps sentences & paragraphs to a 768 dimensional dense vector space
+and was designed for semantic search. It has been trained on 215M (question, answer) pairs from diverse sources. 
+'''
 #we select a tokenizer and model suitable for embeddings
 model_ckpt = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
-tokenizer = AutoTokenizer.from_pretrained(model_ckpt)
-model = AutoModel.from_pretrained(model_ckpt)
+tokenizer  = AutoTokenizer.from_pretrained(model_ckpt)
+model      = AutoModel.from_pretrained(model_ckpt)
 
 #switch to GPU
 import torch
@@ -92,13 +110,14 @@ model.to(device)
 def cls_pooling(model_output):
     return model_output.last_hidden_state[:, 0] #we collect the last hidden state for the special [CLS] token, the CLS is always in the beginning and that is why the 0 index.
 
-#create a helper function that will tokenize a list of documents, place the tensors on the GPU
 #we use the "tokenizer" and "model" that were selected above     
 def get_embeddings(text_list):
     encoded_input = tokenizer( #tokenize the documents - convert to ids
         text_list, padding=True, truncation=True, return_tensors="pt"
     )
     encoded_input = {k: v.to(device) for k, v in encoded_input.items()} #to gpu
+    
+    #we apply the pre-trained model on the tokens and pooling until we get a single 768-dimensional vector for the sentence 
     model_output = model(**encoded_input) #feed to tokenized documents
     return cls_pooling(model_output) #finally apply CLS pooling to the outputs of the model
 
