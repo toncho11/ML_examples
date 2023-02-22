@@ -1,6 +1,7 @@
 # ML Examples
 
-A repository of Machine Learning/Data Science code samples: 
+This is a repository of Machine Learning/Data Science code samples. It includes the following domains:
+
   * Keras and PyTorch for Deep Learning
   * Transformers (with HuggingFace)
   * Transfer Learning with PyTorch for Image Classification
