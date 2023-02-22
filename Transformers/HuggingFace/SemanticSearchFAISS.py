@@ -4,6 +4,8 @@ Created on Mon Feb 20 16:36:45 2023
 
 Semantic search with FAISS (Facebook AI Similarity Search)
 
+Link: https://huggingface.co/course/chapter5/6?fw=pt
+
 Dataset: github repository issues
 First we pre-process the dataset and then we create embeddings that can be utilized by the FAISS library.
 
@@ -14,10 +16,13 @@ pip install datasets evaluate transformers[sentencepiece]
 pip install faiss-gpu
 
 Alternatively: pip install faiss-cpu
+Good article: https://datasciencetoday.net/index.php/en-us/nlp/211-paper-dissected-bert-pre-training-of-deep-bidirectional-transformers-for-language-understanding-explained
 """
 
 from datasets import load_dataset
 import pandas as pd
+
+#1. Pre-process the dataset ====================================================================
 
 issues_dataset = load_dataset("lewtun/github-issues", split="train")
 
@@ -69,10 +74,11 @@ comments_dataset = comments_dataset.map(concatenate_text)
 
 #finished pre-processing the dataset
 
-#creating text embeddings
+#2. Creating text embeddings ==============================================================================
 
 from transformers import AutoTokenizer, AutoModel
 
+#we select a tokenizer and model suitable for embeddings
 model_ckpt = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
 tokenizer = AutoTokenizer.from_pretrained(model_ckpt)
 model = AutoModel.from_pretrained(model_ckpt)
@@ -87,8 +93,9 @@ def cls_pooling(model_output):
     return model_output.last_hidden_state[:, 0] #we collect the last hidden state for the special [CLS] token, the CLS is always in the beginning and that is why the 0 index.
 
 #create a helper function that will tokenize a list of documents, place the tensors on the GPU
+#we use the "tokenizer" and "model" that were selected above     
 def get_embeddings(text_list):
-    encoded_input = tokenizer( #tokenize the documents
+    encoded_input = tokenizer( #tokenize the documents - convert to ids
         text_list, padding=True, truncation=True, return_tensors="pt"
     )
     encoded_input = {k: v.to(device) for k, v in encoded_input.items()} #to gpu
@@ -122,7 +129,7 @@ samples_df = pd.DataFrame.from_dict(samples)
 samples_df["scores"] = scores
 samples_df.sort_values("scores", ascending=False, inplace=True)
 
-# print sorted comments that best answer the question
+#print sorted (by relevance score) comments that best answer the question
 for _, row in samples_df.iterrows():
     print(f"COMMENT: {row.comments}")
     print(f"SCORE: {row.scores}")
