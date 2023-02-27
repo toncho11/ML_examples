@@ -1,10 +1,17 @@
 '''
 GODEL: https://www.microsoft.com/en-us/research/project/godel/
+Paper: https://www.microsoft.com/en-us/research/uploads/prod/2022/05/2206.11309.pdf
+
+This a chat bot that:
+    - can take instructions on how to respond 
+    - can take on the fly supplied knowledge before responding
 
 The script will download and use the bot model "GODEL" from Microsoft to chat with you.
 The chatbot will run locally on your computer.
 It launches a web server where you perform the chat: http://127.0.0.1:7860 (check the Python's console output for more details)
 
+                                                                            
+pip install gradio
 '''
 import gradio as gr
 
@@ -65,7 +72,6 @@ preset_examples = [
      )
 ]
 
-
 def generate(instruction, knowledge, dialog, top_p, min_length, max_length):
     if knowledge != '':
         knowledge = '[KNOWLEDGE] ' + knowledge
@@ -80,7 +86,6 @@ def generate(instruction, knowledge, dialog, top_p, min_length, max_length):
     print(output)
     return output
 
-
 def api_call_generation(instruction, knowledge, query, top_p, min_length, max_length):
 
     dialog = [
@@ -88,9 +93,7 @@ def api_call_generation(instruction, knowledge, query, top_p, min_length, max_le
     ]
     response = generate(instruction, knowledge, dialog,
                         top_p, min_length, max_length)
-
     return response
-
 
 def change_example(choice):
     choice_idx = int(choice.split()[-1]) - 1
@@ -139,4 +142,5 @@ with gr.Blocks() as demo:
     greet_btn.click(fn=api_call_generation, inputs=[
                     instruction, knowledge, query, top_p, min_length, max_length], outputs=response)
 
+#launch web server
 demo.launch()
