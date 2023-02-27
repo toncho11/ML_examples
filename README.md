@@ -3,7 +3,7 @@
 This is a repository of Machine Learning/Data Science code samples. It includes the following domains:
 
   * Keras and PyTorch for Deep Learning
-  * Transformers (with HuggingFace)
+  * Transformers and Chat Bots(with HuggingFace)
   * Transfer Learning with PyTorch for Image Classification
   * EEG ERP Classification
   * Decision Trees
