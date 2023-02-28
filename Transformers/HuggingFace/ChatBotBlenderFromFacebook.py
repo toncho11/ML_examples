@@ -5,7 +5,8 @@ Created on Thu Feb 23 11:13:07 2023
 The script will download and use the bot model "blenderbot" from Facebook to chat with you.
 The chatbot will run locally on your computer.
 It launches a web server where you perform the chat: http://127.0.0.1:7860 (check the Python's console output for more details)
-
+The bot's name is Sarah. Age response varies between "I am in my early twenties." and "I'm in my 30s." each time the model is started.
+                                                                            
 pip install gradio
 """
 

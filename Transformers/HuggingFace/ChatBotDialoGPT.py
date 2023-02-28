@@ -5,11 +5,17 @@ In the back-end is using the GPT2 model from OpenAI.Language processing is done 
 sentiment-analysis and spaCy for named-entity recognition and dependency plotting.
 Paper: https://arxiv.org/abs/1911.00536
 
+DialoGPT is superseded by GODEL, which outperforms DialoGPT.
+
 The script will download and use the bot model "DialoGPT" from Microsoft to chat with you.
 The chatbot will run locally on your computer.
 It launches a web server where you perform the chat: http://127.0.0.1:7860 (check the Python's console output for more details)
 
+Currently it gives an error: "RESOURCE_EXHAUSTED: OOM when allocating tensor with shape" on 4 GB GPU and 16 GB RAM.
+
 pip install gradio
+
+Git page: https://github.com/microsoft/DialoGPT
 """
 
 from transformers import TFAutoModelForCausalLM, AutoTokenizer
