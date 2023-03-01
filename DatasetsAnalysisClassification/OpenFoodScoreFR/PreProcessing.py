@@ -4,7 +4,7 @@ Created on Wed Mar  1 15:07:48 2023
 
 @author: antona
 
-This is a dataset from Opne Food Facts
+This is a dataset from Open Food Facts
 Link: https://drive.google.com/file/d/1NAtW9z2ymkRFia-P_FpkkIIsfnny0-Kp/view
 """
 
