@@ -5,9 +5,10 @@ Created on Wed Feb  1 16:47:14 2023
 @author: antona
 From HuggingFace tutorial
 
-Tokenizing means matching each word from the input sentence against a specified dictionary. 
-Once the word is matched an ID is provided. 
-This way we can continue working with the IDs instead of the real word.
+Tokenization is a way of separating a piece of text into smaller units called tokens. 
+Tokens can be either words, characters, or subwords.
+Also tokenz are assign IDs.
+This way we can continue working with the IDs instead of the real tokens (words for example).
 
 pip install transformers
 pip install transformers[sentencepiece]
