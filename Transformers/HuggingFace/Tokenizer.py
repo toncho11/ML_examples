@@ -7,7 +7,7 @@ From HuggingFace tutorial
 
 Tokenization is a way of separating a piece of text into smaller units called tokens. 
 Tokens can be either words, characters, or subwords.
-Also tokenz are assign IDs.
+Also tokens are assigned IDs (same ID for the same token). We can get these IDs using the tokenizer.convert_tokens_to_ids(tokens) method.
 This way we can continue working with the IDs instead of the real tokens (words for example).
 
 pip install transformers

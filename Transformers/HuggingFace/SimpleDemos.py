@@ -17,7 +17,10 @@ from transformers import pipeline
 
 #Sentiment analysis demo
 classifier = pipeline("sentiment-analysis")
-classifier("I've been waiting for a HuggingFace course my whole life.")
+result = classifier("I've been waiting for a HuggingFace course my whole life.")
+print("#######Sentiment analysis==============================================")
+print(result)
+print("=======================================================================")
 
 #Zero-shot classification
 #It allows you to specify which labels to use for the classification, so you don’t have to rely on the labels of the pretrained model. 
@@ -25,10 +28,13 @@ classifier("I've been waiting for a HuggingFace course my whole life.")
 #This pipeline is called zero-shot because you don’t need to fine-tune the model on your data to use it. 
 #It can directly return probability scores for any list of labels you want!
 classifier = pipeline("zero-shot-classification")
-classifier(
+result = classifier(
     "This is a course about the Transformers library",
     candidate_labels=["education", "politics", "business"],
 )
+print("#######Zero-shot classification========================================")
+print(result)
+print("=======================================================================")
 
 #Text generation
 #short
@@ -36,34 +42,46 @@ generator = pipeline("text-generation")
 generator("In this course, we will teach you how to")
 #long
 generator = pipeline("text-generation", model="distilgpt2")
-generator(
+result = generator(
     "In this course, we will teach you how to",
     max_length=30,
     num_return_sequences=2,
 )
+print("#######Text generation=================================================")
+print(result)
+print("=======================================================================")
 
 #Mask filling
 #The next pipeline is fill-mask. The idea of this task is to fill in the blanks (<mask>) in a given text.
 #The special <mask> word, which is often referred to as a mask token. Not all models use the <mask> word.
 #For the bert-base-cased model it is [MASK].
 unmasker = pipeline("fill-mask")
-unmasker("This course will teach you all about <mask> models.", top_k=2)
+result = unmasker("This course will teach you all about <mask> models.", top_k=2)
+print("#######Mask filling====================================================")
+print(result)
+print("=======================================================================")
 
 #Named entity recognition
 ner = pipeline("ner", grouped_entities=True)
-ner("My name is Sylvain and I work at Hugging Face in Brooklyn.")
+result = ner("My name is Sylvain and I work at Hugging Face in Brooklyn.")
+print("#######Named entity recognition========================================")
+print(result)
+print("=======================================================================")
 
 #Question answering
 #Note that this pipeline works by extracting information from the provided context; it does not generate the answer.
 question_answerer = pipeline("question-answering")
-question_answerer(
+result = question_answerer(
     question="Where do I work?",
     context="My name is Sylvain and I work at Hugging Face in Brooklyn",
 )
+print("#######Question Answering==============================================")
+print(result)
+print("=======================================================================")
 
 #Summarization
 summarizer = pipeline("summarization")
-summarizer(
+result = summarizer(
     """
     America has changed dramatically during recent years. Not only has the number of 
     graduates in traditional engineering disciplines such as mechanical, civil, 
@@ -85,7 +103,13 @@ summarizer(
     and a lack of well-educated engineers.
 """
 )
+print("#######Text summarization==============================================")
+print(result)
+print("=======================================================================")
 
 #Translation
 translator = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en")
-translator("Ce cours est produit par Hugging Face.")
+result = translator("Ce cours est produit par Hugging Face.")
+print("#######Transalation form French to English=============================")
+print(result)
+print("=======================================================================")
