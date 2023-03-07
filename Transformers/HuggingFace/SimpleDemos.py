@@ -18,7 +18,7 @@ from transformers import pipeline
 #Sentiment analysis demo
 classifier = pipeline("sentiment-analysis")
 result = classifier("I've been waiting for a HuggingFace course my whole life.")
-print("#######Sentiment analysis==============================================")
+print("\n#######Sentiment analysis============================================")
 print(result)
 print("=======================================================================")
 
@@ -32,7 +32,7 @@ result = classifier(
     "This is a course about the Transformers library",
     candidate_labels=["education", "politics", "business"],
 )
-print("#######Zero-shot classification========================================")
+print("\n#######Zero-shot classification======================================")
 print(result)
 print("=======================================================================")
 
@@ -40,7 +40,7 @@ print("=======================================================================")
 #short - using default model
 generator = pipeline("text-generation")
 result = generator("In this course, we will teach you how to")
-print("#######Text generation SHORT===========================================")
+print("\n#######Text generation SHORT=========================================")
 print(result)
 print("=======================================================================")
 #long using a particular model
@@ -50,7 +50,7 @@ result = generator(
     max_length=30,
     num_return_sequences=2, #how many responses
 )
-print("#######Text generation LONG============================================")
+print("\n#######Text generation LONG==========================================")
 print(result)
 print("=======================================================================")
 
@@ -60,25 +60,44 @@ print("=======================================================================")
 #For the bert-base-cased model it is [MASK].
 unmasker = pipeline("fill-mask")
 result = unmasker("This course will teach you all about <mask> models.", top_k=2)
-print("#######Mask filling====================================================")
+print("\n#######Mask filling==================================================")
 print(result)
 print("=======================================================================")
 
 #Named entity recognition
 ner = pipeline("ner", grouped_entities=True)
 result = ner("My name is Sylvain and I work at Hugging Face in Brooklyn.")
-print("#######Named entity recognition========================================")
+print("\n#######Named entity recognition======================================")
 print(result)
 print("=======================================================================")
 
-#Question answering
+#Question answering 1
+
+#Using the default pipeline and checkpoint
 #Note that this pipeline works by extracting information from the provided context; it does not generate the answer.
 question_answerer = pipeline("question-answering")
 result = question_answerer(
     question="Where do I work?",
     context="My name is Sylvain and I work at Hugging Face in Brooklyn",
 )
-print("#######Question Answering==============================================")
+print("\n#######Question Answering 1==========================================")
+print(result)
+print("=======================================================================")
+
+
+#Question answering 2
+
+# Using a specific checkpoint
+model_checkpoint = "huggingface-course/bert-finetuned-squad"
+question_answerer = pipeline("question-answering", model=model_checkpoint)
+
+context = """
+Transformers is backed by the three most popular deep learning libraries — Jax, PyTorch and TensorFlow — with a seamless integration
+between them. It's straightforward to train your models with one before loading them for inference with the other.
+"""
+question = "Which deep learning libraries back Transformers?"
+result = question_answerer(question=question, context=context)
+print("\n#######Question Answering 2==========================================")
 print(result)
 print("=======================================================================")
 
@@ -106,13 +125,13 @@ result = summarizer(
     and a lack of well-educated engineers.
 """
 )
-print("#######Text summarization==============================================")
+print("\n#######Text summarization============================================")
 print(result)
 print("=======================================================================")
 
 #Translation
 translator = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en")
 result = translator("Ce cours est produit par Hugging Face.")
-print("#######Transalation form French to English=============================")
+print("\n#######Transalation form French to English===========================")
 print(result)
 print("=======================================================================")
