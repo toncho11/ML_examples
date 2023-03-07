@@ -37,17 +37,20 @@ print(result)
 print("=======================================================================")
 
 #Text generation
-#short
+#short - using default model
 generator = pipeline("text-generation")
-generator("In this course, we will teach you how to")
-#long
+result = generator("In this course, we will teach you how to")
+print("#######Text generation SHORT===========================================")
+print(result)
+print("=======================================================================")
+#long using a particular model
 generator = pipeline("text-generation", model="distilgpt2")
 result = generator(
     "In this course, we will teach you how to",
     max_length=30,
-    num_return_sequences=2,
+    num_return_sequences=2, #how many responses
 )
-print("#######Text generation=================================================")
+print("#######Text generation LONG============================================")
 print(result)
 print("=======================================================================")
 
