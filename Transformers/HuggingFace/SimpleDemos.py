@@ -87,7 +87,7 @@ print("=======================================================================")
 
 #Question answering 2
 
-# Using a specific checkpoint
+# Using a specific checkpoint that was fine tuned on the SQuAD dataset
 model_checkpoint = "huggingface-course/bert-finetuned-squad"
 question_answerer = pipeline("question-answering", model=model_checkpoint)
 

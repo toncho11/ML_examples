@@ -73,24 +73,27 @@ preset_examples = [
 ]
 
 def generate(instruction, knowledge, dialog, top_p, min_length, max_length):
+    
     if knowledge != '':
         knowledge = '[KNOWLEDGE] ' + knowledge
+    
     dialog = ' EOS '.join(dialog)
+    
     query = f"{instruction} [CONTEXT] {dialog} {knowledge}"
 
     input_ids = tokenizer(f"{query}", return_tensors="pt").input_ids
-    outputs = model.generate(input_ids, min_length=int(
-        min_length), max_length=int(max_length), top_p=top_p, do_sample=True)
+    outputs = model.generate(input_ids, min_length = int(min_length), max_length = int(max_length), top_p = top_p, do_sample = True)
+    
     output = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
     print(query)
     print(output)
     return output
 
 def api_call_generation(instruction, knowledge, query, top_p, min_length, max_length):
 
-    dialog = [
-        query
-    ]
+    dialog = [ query ]
+    
     response = generate(instruction, knowledge, dialog,
                         top_p, min_length, max_length)
     return response
@@ -101,15 +104,20 @@ def change_example(choice):
     return [gr.update(lines=1, visible=True, value=instruction), gr.update(visible=True, value=knowledge), gr.update(lines=1, visible=True, value=query), gr.update(visible=True, value=instruction_type)]
 
 def change_textbox(choice):
+    
     if choice == "Chitchat":
         return gr.update(lines=1, visible=True, value="Instruction: given a dialog context, you need to response empathically.")
+    
     elif choice == "Grounded Response Generation":
         return gr.update(lines=1, visible=True, value="Instruction: given a dialog context and related knowledge, you need to response safely based on the knowledge.")
-    else:
+    
+    else: #"Conversational Question Answering"
         return gr.update(lines=1, visible=True, value="Instruction: given a dialog context and related knowledge, you need to answer the question based on the knowledge.")
 
 
 with gr.Blocks() as demo:
+    
+    #construct a web page
     gr.Markdown("# GODEL: Large-Scale Pre-Training for Goal-Directed Dialog")
     gr.Markdown('''GODEL is a large open-source pre-trained language model for dialog. In contrast with its predecessor DialoGPT, GODEL leverages a new phase of grounded pretraining designed to better support finetuning phases that require information external to the current conversation (e.g., a database or document) to produce good responses. More information about this work can be found in the paper [GODEL: Large-Scale Pre-training for Goal-Directed Dialog.](https://www.microsoft.com/en-us/research/project/godel/)
 >Looking for a large open-source pre-trained language model for dialog? Look no further than GODEL! GODEL leverages a new phase of grounded pretraining designed to better support finetuning phases that require information external to the current conversation (e.g., a database or document) to produce good responses. So if you're looking for a language model that can help you produce better responses in a variety of situations, GODEL is the right choice for you!<p style="text-align:right"> ------ a copy from GPT-3</p>''')
