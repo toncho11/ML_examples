@@ -14,6 +14,8 @@ Note that the code is set for GPU usage and the required video memory is high.
 pip install datasets evaluate transformers[sentencepiece]
 pip install accelerate
 
+We start by preparing the train_dataset and validation_dataset datasets and an extra small_eval_set (100 samples) is also used.
+
 """
 
 #You might run out of video memory. One cause can be fragmented video memory.
@@ -204,10 +206,13 @@ eval_set = small_eval_set.map(
     remove_columns=raw_datasets["validation"].column_names,
 )
      
-
+#Now that the preprocessing is done, we change the tokenizer back to the one we originally picked:
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
      
+#Preprocessing is DONE. The train and validate datasets have been generated.
 
+#We then remove the columns of our eval_set that are not expected by the model, build a batch with all
+#of that small validation set, and pass it through the model. If a GPU is available, we use it to go faster:
 import torch
 from transformers import AutoModelForQuestionAnswering
 
@@ -223,18 +228,19 @@ trained_model = AutoModelForQuestionAnswering.from_pretrained(trained_checkpoint
 with torch.no_grad():
     outputs = trained_model(**batch)
      
-
+#Since the Trainer will give us predictions as NumPy arrays, we grab the start and end logits and convert
+#them to that format:
 start_logits = outputs.start_logits.cpu().numpy()
 end_logits = outputs.end_logits.cpu().numpy()
      
-
+#Now, we need to find the predicted answer for each example in our small_eval_set.
 import collections
 
 example_to_features = collections.defaultdict(list)
 for idx, feature in enumerate(eval_set):
     example_to_features[feature["example_id"]].append(idx)
      
-
+#Once we have all the scored possible answers for one example, we just pick the one with the best logit score:
 import numpy as np
 
 n_best = 20
@@ -278,17 +284,17 @@ for example in small_eval_set:
 
 import evaluate
 
-metric = evaluate.load("squad")
+metric = evaluate.load("squad") #a squad specific metric that expects the answers in the format described above
      
-
+#we also need to modify the theoretical answers in the expected for the squad metric format
 theoretical_answers = [
     {"id": ex["id"], "answers": ex["answers"]} for ex in small_eval_set
 ]
      
-
 # print(predicted_answers[0])
 # print(theoretical_answers[0])
 
+#we calculate two scores based on the selected squad metric using the our predictions and the real answers
 metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
 from tqdm.auto import tqdm
@@ -343,8 +349,8 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
      
-
-compute_metrics(start_logits, end_logits, eval_set, small_eval_set)
+#We can check it works on our predictions:
+#compute_metrics(start_logits, end_logits, eval_set, small_eval_set)
 
 model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
 
@@ -359,21 +365,24 @@ args = TrainingArguments(
     weight_decay=0.01,
     fp16=True,
     push_to_hub=False,
-)
-     
+)  
 
 from transformers import Trainer
 
 trainer = Trainer(
     model=model,
     args=args,
-    train_dataset=train_dataset,
-    eval_dataset=validation_dataset,
+    train_dataset=train_dataset, #we have prepared the train dataset above
+    eval_dataset=validation_dataset, #we have prepared the eval dataset above
     tokenizer=tokenizer,
 )
+
 trainer.train()
      
-
+#Evaluate trained model
 predictions, _, _ = trainer.predict(validation_dataset)
+
 start_logits, end_logits = predictions
+
+#Now we compute on the validation data set
 compute_metrics(start_logits, end_logits, validation_dataset, raw_datasets["validation"])
