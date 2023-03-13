@@ -18,7 +18,7 @@ path = os.path.join(os.getcwd(), dataset_name)
 #df = pd.read_csv(path)
 
 #read a subset of the data (only for faster experimentation)
-df = pd.read_csv(path, sep=',', skiprows=0, nrows=5000)
+df = pd.read_csv(path, sep=',', skiprows=0, nrows=500000)
 
 #Display the first 10 rows
 result = df.head(10)
@@ -68,3 +68,25 @@ df_new = df[list_new_columns]
 
 #another option is similarity search - find the one closest in parameters that has a nutriscore_score
 
+'''we can work per category:
+ - select only the data that has category
+ - we search for nutri score of a new sample only inside its category
+ 
+We can test:
+    - check for each category how many columns do not contain any NaNs
+    
+One algorithm can be to see all products that have the same number of non NaN columns for this category and 
+simply take the average of these products.
+
+'''
+
+#how many categories
+print("Total number of categories: ",len(df["categories"].unique()))
+
+#how many products without category     
+print("Without category / all: ", df["categories"].isna().sum(), "/", len(df["categories"]),  "(", df["categories"].isna().sum() / len(df["categories"]) * 100, "%)")
+#on a large sample ~ 35% are without category
+
+
+
+    
