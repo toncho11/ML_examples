@@ -3,6 +3,11 @@
 Created on Mon Mar 13 10:48:02 2023
 
 @author: antona
+
+Classification of the French version of the Open Food Facts dataset.
+XGBoost is used for two reasons:
+    - it can handle NaN values
+    - in general good performance
 """
 
 import pandas as pd
