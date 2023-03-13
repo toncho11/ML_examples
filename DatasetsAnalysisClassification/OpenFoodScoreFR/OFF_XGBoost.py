@@ -15,6 +15,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
 from xgboost import XGBRFClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 dataset_name = "OFF_Francedataset.csv"
 #load data from a local 
@@ -22,7 +23,7 @@ path = os.path.join(os.getcwd(), dataset_name)
 #df = pd.read_csv(path)
 
 #read a subset of the data (only for faster experimentation)
-df = pd.read_csv(path, sep=',', skiprows=0, nrows=50000)
+df = pd.read_csv(path, sep=',', skiprows=0, nrows=500000)
 
 #Display the first 10 rows
 result = df.head(10)
@@ -67,26 +68,49 @@ df_new = df_new[~df_new[target_column].isna()]
 
 #======================================================================================
 
-y = df_new[target_column]
-X = df_new.loc[:, df_new.columns != target_column]
+#create X and y
+#y = df_new[target_column]
+#X = df_new.loc[:, df_new.columns != target_column]
 
-#X_train, X_test, y_train, y_test = train_test_split(X.index,y,test_size=0.2)
-#X.iloc[X_train] # return dataframe train
+mean_accuracy = []
 
-# define model
-from xgboost import XGBRegressor
-model = XGBRegressor(n_estimators = 1000) #larger n_estimators increases performance 
-
-# fit model
-model.fit(X, y)
-
-# define test data
-n = 56
-row = X.iloc[[n]]
-new_data = row.to_numpy()
-
-# make a prediction
-yhat = model.predict(new_data)
-
-# summarize prediction
-print('Predicted vs true value:', yhat, " vs ", y.iloc[[n]].to_numpy())
+#we are sampling, but not in a k-fold way
+for x in range(6):
+    #X_train, X_test, y_train, y_test = train_test_split(X.index,y,test_size=0.2)
+    #X.iloc[X_train] # return dataframe train
+    train = df_new.sample(frac=0.8)
+    train_X = train.loc[:, train.columns != target_column]
+    train_y = train[target_column]
+    
+    test   = df_new.drop(train.index)
+    test_X = test.loc[:, test.columns != target_column]
+    test_y = test[target_column]
+    
+    # define model
+    from xgboost import XGBRegressor
+    model = XGBRegressor(n_estimators = 1500) #larger n_estimators increases performance  e.g. 1000
+    
+    # fit model
+    #model.fit(X, y)
+    print("Training ...")
+    model.fit(train_X, train_y)
+    
+    # define test data
+    # n = 56
+    # row = X.iloc[[n]]
+    # new_data = row.to_numpy()
+    
+    # make a prediction
+    #yhat = model.predict(new_data)
+    print("Evaluation ...")
+    yhat = model.predict(test_X)
+    
+    yhat_rounded = np.round(yhat) #good rounding?
+    
+    # summarize prediction
+    #print('Predicted vs true value:', yhat, " vs ", y.iloc[[n]].to_numpy())
+    acc = accuracy_score(test_y, yhat_rounded)
+    print("Current accuracy:", x, acc)
+    mean_accuracy.append(acc)
+    
+print("Mean accuracy: ", np.mean(mean_accuracy))
