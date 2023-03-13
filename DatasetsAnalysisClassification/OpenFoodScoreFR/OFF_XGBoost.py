@@ -101,7 +101,7 @@ for x in range(splits):
     print("Evaluation ...")
     yhat = model.predict(test_X)
     
-    yhat_rounded = np.round(yhat) #good rounding?
+    yhat_rounded = np.round(yhat)
     
     # summarize prediction
     acc = accuracy_score(test_y, yhat_rounded)
