@@ -23,7 +23,7 @@ path = os.path.join(os.getcwd(), dataset_name)
 #df = pd.read_csv(path)
 
 #read a subset of the data (only for faster experimentation)
-df = pd.read_csv(path, sep=',', skiprows=0, nrows=500000)
+df = pd.read_csv(path, sep=',', skiprows=0, nrows=500000*2)
 
 #Display the first 10 rows
 result = df.head(10)
@@ -67,22 +67,25 @@ print(list_new_columns)
 df_new = df_new[~df_new[target_column].isna()]
 
 #======================================================================================
-
-#create X and y
-#y = df_new[target_column]
-#X = df_new.loc[:, df_new.columns != target_column]
-
 mean_accuracy = []
 
-#we are sampling, but not in a k-fold way
-for x in range(6):
-    #X_train, X_test, y_train, y_test = train_test_split(X.index,y,test_size=0.2)
-    #X.iloc[X_train] # return dataframe train
-    train = df_new.sample(frac=0.8)
+df_new.index = df_new.index * 10
+
+splits = 5
+
+kf = KFold(n_splits = splits, shuffle = True)
+
+#kfold split
+for x in range(splits):
+    
+    result = next(kf.split(df_new), None)
+
+    train = df_new.iloc[result[0]]
+    test =  df_new.iloc[result[1]]
+
     train_X = train.loc[:, train.columns != target_column]
     train_y = train[target_column]
     
-    test   = df_new.drop(train.index)
     test_X = test.loc[:, test.columns != target_column]
     test_y = test[target_column]
     
@@ -91,24 +94,16 @@ for x in range(6):
     model = XGBRegressor(n_estimators = 1500) #larger n_estimators increases performance  e.g. 1000
     
     # fit model
-    #model.fit(X, y)
     print("Training ...")
     model.fit(train_X, train_y)
     
-    # define test data
-    # n = 56
-    # row = X.iloc[[n]]
-    # new_data = row.to_numpy()
-    
     # make a prediction
-    #yhat = model.predict(new_data)
     print("Evaluation ...")
     yhat = model.predict(test_X)
     
     yhat_rounded = np.round(yhat) #good rounding?
     
     # summarize prediction
-    #print('Predicted vs true value:', yhat, " vs ", y.iloc[[n]].to_numpy())
     acc = accuracy_score(test_y, yhat_rounded)
     print("Current accuracy:", x, acc)
     mean_accuracy.append(acc)
