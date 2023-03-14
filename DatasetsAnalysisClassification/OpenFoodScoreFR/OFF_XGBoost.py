@@ -5,13 +5,18 @@ Created on Mon Mar 13 10:48:02 2023
 @author: antona
 
 The objective is to learn to calculate the nutriscore_score column.
-Here the task is defined as a regression (not classification).
+Here the task is defined as a regression.
 We select the columns with "100g" as X and column "nutriscore_score" as y.
 
-Classification of the French version of the Open Food Facts (OFF) dataset.
+Dataset is the French version of the Open Food Facts (OFF) dataset.
+
 XGBoost is used for two reasons:
     - it can handle NaN values
     - in general good performance
+    
+If we accept that there are 65 classes between (-15 and 40) then the task can be viewed as
+a classification and in this case the accuracy is around: 64% (kfold).
+RMS is 1.6 when may records are processed.
 
 """
 
@@ -26,13 +31,14 @@ from sklearn.model_selection import KFold
 from xgboost import XGBRFClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
 
 dataset_name = "OFF_Francedataset.csv"
 #load data from a local 
 path = os.path.join(os.getcwd(), dataset_name)
 
 #read a subset of the data (only for faster experimentation)
-n_rows_read = 500000 * 10 #more data increases the classification score
+n_rows_read = 500000 * 1 #more data increases the classification score
 
 df = pd.read_csv(path, sep=',', skiprows=0, nrows=n_rows_read)
 
@@ -62,6 +68,7 @@ df_new = df_new[~df_new[target_column].isna()]
 
 #======================================================================================
 mean_accuracy = []
+mean_rms = []
 
 df_new.index = df_new.index * 10
 
@@ -94,12 +101,16 @@ for x in range(splits):
     # make a prediction
     print("Evaluation ...")
     yhat = model.predict(test_X)
+
+    rms = mean_squared_error(test_y, yhat, squared=False)
+    
+    mean_rms.append(rms)
+    print("Current RMS:", x , rms)
     
     yhat_rounded = np.round(yhat)
-    
-    # summarize prediction
     acc = accuracy_score(test_y, yhat_rounded)
     print("Current accuracy:", x, acc)
     mean_accuracy.append(acc)
     
-print("Mean accuracy: ", np.mean(mean_accuracy), "on", n_rows_read, "records")
+print("Mean accuracy: ", np.mean(mean_accuracy), "on", n_rows_read, "records (when considred as a classification task)")
+print("Mean RMS: ", np.mean(mean_rms), "on", n_rows_read, "records", "RMS non-negative floating point value (the best value is 0.0)")
