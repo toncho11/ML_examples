@@ -102,7 +102,7 @@ for x in range(splits):
     print("Evaluation ...")
     yhat = model.predict(test_X)
 
-    rms = mean_squared_error(test_y, yhat, squared=False)
+    rms = mean_squared_error(test_y, yhat, squared=False) #If True returns MSE value, if False returns RMSE value.
     
     mean_rms.append(rms)
     print("Current RMS:", x , rms)
