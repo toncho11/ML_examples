@@ -4,10 +4,15 @@ Created on Mon Mar 13 10:48:02 2023
 
 @author: antona
 
-Classification of the French version of the Open Food Facts dataset.
+The objective is to learn to calculate the nutriscore_score column.
+Here the task is defined as a regression (not classification).
+We select the columns with "100g" as X and column "nutriscore_score" as y.
+
+Classification of the French version of the Open Food Facts (OFF) dataset.
 XGBoost is used for two reasons:
     - it can handle NaN values
     - in general good performance
+
 """
 
 import pandas as pd
@@ -25,50 +30,34 @@ from sklearn.metrics import accuracy_score
 dataset_name = "OFF_Francedataset.csv"
 #load data from a local 
 path = os.path.join(os.getcwd(), dataset_name)
-#df = pd.read_csv(path)
 
 #read a subset of the data (only for faster experimentation)
-df = pd.read_csv(path, sep=',', skiprows=0, nrows=500000*2)
+n_rows_read = 500000 * 10 #more data increases the classification score
 
-#Display the first 10 rows
-result = df.head(10)
-print("First 10 rows of the DataFrame:")
-print(result)
+df = pd.read_csv(path, sep=',', skiprows=0, nrows=n_rows_read)
 
-#select only a fraction of the data for analysis
-#subset = df.sample(n = 5000)
+#some checks
+if df["nutriscore_score"].min() < -15 or df["nutriscore_score"].max() > 40:
+    print("Error")
+    import sys
+    sys.exit()
 
-#which column is the target 
-#the target is the nuneric column "nutriscore_score" (numeric) which allows for the calculation of the final "nutriscore_grade"
-print(df.columns.tolist())
-
-search_columns = [col for col in df.columns.tolist() if 'nutriscore_score' in col]
-#print(search_columns)
-
-#nutrition-score-fr_100g, nutrition-score-uk_100g, nutriscore_score
-
-#df['nutrition-score-uk_100g'].isnull().count()
-#nutrition-score-uk_100g is ann NaN
-
+#select the data 
 target_column = "nutriscore_score" #nutriscore_score or nutriscore_grade
 
-#check if two columns are the same
-print(df["nutrition-score-fr_100g"].equals(df["nutriscore_score"]))
-#so we can use nutriscore_score
-
-#remove columns that contain the same data (and especially the ones that contain the target column)
-
+#select 100g columns
 columns_100g = [col for col in df.columns.tolist() if '_100g' in col]
-print(len(columns_100g))
+
+#remove 'nutrition-score-fr_100g', 'nutrition-score-uk_100g'
 columns_100g = [col for col in columns_100g if not 'nutri' in col]
-print(len(columns_100g))
+print("Number of columns to be used for X:", len(columns_100g))
 
 list_new_columns = columns_100g + [target_column]
 df_new = df[list_new_columns]
 
 print(list_new_columns)
 
-#select only the rows with valid nutri score
+#select only the rows with valid nutri score to be used for train and validation
 df_new = df_new[~df_new[target_column].isna()]
 
 #======================================================================================
@@ -113,4 +102,4 @@ for x in range(splits):
     print("Current accuracy:", x, acc)
     mean_accuracy.append(acc)
     
-print("Mean accuracy: ", np.mean(mean_accuracy))
+print("Mean accuracy: ", np.mean(mean_accuracy), "on", n_rows_read, "records")
