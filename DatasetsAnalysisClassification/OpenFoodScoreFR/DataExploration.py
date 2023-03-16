@@ -18,7 +18,7 @@ path = os.path.join(os.getcwd(), dataset_name)
 #df = pd.read_csv(path)
 
 #read a subset of the data (only for faster experimentation)
-df = pd.read_csv(path, sep=',', skiprows=0, nrows=500000)
+df = pd.read_csv(path, sep=',', skiprows=0, nrows=5000)
 
 #Display the first 10 rows
 result = df.head(10)
@@ -54,6 +54,7 @@ print(len(columns_100g))
 list_new_columns = columns_100g# + ['nutriscore_score']
 df_new = df[list_new_columns]
 
+print(df_new.columns)
 #create a dataset only from the data where the target column is populated
 #find which columns are actually most useful
 
@@ -87,6 +88,9 @@ print("Total number of categories: ",len(df["categories"].unique()))
 print("Without category / all: ", df["categories"].isna().sum(), "/", len(df["categories"]),  "(", df["categories"].isna().sum() / len(df["categories"]) * 100, "%)")
 #on a large sample ~ 35% are without category
 
+#checking categories
+n_by_category = df.groupby("categories")["product_name"].count().mean()
+#categories contain not many products
 
 
     
