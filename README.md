@@ -1,6 +1,8 @@
 # ML Examples
 
-This is a repository of Machine Learning/Data Science code samples. It includes the following domains:
+This is a repository for Machine Learning/Data Science code samples.
+
+It includes the following algorithms, frameworks or subdomains of ML/DS:
 
   * Keras and PyTorch for Deep Learning
   * Transformers and Chat Bots(with HuggingFace)
@@ -11,5 +13,8 @@ This is a repository of Machine Learning/Data Science code samples. It includes 
   * A/B Testing
   * Autoencoders
   * Generative Adversarial Network (GAN)
+
+Famous datasets (exploration / classification):
+  * Open Food Facts (OFF)
 
 The idea is to download an example quickly, be able to run it right away, go through the comments and links, modify it for your own needs and have a [POC](https://en.wikipedia.org/wiki/Proof_of_concept) prototype in less than 15 minutes.
