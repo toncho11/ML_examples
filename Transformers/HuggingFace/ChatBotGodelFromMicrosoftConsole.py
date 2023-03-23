@@ -12,6 +12,13 @@ The script will download and use the bot model "GODEL" from Microsoft to chat wi
 The chatbot will run locally on your computer.
 
 This is the console version (as opposed to the web version)
+
+The syntax of the queries is:
+1) A sentence starting with "Instruction:" explaining how the LLM should answer
+2) Followed by "[CONTEXT]" + the question from the user
+3) Followed by "[KNOWLEDGE]" + the information you want to provide (this argument is optional)
+ 
+It is unclear where the dialog from the previous interactions is added. It should be in the Knowledge part? 
 '''
 
 from transformers import (
@@ -108,6 +115,7 @@ if __name__ == "__main__":
         instruction_to_bot = preset_examples[i][0]
         knowledge_for_bot  = preset_examples[i][1]
         question_for_bot   = preset_examples[i][2]
+        category           = preset_examples[i][3]
         
         answer_from_bot = api_call_generation(instruction_to_bot, knowledge_for_bot, question_for_bot, top_p, min_length, max_length)
         
