@@ -8,7 +8,7 @@ This a chat bot that:
     - can take instructions on how to respond 
     - can take on the fly supplied knowledge before responding
 
-The script will download and use the bot model "GODEL" from Microsoft to chat with you.
+The script will download and use the LLM "GODEL" from Microsoft to chat with you.
 The chatbot will run locally on your computer.
 
 This is the console version (as opposed to the web version)
@@ -18,7 +18,7 @@ The syntax of the queries is:
 2) Followed by "[CONTEXT]" + the question from the user
 3) Followed by "[KNOWLEDGE]" + the information you want to provide (this argument is optional)
  
-It is unclear where the dialog from the previous interactions is added. It should be in the Knowledge part? 
+It is unclear where the dialog from the previous interactions is added. It should be in the [CONTEXT] part (or the [KNOWLEDGE])? 
 '''
 
 from transformers import (
@@ -87,7 +87,7 @@ def generate(instruction, knowledge, dialog, top_p, min_length, max_length):
     if knowledge != '':
         knowledge = '[KNOWLEDGE] ' + knowledge
     
-    dialog = ' EOS '.join(dialog)
+    dialog = ' EOS '.join(dialog) #merge all strings into one (dialog is a list)
     
     query = f"{instruction} [CONTEXT] {dialog} {knowledge}"
 

@@ -8,7 +8,7 @@ This a chat bot that:
     - can take instructions on how to respond 
     - can take on the fly supplied knowledge before responding
 
-The script will download and use the bot model "GODEL" from Microsoft to chat with you.
+The script will download and use the LLM "GODEL" from Microsoft to chat with you.
 The chatbot will run locally on your computer.
 It launches a web server where you perform the chat: http://127.0.0.1:7860 (check the Python's console output for more details)
                                                                             
