@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 '''
 GODEL: https://www.microsoft.com/en-us/research/project/godel/
 Paper: https://www.microsoft.com/en-us/research/uploads/prod/2022/05/2206.11309.pdf
 Git page: https://github.com/microsoft/GODEL
-Online demo: https://huggingface.co/spaces/microsoft/GODEL-Demo
 
 This a chat bot that:
     - can take instructions on how to respond 
@@ -10,11 +10,9 @@ This a chat bot that:
 
 The script will download and use the bot model "GODEL" from Microsoft to chat with you.
 The chatbot will run locally on your computer.
-It launches a web server where you perform the chat: http://127.0.0.1:7860 (check the Python's console output for more details)
-                                                                            
-pip install gradio
+
+This is the console version (as opposed to the web version)
 '''
-import gradio as gr
 
 from transformers import (
     AutoTokenizer,
@@ -22,6 +20,10 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     AutoModelForCausalLM
 )
+
+top_p      = 0.9
+min_length = 8
+max_length = 64
 
 tokenizer = AutoTokenizer.from_pretrained("microsoft/GODEL-v1_1-base-seq2seq")
 model = AutoModelForSeq2SeqLM.from_pretrained("microsoft/GODEL-v1_1-base-seq2seq")
@@ -87,8 +89,8 @@ def generate(instruction, knowledge, dialog, top_p, min_length, max_length):
     
     output = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
-    print(query)
-    print(output)
+    #print(query)
+    #print(output)
     return output
 
 def api_call_generation(instruction, knowledge, query, top_p, min_length, max_length):
@@ -99,57 +101,15 @@ def api_call_generation(instruction, knowledge, query, top_p, min_length, max_le
                         top_p, min_length, max_length)
     return response
 
-def change_example(choice):
-    choice_idx = int(choice.split()[-1]) - 1
-    instruction, knowledge, query, instruction_type = preset_examples[choice_idx]
-    return [gr.update(lines=1, visible=True, value=instruction), gr.update(visible=True, value=knowledge), gr.update(lines=1, visible=True, value=query), gr.update(visible=True, value=instruction_type)]
-
-def change_textbox(choice):
+if __name__ == "__main__":
     
-    if choice == "Chitchat":
-        return gr.update(lines=1, visible=True, value="Instruction: given a dialog context, you need to response empathically.")
+    for i in range(0,len(preset_examples)):
+        #print(preset_examples[i])
+        instruction_to_bot = preset_examples[i][0]
+        knowledge_for_bot  = preset_examples[i][1]
+        question_for_bot   = preset_examples[i][2]
+        
+        answer_from_bot = api_call_generation(instruction_to_bot, knowledge_for_bot, question_for_bot, top_p, min_length, max_length)
+        
+        print(answer_from_bot)
     
-    elif choice == "Grounded Response Generation":
-        return gr.update(lines=1, visible=True, value="Instruction: given a dialog context and related knowledge, you need to response safely based on the knowledge.")
-    
-    else: #"Conversational Question Answering"
-        return gr.update(lines=1, visible=True, value="Instruction: given a dialog context and related knowledge, you need to answer the question based on the knowledge.")
-
-
-with gr.Blocks() as demo:
-    
-    #construct a web page
-    gr.Markdown("# GODEL: Large-Scale Pre-Training for Goal-Directed Dialog")
-    gr.Markdown('''GODEL is a large open-source pre-trained language model for dialog. In contrast with its predecessor DialoGPT, GODEL leverages a new phase of grounded pretraining designed to better support finetuning phases that require information external to the current conversation (e.g., a database or document) to produce good responses. More information about this work can be found in the paper [GODEL: Large-Scale Pre-training for Goal-Directed Dialog.](https://www.microsoft.com/en-us/research/project/godel/)
->Looking for a large open-source pre-trained language model for dialog? Look no further than GODEL! GODEL leverages a new phase of grounded pretraining designed to better support finetuning phases that require information external to the current conversation (e.g., a database or document) to produce good responses. So if you're looking for a language model that can help you produce better responses in a variety of situations, GODEL is the right choice for you!<p style="text-align:right"> ------ a copy from GPT-3</p>''')
-
-    dropdown = gr.Dropdown(
-        [f"Example {i+1}" for i in range(9)], label='Examples')
-
-    radio = gr.Radio(
-        ["Conversational Question Answering", "Chitchat", "Grounded Response Generation"], label="Instruction Type", value='Conversational Question Answering'
-    )
-    instruction = gr.Textbox(lines=1, interactive=True, label="Instruction",
-                             value="Instruction: given a dialog context and related knowledge, you need to answer the question based on the knowledge.")
-    radio.change(fn=change_textbox, inputs=radio, outputs=instruction)
-    knowledge = gr.Textbox(lines=6, label="Knowledge")
-    query = gr.Textbox(lines=1, label="User Query")
-
-    dropdown.change(change_example, dropdown, [instruction, knowledge, query, radio])
-
-    with gr.Row():
-        with gr.Column(scale=1):
-            response = gr.Textbox(label="Response", lines=2)
-
-        with gr.Column(scale=1):
-            top_p = gr.Slider(0, 1, value=0.9, label='top_p')
-            min_length = gr.Number(8, label='min_length')
-            max_length = gr.Number(
-                64, label='max_length (should be larger than min_length)')
-
-    greet_btn = gr.Button("Generate")
-    greet_btn.click(fn=api_call_generation, inputs=[
-                    instruction, knowledge, query, top_p, min_length, max_length], outputs=response)
-
-#launch web server
-demo.launch()
