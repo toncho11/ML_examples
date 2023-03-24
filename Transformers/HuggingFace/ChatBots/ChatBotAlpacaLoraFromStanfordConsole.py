@@ -20,14 +20,14 @@ Example of a prompt that uses both parameters:
 ### Input:
 {input}"
 
-Processing on a CPU takes a lot of time for a single text generation!
+Processing on a CPU takes a lot of time for a single text generation! More than 1H for a single query.
 
 """
 
 import torch
 from peft import PeftModel
 import transformers
-import os
+import os, time
 
 assert ("LlamaTokenizer" in transformers._import_structure["models.llama"]), "LLaMA is now in HuggingFace's main branch.\nPlease reinstall it: pip uninstall transformers && pip install git+https://github.com/huggingface/transformers.git"
 from transformers import LlamaTokenizer, LlamaForCausalLM, GenerationConfig
@@ -133,6 +133,8 @@ def evaluate(
     )
     
     print("Generate ...")
+    start = time.time()
+    
     with torch.no_grad():
         generation_output = model.generate( #Generates sequences of token ids for models with a language modeling head.
             input_ids=input_ids,
@@ -146,14 +148,17 @@ def evaluate(
     
     output = tokenizer.decode(s)
     
+    end = time.time()
+    print('Response generation time:', (start - end ) / 60, 'minutes')
+    
     return output.split("### Response:")[1].strip()
 
 if __name__ == "__main__":
 
     #examples
     for instruction in [
-        "Tell me about alpacas.",
-        # "Tell me about the president of Mexico in 2019.",
+        #"Tell me about alpacas.",
+        "Tell me about the president of Mexico in 2019.",
         # "Tell me about the king of France in 2019.",
         # "List all Canadian provinces in alphabetical order.",
         # "Write a Python program that prints the first 10 Fibonacci numbers.",
