@@ -20,6 +20,8 @@ Example of a prompt that uses both parameters:
 ### Input:
 {input}"
 
+Processing on a CPU takes a lot of time for a single text generation!
+
 """
 
 import torch
@@ -39,12 +41,15 @@ if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
+print("device:", device)
 
 try:
     if torch.backends.mps.is_available():
         device = "mps"
 except:
     pass
+
+print("Loading model with selected weights ...")
 
 if device == "cuda":
     model = LlamaForCausalLM.from_pretrained(
@@ -68,9 +73,11 @@ elif device == "mps": # Metal Performance Shaders (MPS) backend for GPU training
         device_map={"": device},
         torch_dtype=torch.float16,
     )
-else:
+else: #CPU
     model = LlamaForCausalLM.from_pretrained(
-        BASE_MODEL, device_map={"": device}, low_cpu_mem_usage=True
+        BASE_MODEL, 
+        device_map={"": device}, 
+        low_cpu_mem_usage=True,
     )
     model = PeftModel.from_pretrained(
         model,
@@ -93,7 +100,7 @@ def generate_prompt(instruction, input=None):
 {instruction}
 ### Response:"""
 
-if device != "cpu":
+if device != "cpu": #half() is not available for CPU
     model.half()
 model.eval()
 
@@ -112,8 +119,11 @@ def evaluate(
     **kwargs,
 ):
     prompt = generate_prompt(instruction, input)
+    
     inputs = tokenizer(prompt, return_tensors="pt")
+    
     input_ids = inputs["input_ids"].to(device)
+    
     generation_config = GenerationConfig(
         temperature=temperature,
         top_p=top_p,
@@ -122,8 +132,9 @@ def evaluate(
         **kwargs,
     )
     
+    print("Generate ...")
     with torch.no_grad():
-        generation_output = model.generate(
+        generation_output = model.generate( #Generates sequences of token ids for models with a language modeling head.
             input_ids=input_ids,
             generation_config=generation_config,
             return_dict_in_generate=True,
@@ -142,14 +153,14 @@ if __name__ == "__main__":
     #examples
     for instruction in [
         "Tell me about alpacas.",
-        "Tell me about the president of Mexico in 2019.",
-        "Tell me about the king of France in 2019.",
-        "List all Canadian provinces in alphabetical order.",
-        "Write a Python program that prints the first 10 Fibonacci numbers.",
-        "Write a program that prints the numbers from 1 to 100. But for multiples of three print 'Fizz' instead of the number and for the multiples of five print 'Buzz'. For numbers which are multiples of both three and five print 'FizzBuzz'.",
-        "Tell me five words that rhyme with 'shock'.",
-        "Translate the sentence 'I have no mouth but I must scream' into Spanish.",
-        "Count up from 1 to 500.",
+        # "Tell me about the president of Mexico in 2019.",
+        # "Tell me about the king of France in 2019.",
+        # "List all Canadian provinces in alphabetical order.",
+        # "Write a Python program that prints the first 10 Fibonacci numbers.",
+        # "Write a program that prints the numbers from 1 to 100. But for multiples of three print 'Fizz' instead of the number and for the multiples of five print 'Buzz'. For numbers which are multiples of both three and five print 'FizzBuzz'.",
+        # "Tell me five words that rhyme with 'shock'.",
+        # "Translate the sentence 'I have no mouth but I must scream' into Spanish.",
+        # "Count up from 1 to 500.",
     ]:
         print("Instruction:", instruction)
         print("Response:", evaluate(instruction))
