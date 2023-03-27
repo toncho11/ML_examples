@@ -42,15 +42,15 @@ openai.api_key = api_key
 #     "completion": " Visit you user settings in the left-hand side menu, then click 'upgrade account' button at the top.\n"
 # }]
 training_data = [{
-    "prompt": "What is your name? ->",
-    "completion": "My name is John.\n"
+    "prompt": "What is your name ->",
+    "completion": " My name is John.\n"
    },{
-    "prompt":"How old are you? ->",
-    "completion": "I am thirty years old.\n"
+    "prompt":"How old are you ->",
+    "completion": " I am thirty years old.\n"
     }
   ,{
-     "prompt":"How is your age? ->",
-     "completion": "My age is years old.\n"}
+     "prompt":"How is your age ->",
+     "completion": " My age is thirty years old.\n"}
   ]
 #Make sure to end each prompt with a suffix. According to the OpenAI API reference, you can use ->.
 #Make sure to end each completion with a suffix as well -  for example '\n'.
@@ -123,17 +123,20 @@ if error == False:
             
         #Remember to end the prompt with the same suffix as we used in the training data; ->:
         
+        print("Results: ========================================================")
         prompts = ["What is your name? ->", "How old are you? ->"]
         
-        for prompt in prompts:
+        for p in prompts:
             answer = openai.Completion.create(
               model=fine_tuned_model,
-              prompt=prompt,
+              prompt=p,
               max_tokens=100,
               temperature=0
             )
             
             print(answer['choices'][0]['text'])
+            
+            print("-------------------------------------")
     
 else:
     print("Error training model.")
