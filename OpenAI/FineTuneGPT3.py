@@ -42,15 +42,27 @@ openai.api_key = api_key
 #     "completion": " Visit you user settings in the left-hand side menu, then click 'upgrade account' button at the top.\n"
 # }]
 training_data = [{
-    "prompt": "What is your name ->",
+    "prompt": "What is your name? ->",
     "completion": " My name is John.\n"
    },{
-    "prompt":"How old are you ->",
+    "prompt":"How old are you? ->",
     "completion": " I am thirty years old.\n"
     }
   ,{
-     "prompt":"How is your age ->",
+     "prompt":"What is your age? ->",
      "completion": " My age is thirty years old.\n"}
+  ,{
+     "prompt":"What do you do for living? ->",
+     "completion": " I work as an engineer.\n"}
+  ,{
+     "prompt":"What is your occupation? ->",
+     "completion": " I work in the domain of engineering.\n"}
+  ,{
+     "prompt":"What is your profession? ->",
+     "completion": " I am an engineer.\n"}
+  ,{
+     "prompt":"What do you do? ->",
+     "completion": " I work as an engineer.\n"}
   ]
 #Make sure to end each prompt with a suffix. According to the OpenAI API reference, you can use ->.
 #Make sure to end each completion with a suffix as well -  for example '\n'.
@@ -124,7 +136,7 @@ if error == False:
         #Remember to end the prompt with the same suffix as we used in the training data; ->:
         
         print("Results: ========================================================")
-        prompts = ["What is your name? ->", "How old are you? ->"]
+        prompts = ["What is your name? ->", "How old are you? ->", "What is your profession? ->"]
         
         for p in prompts:
             answer = openai.Completion.create(
@@ -134,7 +146,8 @@ if error == False:
               temperature=0
             )
             
-            print(answer['choices'][0]['text'])
+            print("Question:", p)
+            print("Answer:", answer['choices'][0]['text'])
             
             print("-------------------------------------")
     
