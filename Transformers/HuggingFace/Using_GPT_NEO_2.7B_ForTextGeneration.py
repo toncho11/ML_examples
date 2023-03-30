@@ -11,7 +11,7 @@ generating texts from a prompt.
 
 The task in this script is text generation.
 
-There is also a 1.3B and 6B versions.
+There are also a 1.3B and 6B versions.
 
 """
 
@@ -35,4 +35,5 @@ gen_tokens = model.generate(
 
 gen_text = tokenizer.batch_decode(gen_tokens)[0]
 
+print("=========================================================")
 print(gen_text)
