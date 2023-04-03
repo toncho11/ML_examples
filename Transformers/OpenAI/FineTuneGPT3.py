@@ -34,6 +34,8 @@ keyFile = open('OpenAiApiKey.txt', 'r')
 api_key = keyFile.readline()
 openai.api_key = api_key
 
+#1. First create a json training file 
+
 # training_data = [{
 #     "prompt": "Where is the billing ->",
 #     "completion": " You find the billing in the left-hand side menu.\n"
@@ -75,18 +77,19 @@ with open(file_name, "w") as output_file:
   json.dump(entry, output_file)
   output_file.write("\n")
   
+#end of generating json file
 
 #verify the json file in your console:
 #openai tools fine_tunes.prepare_data -f training_data.jsonl
 
-#Upload training data
+#2. Upload training data to OpenAI
 upload_response = openai.File.create(
   file=open(file_name, "rb"),
   purpose='fine-tune'
 )
 file_id = upload_response.id
 
-# Fine-tune model
+#3. Fine-tune model
 fine_tune_response = openai.FineTune.create(training_file=file_id)
 
 #The default model is "curie". But if you'd like to use DaVinci instead, then add it as a base model to fine-tune like this:
@@ -116,6 +119,7 @@ while True:
     print("Still training ...")
 print("Done Training")
 
+#4. Test the newly trained model
 if error == False:
     
     retrieve_response = openai.FineTune.retrieve(id=fine_tune_response.id)
