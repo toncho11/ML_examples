@@ -25,12 +25,9 @@ Processing on a CPU takes a lot of time for a single text generation! It takes b
 laptop in CPU mode. 10GB of RAM are used. You may need to restart yout Python kernel if you are using Spyder.
 
 It seems there are problems when running on Windows with CUDA with limited amount of memory (4GB):
-    - offload folder is not memorized
-               - you need to add the line "offload_dir = "offload"" to big_modeling.py at line 341
-    - model.half() is not available on CPU and on Windows
-    - other errors as well "Cannot copy out of meta tensor; no data!" or "weight is on the meta device, we need a `value` to put in on cpu."
-    - restarting your kernel in spyder IDE is recommended
-
+    - offload_folder problem - FIXED in GIT 
+    - model.half() - RuntimeError: "addmm_impl_cpu_" not implemented for 'Half'
+    - "ValueError: weight is on the meta device, we need a value to put in on cpu" in modeling.py
 """
 
 import torch
