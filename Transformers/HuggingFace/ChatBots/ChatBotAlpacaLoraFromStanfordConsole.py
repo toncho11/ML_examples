@@ -47,7 +47,7 @@ tokenizer = LlamaTokenizer.from_pretrained("decapoda-research/llama-7b-hf")
 BASE_MODEL = "decapoda-research/llama-7b-hf"
 LORA_WEIGHTS = "tloen/alpaca-lora-7b"
 
-force_cpu = True
+force_cpu = False
 
 if torch.cuda.is_available() and not force_cpu:
     device = "cuda"
@@ -127,8 +127,8 @@ def generate_prompt(instruction, input=None):
 {instruction}
 ### Response:"""
 
-if device != "cpu": #half() is not available for CPU
-    model.half()
+# if device != "cpu": #half() is not available for CPU
+#     model.half()
     
 model.eval()
 
