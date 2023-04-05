@@ -5,10 +5,10 @@ Created on Thu Mar 23 12:38:09 2023
 source: https://huggingface.co/spaces/tloen/alpaca-lora/blob/main/app.py
 online demo: https://huggingface.co/spaces/tloen/alpaca-lora
 
-The script will download and use the LLAMA model with weights provided from Alpaca-LoRA: Low-Rank LLaMA Instruct-Tuning.
+The script will download and use the LLAMA model with weights provided from Alpaca-LoRA (Low-Rank LLaMA Instruct-Tuning).
 The chatbot will run locally on your computer.
 
-PEFT is State-of-the-art Parameter-Efficient Fine-Tuning (PEFT).
+PEFT stands for State-of-the-art Parameter-Efficient Fine-Tuning (PEFT).
 pip install peft
 
 You may need to update your version of Transformers to the latest.
@@ -40,7 +40,6 @@ import torch
 from peft import PeftModel
 import transformers
 import os, time
-import tempfile
 
 assert ("LlamaTokenizer" in transformers._import_structure["models.llama"]), "LLaMA is now in HuggingFace's main branch.\nPlease reinstall it: pip uninstall transformers && pip install git+https://github.com/huggingface/transformers.git"
 from transformers import LlamaTokenizer, LlamaForCausalLM, GenerationConfig
@@ -130,8 +129,9 @@ def generate_prompt(instruction, input=None):
 {instruction}
 ### Response:"""
 
-# if device != "cpu": #half() is not available for CPU
-#     model.half()
+#half() generates errors when not used on a large 16 GB GPU
+if device != "cpu": #half() is not available for CPU
+     model.half()
     
 model.eval()
 
