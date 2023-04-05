@@ -21,11 +21,17 @@ Example of a prompt that uses both parameters:
 ### Input:
 {input}"
 
+CPU
+====
 Processing on a CPU takes a lot of time for a single text generation! It takes between 20 minutes and 1H on a regular 
 laptop in CPU mode. 10GB of RAM are used. You may need to restart yout Python kernel if you are using Spyder.
 
-It seems there are problems when running on Windows with CUDA with limited amount of memory (4GB):
-    - offload_folder problem - FIXED in GIT 
+GPU
+====
+This model runs OK in GPU mode on Google Colab with 16GB GPU.
+
+It seems there are problems when running on Windows with CUDA with limited amount of memory of GPU memory (4GB):
+    - offload_folder problem - FIXED in latest github version
     - model.half() - RuntimeError: "addmm_impl_cpu_" not implemented for 'Half'
     - "ValueError: weight is on the meta device, we need a value to put in on cpu" in modeling.py
 """
