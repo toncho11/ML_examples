@@ -3,7 +3,7 @@
 Created on Tue Apr 11 14:17:40 2023
 
 source: https://faun.dev/c/stories/eon01/creating-a-chatgpt-clone-with-history/
-
+author: https://leanpub.com/openaigptforpythondevelopers/?ref=faun
 This a chat bot that remembers previous interactions.
 
 
