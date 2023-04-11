@@ -14,7 +14,12 @@ Requires 16 GB GPU. You can try on Google Colab for free.
 from transformers import pipeline
 import torch
 
-generator = pipeline(model="nlpcloud/instruct-gpt-j-fp16", torch_dtype=torch.float16, device=0)
+device = -1
+force_gpu = False
+if force_gpu:
+    device = 0
+
+generator = pipeline(model="nlpcloud/instruct-gpt-j-fp16", torch_dtype=torch.float16, device = device)
 
 prompt = """This is a discussion between a [human] and a [robot]. 
 The [robot] is very nice and empathetic.
