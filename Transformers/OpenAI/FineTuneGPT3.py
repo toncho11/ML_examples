@@ -6,7 +6,7 @@ Original article: https://www.indiehackers.com/post/how-to-fine-tune-a-gpt-3-mod
 
 This script shows how to fine-tune a GPT-3 model using Python with your 
 own data for improved performance.
-The fine tuning is not done locally on your computer, but on the remote servers of OpenAI
+The fine=tuning is not done locally on your computer, but on the remote servers of OpenAI
 You will need an API access key.
 Extra code has been added that waits until the model is trained (or has failed)
 
@@ -21,6 +21,10 @@ Instruct models are optimized to follow single-turn instructions. Ada is the fas
 while Davinci is the most powerful.
 
 pip install openai
+
+The code in this script waits until the fine-tuning is done by checking on the OpenAI web-site periodically.
+
+The example here teaches the bot its name and age.
 
 """
 
@@ -151,7 +155,8 @@ if error == False:
             )
             
             print("Question:", p)
-            print("Answer:", answer['choices'][0]['text'])
+            #print("Answer:", answer['choices'][0]['text'])
+            print("Answer:", answer['choices'][0]['text'][0:answer['choices'][0]['text'].find(".")+1])
             
             print("-------------------------------------")
     
