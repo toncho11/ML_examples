@@ -17,6 +17,7 @@ git lfs pull
 
 Then the model will be loaded from disk using the Accelerate library that
 can use both CPU RAM and GPU RAM in a process called offloading.
+You might need to close all your programs and restart python to free up enough memory.
 
 """
 
@@ -41,7 +42,7 @@ model = load_checkpoint_and_dispatch(
 from transformers import AutoTokenizer
 
 prompt = """This is a discussion between a [human] and a [robot]. 
-The [robot] is very nice and empathetic.
+The [robot] is very nice and empathetic. The name of the [robot] is John.
 
 [human]: Hello nice to meet you.
 [robot]: Nice to meet you too.
@@ -49,14 +50,11 @@ The [robot] is very nice and empathetic.
 [human]: How is it going today?
 [robot]: Not so bad, thank you! How about you?
 ###
-[human]: I am ok, but I am a bit sad...
-[robot]: Oh? Why that?
-###
-[human]: I broke up with my girlfriend...
+[human]: What is your name?
 [robot]:"""
 
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 inputs = tokenizer(prompt, return_tensors="pt")
-inputs = inputs.to(0)
+#inputs = inputs.to(0) #helps with memory
 output = model.generate(inputs["input_ids"])
 print(tokenizer.decode(output[0].tolist()))

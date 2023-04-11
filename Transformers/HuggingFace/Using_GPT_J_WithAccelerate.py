@@ -17,6 +17,7 @@ git lfs pull
 
 Then the model will be loaded from disk using the Accelerate library that
 can use both CPU RAM and GPU RAM in a process called offloading.
+You might need to close all your programs and restart python to free up enough memory.
 
 """
 
@@ -42,6 +43,6 @@ from transformers import AutoTokenizer
 
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 inputs = tokenizer("Hello, my name is", return_tensors="pt")
-inputs = inputs.to(0)
+#inputs = inputs.to(0) #helps with memory
 output = model.generate(inputs["input_ids"])
 tokenizer.decode(output[0].tolist())
