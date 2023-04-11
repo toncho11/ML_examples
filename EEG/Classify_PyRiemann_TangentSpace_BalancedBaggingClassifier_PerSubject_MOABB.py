@@ -105,6 +105,7 @@ if __name__ == "__main__":
     #     LGBMClassifier()
     #  )
     
+    print("Processing ... ")
     #CrossSubjectEvaluation
     #WithinSessionEvaluation
     evaluation = CrossSubjectEvaluation(
