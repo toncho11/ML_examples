@@ -8,6 +8,7 @@ source: https://platform.openai.com/docs/guides/chat
 
 This script shows how to make an interactive bot with OpenAI.
 All previous communication must be supplied at every request of openai.ChatCompletion.create.
+It uses "ChartML".
 3 roles can be used: "system", "user" and "assistant".
 
 Note: you need to be using OpenAI Python v0.27.0 for the code below to work

@@ -7,6 +7,8 @@ Created on Tue Apr 11 12:08:29 2023
 This script tries to create a bot with a personality.
 It works to some degree, but the bot will always informs you that he/she
 is an "AI language model" from OpenAI.
+It uses "ChartML".
+3 roles can be used: "system", "user" and "assistant".
 
 Note: you need to be using OpenAI Python v0.27.0 for the code below to work
 
