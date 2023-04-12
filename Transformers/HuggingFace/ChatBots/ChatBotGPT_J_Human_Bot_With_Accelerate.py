@@ -8,15 +8,18 @@ source: https://huggingface.co/docs/accelerate/usage_guides/big_modeling
 
 This version of the code uses Accelerate library and can be loaded in both CPU and GPU RAM.
 
-You clone the sharded version of this model with
+You need to clone the sharded version of this model for this script to run:
     
 git clone https://huggingface.co/sgugger/sharded-gpt-j-6B
 cd sharded-gpt-j-6B
 git-lfs install
 git lfs pull
 
+The sharded version sharded-gpt-j-6B folder must be in the same folder as this script.
+
 Then the model will be loaded from disk using the Accelerate library that
 can use both CPU RAM and GPU RAM in a process called offloading.
+
 You might need to close all your programs and restart python to free up enough memory.
 
 """
@@ -42,7 +45,8 @@ model = load_checkpoint_and_dispatch(
 from transformers import AutoTokenizer
 
 prompt = """This is a discussion between a [human] and a [robot]. 
-The [robot] is very nice and empathetic. The name of the [robot] is John.
+The [robot] is very nice and empathetic. The name of the [robot] is John. The [robot] is male.
+The [humans]'s name is Peter. The age of the [robot] is 31.
 
 [human]: Hello nice to meet you.
 [robot]: Nice to meet you too.
@@ -50,7 +54,7 @@ The [robot] is very nice and empathetic. The name of the [robot] is John.
 [human]: How is it going today?
 [robot]: Not so bad, thank you! How about you?
 ###
-[human]: What is your name?
+[human]: What is yor age?
 [robot]:"""
 
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
