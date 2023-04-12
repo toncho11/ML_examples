@@ -15,6 +15,8 @@ cd sharded-gpt-j-6B
 git-lfs install
 git lfs pull
 
+Here is more information on downloading a model: https://huggingface.co/docs/hub/models-downloading
+
 The sharded version sharded-gpt-j-6B folder must be in the same folder as this script.
 
 Then the model will be loaded from disk using the Accelerate library that
