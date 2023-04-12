@@ -54,7 +54,7 @@ The [humans]'s name is Peter. The age of the [robot] is 31.
 [human]: How is it going today?
 [robot]: Not so bad, thank you! How about you?
 ###
-[human]: What is yor age?
+[human]: What is your age?
 [robot]:"""
 
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
