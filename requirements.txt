@@ -11,7 +11,7 @@ numpy>=1.23.5
 
 pandas>=1.4.2
 
-Pillow>=9.1.1
+Pillow>=9.5.0
 
 plotly>=5.11.0
 
@@ -48,3 +48,8 @@ TPOT>=0.11.7
 xgboost>=1.6.1
 
 ydata-synthetic>=0.8.1
+
+-e git://github.com/huggingface/transformers#egg=transformers
+-e git://github.com/huggingface/accelerate#egg=accelerate
+-e git://github.com/huggingface/huggingface_hub#egg=huggingface_hub
+-e git://github.com/huggingface/peft#egg=peft
