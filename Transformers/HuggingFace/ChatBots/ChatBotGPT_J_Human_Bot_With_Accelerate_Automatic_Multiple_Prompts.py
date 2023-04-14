@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Apr 12 14:16:15 2023
-
-@author: antona
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Wed Apr 12 11:55:58 2023
 
 @author: antona
