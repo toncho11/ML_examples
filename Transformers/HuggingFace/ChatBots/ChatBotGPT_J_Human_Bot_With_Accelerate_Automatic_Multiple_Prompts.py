@@ -122,6 +122,6 @@ The [humans]'s name is Peter. The age of the [robot] is 31.
 ###
 [robot]:"""
 
-#short_answer1, answer1 = AnswerPrompt(prompt)
-#short_answer2, answer2 = AnswerPrompt(prompt2)
-short_answer3, answer3 = AnswerPrompt(prompt3)
+short_answer1, answer1 = AnswerPrompt(prompt)
+short_answer2, answer2 = AnswerPrompt(prompt2)
+#short_answer3, answer3 = AnswerPrompt(prompt3)
