@@ -20,6 +20,14 @@ torch.cuda.empty_cache()
 import gc
 gc.collect()
 
+import os
+#this line helps avoid: torch.cuda.OutOfMemoryError: CUDA out of memory
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+
+print("Memory cleared ...")
+
+#torch.cuda.memory_summary(device=None, abbreviated=False)
+
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 from huggingface_hub import hf_hub_download
 from transformers import AutoConfig, AutoModelForCausalLM
