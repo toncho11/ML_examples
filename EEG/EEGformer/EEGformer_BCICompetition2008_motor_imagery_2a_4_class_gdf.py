@@ -282,11 +282,13 @@ class ExP():
         
         #this is designed only for the BCICIV_2a_gdf
         filename = self.root + 'A0%dT.gdf' % self.nSub
+        print("Train subject data",filename)
 
         raw = mne.io.read_raw_gdf(filename)
 
-        print(raw.info)
-        print(raw.ch_names)
+
+        #print(raw.info)
+        #print(raw.ch_names)
         
         # Find the events time positions
         events, _ = mne.events_from_annotations(raw)
@@ -320,46 +322,50 @@ class ExP():
         self.all_data =  train_data
         self.all_label = train_labels
         
+        print("Done loading train data for subject: ", self.nSub)
         #TEST######################################################################################################
         
-        filename = self.root + 'A0%dE.gdf' % self.nSub
+        # filename = self.root + 'A0%dE.gdf' % self.nSub
+        # print("Test subject data",filename)
 
-        raw = mne.io.read_raw_gdf(filename)
+        # raw = mne.io.read_raw_gdf(filename)
 
-        print(raw.info)
-        print(raw.ch_names)
+        # #print(raw.info)
+        # #print(raw.ch_names)
         
-        # Find the events time positions
-        events, _ = mne.events_from_annotations(raw)
+        # # Find the events time positions
+        # events, _ = mne.events_from_annotations(raw)
 
-        # Pre-load the data
-        raw.load_data()
+        # # Pre-load the data
+        # raw.load_data()
 
-        # Filter the raw signal with a band pass filter in 7-35 Hz
-        raw.filter(7., 35., fir_design='firwin')
+        # # Filter the raw signal with a band pass filter in 7-35 Hz
+        # raw.filter(7., 35., fir_design='firwin')
 
-        # Remove the EOG channels and pick only desired EEG channels
+        # # Remove the EOG channels and pick only desired EEG channels
 
-        raw.info['bads'] += ['EOG-left', 'EOG-central', 'EOG-right']
+        # raw.info['bads'] += ['EOG-left', 'EOG-central', 'EOG-right']
 
-        picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, stim=False,
-                       exclude='bads')
+        # picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, stim=False,
+        #                exclude='bads')
 
-        # Extracts epochs of 3s time period from the datset into 288 events for all 4 classes
+        # # Extracts epochs of 3s time period from the datset into 288 events for all 4 classes
 
-        tmin, tmax = 1., 4.
-        # left_hand = 769,right_hand = 770,foot = 771,tongue = 772
-        event_id = dict({'769': 7,'770': 8,'771': 9,'772': 10})
+        # tmin, tmax = 1., 4.
+        # # left_hand = 769,right_hand = 770,foot = 771,tongue = 772
+        # event_id = dict({'769': 7,'770': 8,'771': 9,'772': 10})
 
-        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                baseline=None, preload=True)
+        # epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+        #         baseline=None, preload=True)
 
-        test_data = epochs.get_data()
-        test_labels = epochs.events[:,-1] - 7 + 1         
+        # test_data = epochs.get_data()
+        # test_labels = epochs.events[:,-1] - 7 + 1         
         
-        # test data
-        self.testData =  test_data
-        self.testLabel = test_labels
+        # test data - currently USING TRAIN DATA AS TEST DATA 
+        self.testData =  train_data#test_data #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.testLabel = train_labels#test_labels #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        
+        print("Done loading test data for subject: " ,self.nSub)
         
         # # train data
         # self.total_data = scipy.io.loadmat(self.root + 'A0%dT.mat' % self.nSub)
@@ -388,6 +394,10 @@ class ExP():
 
         # self.testData = self.test_data
         # self.testLabel = self.test_label[0]
+
+        #adjsut because shuffling is skipped for now
+        self.allData = train_data
+        self.allLabel = train_labels
 
         # standardize
         target_mean = np.mean(self.allData)
