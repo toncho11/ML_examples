@@ -226,7 +226,7 @@ class ExP():
         self.start_epoch = 0
         #self.root = '/Data/strict_TE/'
 
-        self.log_write = open("C:\\Temp\\MI\\BCICIV_2_mat\\results\\log_subject%d.txt" % self.nSub, "w")
+        self.log_write = open("C:\\Temp\\MI\\BCICIV_2a_gdf\\results\\log_subject%d.txt" % self.nSub, "w")
 
 
         self.Tensor = torch.cuda.FloatTensor
@@ -514,7 +514,7 @@ class ExP():
 def main():
     best = 0
     aver = 0
-    result_write = open("C:\\Temp\\MI\\BCICIV_2_mat\\results\\sub_result.txt", "w")
+    result_write = open("C:\\Temp\\MI\\BCICIV_2a_gdf\\results\\sub_result.txt", "w")
 
     for i in range(9):
         starttime = datetime.datetime.now()
