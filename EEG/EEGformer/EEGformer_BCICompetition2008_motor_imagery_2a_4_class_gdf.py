@@ -319,8 +319,8 @@ class ExP():
         train_labels = epochs.events[:,-1] - 7 + 1         
         
         # train data
-        self.all_data =  train_data
-        self.all_label = train_labels
+        self.allData =  train_data
+        self.allLabel = train_labels
         
         print("Done loading train data for subject: ", self.nSub)
         #TEST######################################################################################################
@@ -394,10 +394,6 @@ class ExP():
 
         # self.testData = self.test_data
         # self.testLabel = self.test_label[0]
-        
-        #adjsut because shuffling is skipped for now
-        self.allData = train_data
-        self.allLabel = train_labels
         
         #Expand axis as in the original code to add the conv channel
         #in the mat file the data is (time sample, channel)
