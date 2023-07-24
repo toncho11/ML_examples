@@ -251,15 +251,16 @@ class ExP():
             tmp_data = timg[cls_idx]
             tmp_label = label[cls_idx]
 
-            tmp_aug_data = np.zeros((int(self.batch_size / 4), 1, 22, 1000))
+            tmp_aug_data = np.zeros((int(self.batch_size / 4), 1, 22, 1000)) #1000 length of epoch that we have selected 
             for ri in range(int(self.batch_size / 4)):
                 for rj in range(8):
                     rand_idx = np.random.randint(0, tmp_data.shape[0], 8)
-                    tmp_aug_data[ri, :, :, rj * 125:(rj + 1) * 125] = tmp_data[rand_idx[rj], :, :,
-                                                                      rj * 125:(rj + 1) * 125]
+                    
+                    tmp_aug_data[ri, :, :, rj * 125:(rj + 1) * 125] = tmp_data[rand_idx[rj], :, :,rj * 125:(rj + 1) * 125]
 
             aug_data.append(tmp_aug_data)
             aug_label.append(tmp_label[:int(self.batch_size / 4)])
+            
         aug_data = np.concatenate(aug_data)
         aug_label = np.concatenate(aug_label)
         aug_shuffle = np.random.permutation(len(aug_data))
@@ -308,7 +309,8 @@ class ExP():
 
         # Extracts epochs of 3s time period from the datset into 288 events for all 4 classes
 
-        tmin, tmax = 1., 4.
+        #tmin, tmax = 1.0, 4.0
+        tmin, tmax = 0, 4 - (1/250) #because fs = 250
         # left_hand = 769,right_hand = 770,foot = 771,tongue = 772
         event_id = dict({'769': 7,'770': 8,'771': 9,'772': 10})
 
@@ -325,45 +327,45 @@ class ExP():
         print("Done loading train data for subject: ", self.nSub)
         #TEST######################################################################################################
         
-        # filename = self.root + 'A0%dE.gdf' % self.nSub
-        # print("Test subject data",filename)
+        filename = self.root + 'A0%dE.gdf' % self.nSub
+        print("Test subject data",filename)
 
-        # raw = mne.io.read_raw_gdf(filename)
+        raw = mne.io.read_raw_gdf(filename)
 
-        # #print(raw.info)
-        # #print(raw.ch_names)
+        #print(raw.info)
+        #print(raw.ch_names)
         
-        # # Find the events time positions
-        # events, _ = mne.events_from_annotations(raw)
+        # Find the events time positions
+        events, _ = mne.events_from_annotations(raw)
 
-        # # Pre-load the data
-        # raw.load_data()
+        # Pre-load the data
+        raw.load_data()
 
-        # # Filter the raw signal with a band pass filter in 7-35 Hz
-        # raw.filter(7., 35., fir_design='firwin')
+        # Filter the raw signal with a band pass filter in 7-35 Hz
+        raw.filter(7., 35., fir_design='firwin')
 
-        # # Remove the EOG channels and pick only desired EEG channels
+        # Remove the EOG channels and pick only desired EEG channels
 
-        # raw.info['bads'] += ['EOG-left', 'EOG-central', 'EOG-right']
+        raw.info['bads'] += ['EOG-left', 'EOG-central', 'EOG-right']
 
-        # picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, stim=False,
-        #                exclude='bads')
+        picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, stim=False,
+                        exclude='bads')
 
-        # # Extracts epochs of 3s time period from the datset into 288 events for all 4 classes
+        # Extracts epochs of 3s time period from the datset into 288 events for all 4 classes
 
-        # tmin, tmax = 1., 4.
-        # # left_hand = 769,right_hand = 770,foot = 771,tongue = 772
-        # event_id = dict({'769': 7,'770': 8,'771': 9,'772': 10})
+        tmin, tmax = 0, 4 - (1/250) #because fs = 250
+        # left_hand = 769,right_hand = 770,foot = 771,tongue = 772
+        event_id = dict({'769': 7,'770': 8,'771': 9,'772': 10})
 
-        # epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-        #         baseline=None, preload=True)
+        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                baseline=None, preload=True,on_missing="warn")
 
-        # test_data = epochs.get_data()
-        # test_labels = epochs.events[:,-1] - 7 + 1         
+        test_data = epochs.get_data()
+        test_labels = epochs.events[:,-1] - 7 + 1         
         
         # test data - currently USING TRAIN DATA AS TEST DATA 
-        self.testData =  train_data#test_data #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self.testLabel = train_labels#test_labels #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.testData  = test_data #train_data#test_data #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.testLabel = test_labels#train_labels#test_labels #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         print("Done loading test data for subject: " ,self.nSub)
         
@@ -372,6 +374,7 @@ class ExP():
         # self.train_data = self.total_data['data']
         # self.train_label = self.total_data['label']
 
+        # data_2 = zeros(1000,22,288); ########################################################################################
         # self.train_data = np.transpose(self.train_data, (2, 1, 0))
         # self.train_data = np.expand_dims(self.train_data, axis=1)
         # self.train_label = np.transpose(self.train_label)
@@ -410,7 +413,7 @@ class ExP():
         self.allData = (self.allData - target_mean) / target_std
         self.testData = (self.testData - target_mean) / target_std
 
-        # # data shape: (trial, conv channel, electrode channel, time samples)
+        # data shape: (trial, conv channel, electrode channel, time samples)
         return self.allData, self.allLabel, self.testData, self.testLabel
 
     def train(self):
