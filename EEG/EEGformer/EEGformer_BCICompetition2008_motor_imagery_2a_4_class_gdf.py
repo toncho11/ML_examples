@@ -394,10 +394,14 @@ class ExP():
 
         # self.testData = self.test_data
         # self.testLabel = self.test_label[0]
-
+        
         #adjsut because shuffling is skipped for now
         self.allData = train_data
         self.allLabel = train_labels
+        
+        #Expand axis as in the original code to add the conv channel
+        self.allData =  np.expand_dims(self.allData,  axis=1)
+        self.testData = np.expand_dims(self.testData, axis=1)
 
         # standardize
         target_mean = np.mean(self.allData)
