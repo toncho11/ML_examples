@@ -400,6 +400,10 @@ class ExP():
         self.allLabel = train_labels
         
         #Expand axis as in the original code to add the conv channel
+        #in the mat file the data is (time sample, channel)
+        #our data is (trial number, electrode channel, time series data)
+        #we need to conver it from 3 to 4 dim
+        #we need to convert it to: (trial, conv channel, electrode channel, time samples)
         self.allData =  np.expand_dims(self.allData,  axis=1)
         self.testData = np.expand_dims(self.testData, axis=1)
 
