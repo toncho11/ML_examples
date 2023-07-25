@@ -392,13 +392,13 @@ class ExP():
         self.testData = np.expand_dims(self.testData, axis=1)
 
         # shuffle train data
-        shuffle_num = np.random.permutation(len(self.allData))
-        self.allData = self.allData[shuffle_num, :, :, :]
+        shuffle_num   = np.random.permutation(len(self.allData))
+        self.allData  = self.allData[shuffle_num, :, :, :]
         self.allLabel = self.allLabel[shuffle_num]
         
         #shuffle test data
-        shuffle_num = np.random.permutation(len(self.testData))
-        self.testData = self.allData[shuffle_num, :, :, :]
+        shuffle_num    = np.random.permutation(len(self.testData))
+        self.testData  = self.testData[shuffle_num, :, :, :]
         self.testLabel = self.testLabel[shuffle_num]
 
         # standardize
