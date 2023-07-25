@@ -249,7 +249,7 @@ class ExP():
     def __init__(self, nsub):
         super(ExP, self).__init__()
         self.batch_size = 72
-        self.n_epochs = 3 #default 2000
+        self.n_epochs = 500 #default 2000
         self.c_dim = 4
         self.lr = 0.0002
         self.b1 = 0.5
@@ -465,13 +465,13 @@ class ExP():
         bestAcc = 0
         averAcc = 0
         num = 0
-        Y_true = 0
-        Y_pred = 0
+        #Y_true = 0
+        #Y_pred = 0
 
         # Train the cnn model
         total_step = len(self.train_dataloader)
         curr_lr = self.lr
-        early_stopper = EarlyStopper(patience=3, min_delta=2) #neds to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        early_stopper = EarlyStopper(patience=3, min_delta=1.5) #needs to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         for e in range(self.n_epochs):
             # in_epoch = time.time()
@@ -525,8 +525,8 @@ class ExP():
         self.model.eval() #sets the model in evaluation mode
         Tok, Cls = self.model(test_data)
         loss_test = self.criterion_cls(Cls, test_label)
-        y_pred = torch.max(Cls, 1)[1]
-        acc = float((y_pred == test_label).cpu().numpy().astype(int).sum()) / float(test_label.size(0))
+        Y_pred = torch.max(Cls, 1)[1]
+        acc = float((Y_pred == test_label).cpu().numpy().astype(int).sum()) / float(test_label.size(0))
         
         #train_pred = torch.max(train_outputs, 1)[1]
         #train_acc = float((train_pred == label).cpu().numpy().astype(int).sum()) / float(label.size(0))
@@ -562,8 +562,12 @@ def main():
     accuracies = []
     
     for i in range(9):
+       
+        if i + 1 == 4:
+            print("skipping subject")
+            continue
+        
         starttime = datetime.datetime.now()
-
 
         seed_n = np.random.randint(2021)
         print('seed is ' + str(seed_n))
@@ -601,6 +605,7 @@ def main():
 
     #result_write.write('**The average Best accuracy is: ' + str(best) + "\n")
     #result_write.write('The average Aver accuracy is: ' + str(aver) + "\n")
+    print("Accuracies for all subjects: ",accuracies)
     result_write.close()
 
 
