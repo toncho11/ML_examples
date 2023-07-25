@@ -75,6 +75,7 @@ import matplotlib.pyplot as plt
 from torch.backends import cudnn
 cudnn.benchmark = False
 cudnn.deterministic = True
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 # writer = SummaryWriter('./TensorBoardX/')
 
@@ -226,7 +227,23 @@ class Conformer(nn.Sequential):
             ClassificationHead(emb_size, n_classes)
         )
 
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = np.inf
 
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+    
 class ExP():
     def __init__(self, nsub):
         super(ExP, self).__init__()
@@ -413,13 +430,13 @@ class ExP():
 
     def train(self):
 
-        img, label, test_data, test_label = self.get_source_data()
+        train_data, train_label, test_data, test_label = self.get_source_data()
 
-        img = torch.from_numpy(img)
-        label = torch.from_numpy(label - 1)
+        train_data = torch.from_numpy(train_data)
+        train_label = torch.from_numpy(train_label - 1)
 
-        dataset = torch.utils.data.TensorDataset(img, label)
-        self.dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True)
+        train_dataset = torch.utils.data.TensorDataset(train_data, train_label)
+        self.train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=True)
 
         test_data = torch.from_numpy(test_data)
         test_label = torch.from_numpy(test_label - 1)
@@ -439,13 +456,16 @@ class ExP():
         Y_pred = 0
 
         # Train the cnn model
-        total_step = len(self.dataloader)
+        total_step = len(self.train_dataloader)
         curr_lr = self.lr
-
+        early_stopper = EarlyStopper(patience=3, min_delta=10)
+        
         for e in range(self.n_epochs):
             # in_epoch = time.time()
+            
             self.model.train()
-            for i, (img, label) in enumerate(self.dataloader):
+            
+            for i, (img, label) in enumerate(self.train_dataloader):
 
                 img = Variable(img.cuda().type(self.Tensor))
                 label = Variable(label.cuda().type(self.LongTensor))
@@ -458,17 +478,23 @@ class ExP():
 
                 tok, outputs = self.model(img)
 
-                loss = self.criterion_cls(outputs, label) 
+                train_loss = self.criterion_cls(outputs, label) 
 
                 self.optimizer.zero_grad()
-                loss.backward()
+                train_loss.backward()
                 self.optimizer.step()
+                
+                print(i)
 
-
+            #early stopping 
+            # validation_loss = validate_one_epoch(model, validation_loader)
+            # if early_stopper.early_stop(validation_loss):             
+            #     break
+    
             # out_epoch = time.time()
 
 
-            # test process
+            # test process - SHOULD NOT BE AFTER EACH EPOCH, BUT AFTER THE TRAINING(with validation)
             if (e + 1) % 1 == 0:
                 self.model.eval()
                 Tok, Cls = self.model(test_data)
@@ -481,7 +507,7 @@ class ExP():
                 train_acc = float((train_pred == label).cpu().numpy().astype(int).sum()) / float(label.size(0))
 
                 print('Epoch:', e,
-                      '  Train loss: %.6f' % loss.detach().cpu().numpy(),
+                      '  Train loss: %.6f' % train_loss.detach().cpu().numpy(),
                       '  Test loss: %.6f' % loss_test.detach().cpu().numpy(),
                       '  Train accuracy %.6f' % train_acc,
                       '  Test accuracy is %.6f' % acc)
@@ -526,8 +552,9 @@ def main():
 
         print('Subject %d' % (i+1))
         exp = ExP(i + 1)
-
+        
         bestAcc, averAcc, Y_true, Y_pred = exp.train()
+        
         print('THE BEST ACCURACY IS ' + str(bestAcc))
         result_write.write('Subject ' + str(i + 1) + ' : ' + 'Seed is: ' + str(seed_n) + "\n")
         result_write.write('Subject ' + str(i + 1) + ' : ' + 'The best accuracy is: ' + str(bestAcc) + "\n")
