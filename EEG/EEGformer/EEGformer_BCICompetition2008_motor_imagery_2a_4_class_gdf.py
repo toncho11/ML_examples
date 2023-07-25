@@ -537,7 +537,10 @@ def main():
     for i in range(9):
         starttime = datetime.datetime.now()
 
-
+        if i + 1 == 4:
+             print("skipping subject")
+             continue
+         
         seed_n = np.random.randint(2021)
         print('seed is ' + str(seed_n))
         random.seed(seed_n)
