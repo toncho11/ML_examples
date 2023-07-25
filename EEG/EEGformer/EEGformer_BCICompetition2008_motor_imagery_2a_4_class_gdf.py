@@ -4,6 +4,22 @@ EEG Conformer
 Convolutional Transformer for EEG decoding
 
 Couple CNN and Transformer in a concise manner with amazing results
+
+Paper: https://ieeexplore.ieee.org/document/9991178
+
+The dataset used: BCI Competition 2008 – Graz data set A, BCI Competition IV, 4 class motor imagery
+Description: https://www.bbci.de/competition/iv/desc_2a.pdf
+The dataset is 18 GDF files for 9 subjects. 2 files per subject (train and test) 
+
+This code has been modified by Anton ANDREEV in order to access the dataset.
+
+The code is hard coded for BCICIV_2a_gdf dataset.
+Values that are hardcoded:
+    - fs=250
+    - epoch length to 1000
+    - time epoch length (4 - (1/250))
+    - the markers that generate the epochs
+
 """
 # remember to change paths
 
@@ -363,48 +379,27 @@ class ExP():
         test_data = epochs.get_data()
         test_labels = epochs.events[:,-1] - 7 + 1         
         
-        # test data - currently USING TRAIN DATA AS TEST DATA 
-        self.testData  = test_data #train_data#test_data #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self.testLabel = test_labels#train_labels#test_labels #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.testData  = test_data 
+        self.testLabel = test_labels
         
         print("Done loading test data for subject: " ,self.nSub)
         
-        # # train data
-        # self.total_data = scipy.io.loadmat(self.root + 'A0%dT.mat' % self.nSub)
-        # self.train_data = self.total_data['data']
-        # self.train_label = self.total_data['label']
-
-        # data_2 = zeros(1000,22,288); ########################################################################################
-        # self.train_data = np.transpose(self.train_data, (2, 1, 0))
-        # self.train_data = np.expand_dims(self.train_data, axis=1)
-        # self.train_label = np.transpose(self.train_label)
-
-        # self.allData = self.train_data
-        # self.allLabel = self.train_label[0]
-
-        # shuffle_num = np.random.permutation(len(self.allData))
-        # self.allData = self.allData[shuffle_num, :, :, :]
-        # self.allLabel = self.allLabel[shuffle_num]
-
-        # # test data
-        # self.test_tmp = scipy.io.loadmat(self.root + 'A0%dE.mat' % self.nSub)
-        # self.test_data = self.test_tmp['data']
-        # self.test_label = self.test_tmp['label']
-
-        # self.test_data = np.transpose(self.test_data, (2, 1, 0))
-        # self.test_data = np.expand_dims(self.test_data, axis=1)
-        # self.test_label = np.transpose(self.test_label)
-
-        # self.testData = self.test_data
-        # self.testLabel = self.test_label[0]
-        
         #Expand axis as in the original code to add the conv channel
-        #in the mat file the data is (time sample, channel)
         #our data is (trial number, electrode channel, time series data)
-        #we need to conver it from 3 to 4 dim
+        #we need to convert it from 3 to 4 dim
         #we need to convert it to: (trial, conv channel, electrode channel, time samples)
         self.allData =  np.expand_dims(self.allData,  axis=1)
         self.testData = np.expand_dims(self.testData, axis=1)
+
+        # shuffle train data
+        shuffle_num = np.random.permutation(len(self.allData))
+        self.allData = self.allData[shuffle_num, :, :, :]
+        self.allLabel = self.allLabel[shuffle_num]
+        
+        #shuffle test data
+        shuffle_num = np.random.permutation(len(self.testData))
+        self.testData = self.allData[shuffle_num, :, :, :]
+        self.testLabel = self.testLabel[shuffle_num]
 
         # standardize
         target_mean = np.mean(self.allData)
