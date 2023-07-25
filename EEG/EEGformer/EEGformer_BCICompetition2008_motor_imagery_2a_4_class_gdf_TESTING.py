@@ -235,19 +235,36 @@ class EarlyStopper:
         self.min_delta = min_delta
         self.counter = 0
         self.min_validation_loss = np.inf
+        self.ready_to_stop = False
 
+    # def early_stop(self, validation_loss):
+        
+    #     if validation_loss < self.min_validation_loss:
+            
+    #         self.min_validation_loss = validation_loss
+    #         self.counter = 0
+        
+    #     elif validation_loss > (self.min_validation_loss + self.min_delta):
+        
+    #         self.counter += 1
+    #         if self.counter >= self.patience:
+    #             return True
+            
+    #     return False
     def early_stop(self, validation_loss):
         
-        if validation_loss < self.min_validation_loss:
+        if (validation_loss < (self.min_delta + self.min_validation_loss) and self.ready_to_stop):
+            return True
+        
+        elif validation_loss < self.min_validation_loss:
             
             self.min_validation_loss = validation_loss
-            self.counter = 0
         
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
+        elif validation_loss > self.min_validation_loss:
         
             self.counter += 1
             if self.counter >= self.patience:
-                return True
+                self.ready_to_stop = True
             
         return False
     
@@ -255,7 +272,7 @@ class ExP():
     def __init__(self, nsub):
         super(ExP, self).__init__()
         self.batch_size = 72
-        self.n_epochs = 500 #default 2000
+        self.n_epochs = 1000 #default 2000
         self.c_dim = 4
         self.lr = 0.0002
         self.b1 = 0.5
@@ -421,7 +438,7 @@ class ExP():
         self.allLabel = self.allLabel[shuffle_num]
         
         #produce the validation dataset from the train data
-        self.allData, self.valData, self.allLabel, self.valLabel = train_test_split(self.allData, self.allLabel, test_size=0.23, random_state=42, shuffle = True)
+        self.allData, self.valData, self.allLabel, self.valLabel = train_test_split(self.allData, self.allLabel, test_size=0.3, random_state=42, shuffle = True)
 
         #shuffle test data
         shuffle_num    = np.random.permutation(len(self.testData))
@@ -468,16 +485,16 @@ class ExP():
         test_data = Variable(test_data.type(self.Tensor))
         test_label = Variable(test_label.type(self.LongTensor))
 
-        bestAcc = 0
-        averAcc = 0
-        num = 0
+        #bestAcc = 0
+        #averAcc = 0
+        #num = 0
         #Y_true = 0
         #Y_pred = 0
 
         # Train the cnn model
-        total_step = len(self.train_dataloader)
-        curr_lr = self.lr
-        early_stopper = EarlyStopper(patience=2, min_delta=1) #needs to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #total_step = len(self.train_dataloader)
+        #curr_lr = self.lr
+        early_stopper = EarlyStopper(patience=100, min_delta=0.1) #needs to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         for e in range(self.n_epochs):
             # in_epoch = time.time()
@@ -524,7 +541,7 @@ class ExP():
                 break
     
             # out_epoch = time.time()
-            print("Done epoch")
+            print("Done epoch. Validation loss: ", validation_loss, " Train loss: ", train_loss)
 
 
         # test process - SHOULD NOT BE AFTER EACH EPOCH, BUT AFTER THE TRAINING(with validation)
@@ -613,9 +630,10 @@ def main():
     #result_write.write('The average Aver accuracy is: ' + str(aver) + "\n")
     print("Accuracies for all subjects: ",accuracies)
     result_write.close()
+    return accuracies
 
 
 if __name__ == "__main__":
     print(time.asctime(time.localtime(time.time())))
-    main()
+    accuracies = main()
     print(time.asctime(time.localtime(time.time())))
