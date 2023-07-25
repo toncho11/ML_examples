@@ -75,6 +75,8 @@ import matplotlib.pyplot as plt
 from torch.backends import cudnn
 cudnn.benchmark = False
 cudnn.deterministic = True
+#from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from sklearn.model_selection import train_test_split
 
 # writer = SummaryWriter('./TensorBoardX/')
 
@@ -226,12 +228,28 @@ class Conformer(nn.Sequential):
             ClassificationHead(emb_size, n_classes)
         )
 
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = np.inf
 
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+    
 class ExP():
     def __init__(self, nsub):
         super(ExP, self).__init__()
         self.batch_size = 72
-        self.n_epochs = 2000
+        self.n_epochs = 3 #default 2000
         self.c_dim = 4
         self.lr = 0.0002
         self.b1 = 0.5
@@ -392,35 +410,47 @@ class ExP():
         self.testData = np.expand_dims(self.testData, axis=1)
 
         # shuffle train data
-        shuffle_num = np.random.permutation(len(self.allData))
-        self.allData = self.allData[shuffle_num, :, :, :]
+        shuffle_num   = np.random.permutation(len(self.allData))
+        self.allData  = self.allData[shuffle_num, :, :, :]
         self.allLabel = self.allLabel[shuffle_num]
         
+        #produce the validation dataset from the train data
+        self.allData, self.valData, self.allLabel, self.valLabel = train_test_split(self.allData, self.allLabel, test_size=0.23, random_state=42, shuffle = True)
+
         #shuffle test data
-        shuffle_num = np.random.permutation(len(self.testData))
-        self.testData = self.testData[shuffle_num, :, :, :]
+        shuffle_num    = np.random.permutation(len(self.testData))
+        self.testData  = self.testData[shuffle_num, :, :, :]
         self.testLabel = self.testLabel[shuffle_num]
 
         # standardize
         target_mean = np.mean(self.allData)
         target_std =  np.std(self.allData)
         
-        self.allData = (self.allData - target_mean) / target_std
+        self.allData =  (self.allData  - target_mean) / target_std
+        self.valData =  (self.valData  - target_mean) / target_std
         self.testData = (self.testData - target_mean) / target_std
 
         # data shape: (trial, conv channel, electrode channel, time samples)
-        return self.allData, self.allLabel, self.testData, self.testLabel
+        return self.allData, self.allLabel, self.valData, self.valLabel, self.testData, self.testLabel
 
     def train(self):
 
-        img, label, test_data, test_label = self.get_source_data()
+        train_data, train_label, val_data, val_label, test_data, test_label = self.get_source_data()
 
-        img = torch.from_numpy(img)
-        label = torch.from_numpy(label - 1)
+        #train
+        train_data = torch.from_numpy(train_data)
+        train_label = torch.from_numpy(train_label - 1)
 
-        dataset = torch.utils.data.TensorDataset(img, label)
-        self.dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True)
+        train_dataset = torch.utils.data.TensorDataset(train_data, train_label)
+        self.train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=True)
 
+        #validation
+        val_data = torch.from_numpy(val_data)
+        val_label = torch.from_numpy(val_label - 1)
+        val_dataset = torch.utils.data.TensorDataset(val_data, val_label)
+        self.val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=self.batch_size, shuffle=True)
+
+        #test
         test_data = torch.from_numpy(test_data)
         test_label = torch.from_numpy(test_label - 1)
         test_dataset = torch.utils.data.TensorDataset(test_data, test_label)
@@ -439,13 +469,16 @@ class ExP():
         Y_pred = 0
 
         # Train the cnn model
-        total_step = len(self.dataloader)
+        total_step = len(self.train_dataloader)
         curr_lr = self.lr
-
+        early_stopper = EarlyStopper(patience=3, min_delta=2) #neds to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        
         for e in range(self.n_epochs):
             # in_epoch = time.time()
-            self.model.train()
-            for i, (img, label) in enumerate(self.dataloader):
+            
+            self.model.train() #sets the model in training mode
+            
+            for i, (img, label) in enumerate(self.train_dataloader):
 
                 img = Variable(img.cuda().type(self.Tensor))
                 label = Variable(label.cuda().type(self.LongTensor))
@@ -456,61 +489,78 @@ class ExP():
                 label = torch.cat((label, aug_label))
 
 
-                tok, outputs = self.model(img)
+                tok, train_outputs = self.model(img)
 
-                loss = self.criterion_cls(outputs, label) 
+                train_loss = self.criterion_cls(train_outputs, label) 
 
                 self.optimizer.zero_grad()
-                loss.backward()
+                train_loss.backward()
                 self.optimizer.step()
+                
+                #print(i)
 
-
+            # Evaluate the model on the validation set
+            with torch.no_grad():
+                for i, (inputs, labels) in enumerate(self.val_dataloader):
+                    
+                    inputs = Variable(inputs.cuda().type(self.Tensor))
+                    labels = Variable(labels.cuda().type(self.LongTensor))
+                    
+                    tok, val_outputs = self.model(inputs)
+                    
+                    validation_loss = self.criterion_cls(val_outputs,labels)#loss_fn(val_outputs, labels) #loss_fn = nn.CrossEntropyLoss()
+                    #validation_loss += loss.item()
+        
+            #early stopping 
+            #validation_loss = validate_one_epoch(model, validation_loader)
+            if early_stopper.early_stop(validation_loss):
+                print("Early stop @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                break
+    
             # out_epoch = time.time()
+            print("Done epoch")
 
 
-            # test process
-            if (e + 1) % 1 == 0:
-                self.model.eval()
-                Tok, Cls = self.model(test_data)
+        # test process - SHOULD NOT BE AFTER EACH EPOCH, BUT AFTER THE TRAINING(with validation)
+        self.model.eval() #sets the model in evaluation mode
+        Tok, Cls = self.model(test_data)
+        loss_test = self.criterion_cls(Cls, test_label)
+        y_pred = torch.max(Cls, 1)[1]
+        acc = float((y_pred == test_label).cpu().numpy().astype(int).sum()) / float(test_label.size(0))
+        
+        #train_pred = torch.max(train_outputs, 1)[1]
+        #train_acc = float((train_pred == label).cpu().numpy().astype(int).sum()) / float(label.size(0))
 
+        print('Subject:', self.nSub,'  Test acc: %.6f' % acc)
+        
+        # print('Epoch:', e,
+        #       '  Train loss: %.6f' % train_loss.detach().cpu().numpy(),
+        #       '  Test loss: %.6f' % loss_test.detach().cpu().numpy(),
+        #       '  Train accuracy %.6f' % train_acc,
+        #       '  Test accuracy is %.6f' % acc)
 
-                loss_test = self.criterion_cls(Cls, test_label)
-                y_pred = torch.max(Cls, 1)[1]
-                acc = float((y_pred == test_label).cpu().numpy().astype(int).sum()) / float(test_label.size(0))
-                train_pred = torch.max(outputs, 1)[1]
-                train_acc = float((train_pred == label).cpu().numpy().astype(int).sum()) / float(label.size(0))
-
-                print('Epoch:', e,
-                      '  Train loss: %.6f' % loss.detach().cpu().numpy(),
-                      '  Test loss: %.6f' % loss_test.detach().cpu().numpy(),
-                      '  Train accuracy %.6f' % train_acc,
-                      '  Test accuracy is %.6f' % acc)
-
-                self.log_write.write(str(e) + "    " + str(acc) + "\n")
-                num = num + 1
-                averAcc = averAcc + acc
-                if acc > bestAcc:
-                    bestAcc = acc
-                    Y_true = test_label
-                    Y_pred = y_pred
-
+        self.log_write.write(str(e) + "    " + str(acc) + "\n")
+       
+        Y_true = test_label
 
         torch.save(self.model.module.state_dict(), 'model.pth')
-        averAcc = averAcc / num
-        print('The average accuracy is:', averAcc)
-        print('The best accuracy is:', bestAcc)
-        self.log_write.write('The average accuracy is: ' + str(averAcc) + "\n")
-        self.log_write.write('The best accuracy is: ' + str(bestAcc) + "\n")
+        #averAcc = averAcc / num
+        #print('The average accuracy is:', averAcc)
+        #print('The best accuracy is:', bestAcc)
+        #self.log_write.write('The average accuracy is: ' + str(averAcc) + "\n")
+        #self.log_write.write('The best accuracy is: ' + str(bestAcc) + "\n")
 
-        return bestAcc, averAcc, Y_true, Y_pred
+        return acc, Y_true, Y_pred
         # writer.close()
 
 
 def main():
-    best = 0
-    aver = 0
+    #best = 0
+    #aver = 0
     result_write = open("C:\\Temp\\MI\\BCICIV_2a_gdf\\results\\sub_result.txt", "w")
 
+    accuracies = []
+    
     for i in range(9):
         starttime = datetime.datetime.now()
 
@@ -526,17 +576,18 @@ def main():
 
         print('Subject %d' % (i+1))
         exp = ExP(i + 1)
-
-        bestAcc, averAcc, Y_true, Y_pred = exp.train()
-        print('THE BEST ACCURACY IS ' + str(bestAcc))
+        
+        acc, Y_true, Y_pred = exp.train()
+        
+        accuracies.append(acc)
+        
+        print('THE ACCURACY IS ' + str(acc))
         result_write.write('Subject ' + str(i + 1) + ' : ' + 'Seed is: ' + str(seed_n) + "\n")
-        result_write.write('Subject ' + str(i + 1) + ' : ' + 'The best accuracy is: ' + str(bestAcc) + "\n")
-        result_write.write('Subject ' + str(i + 1) + ' : ' + 'The average accuracy is: ' + str(averAcc) + "\n")
+        result_write.write('Subject ' + str(i + 1) + ' : ' + 'The accuracy is: ' + str(acc) + "\n")
 
         endtime = datetime.datetime.now()
         print('subject %d duration: '%(i+1) + str(endtime - starttime))
-        best = best + bestAcc
-        aver = aver + averAcc
+        
         if i == 0:
             yt = Y_true
             yp = Y_pred
@@ -545,11 +596,11 @@ def main():
             yp = torch.cat((yp, Y_pred))
 
 
-    best = best / 9
-    aver = aver / 9
+    #best = best / 9
+    #aver = aver / 9
 
-    result_write.write('**The average Best accuracy is: ' + str(best) + "\n")
-    result_write.write('The average Aver accuracy is: ' + str(aver) + "\n")
+    #result_write.write('**The average Best accuracy is: ' + str(best) + "\n")
+    #result_write.write('The average Aver accuracy is: ' + str(aver) + "\n")
     result_write.close()
 
 
