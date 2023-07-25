@@ -75,7 +75,8 @@ import matplotlib.pyplot as plt
 from torch.backends import cudnn
 cudnn.benchmark = False
 cudnn.deterministic = True
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+#from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from sklearn.model_selection import train_test_split
 
 # writer = SummaryWriter('./TensorBoardX/')
 
@@ -413,6 +414,9 @@ class ExP():
         self.allData  = self.allData[shuffle_num, :, :, :]
         self.allLabel = self.allLabel[shuffle_num]
         
+        #produce the validation dataset from the train data
+        self.allData, self.valData, self.allLabel, self.valLabel = train_test_split(self.allData, self.allLabel, test_size=0.23, random_state=42, shuffle = True)
+
         #shuffle test data
         shuffle_num    = np.random.permutation(len(self.testData))
         self.testData  = self.testData[shuffle_num, :, :, :]
@@ -422,22 +426,31 @@ class ExP():
         target_mean = np.mean(self.allData)
         target_std =  np.std(self.allData)
         
-        self.allData = (self.allData - target_mean) / target_std
+        self.allData =  (self.allData  - target_mean) / target_std
+        self.valData =  (self.valData  - target_mean) / target_std
         self.testData = (self.testData - target_mean) / target_std
 
         # data shape: (trial, conv channel, electrode channel, time samples)
-        return self.allData, self.allLabel, self.testData, self.testLabel
+        return self.allData, self.allLabel, self.valData, self.valLabel, self.testData, self.testLabel
 
     def train(self):
 
-        train_data, train_label, test_data, test_label = self.get_source_data()
+        train_data, train_label, val_data, val_label, test_data, test_label = self.get_source_data()
 
+        #train
         train_data = torch.from_numpy(train_data)
         train_label = torch.from_numpy(train_label - 1)
 
         train_dataset = torch.utils.data.TensorDataset(train_data, train_label)
         self.train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=True)
 
+        #validation
+        val_data = torch.from_numpy(val_data)
+        val_label = torch.from_numpy(val_label - 1)
+        val_dataset = torch.utils.data.TensorDataset(val_data, val_label)
+        self.val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=self.batch_size, shuffle=True)
+
+        #test
         test_data = torch.from_numpy(test_data)
         test_label = torch.from_numpy(test_label - 1)
         test_dataset = torch.utils.data.TensorDataset(test_data, test_label)
@@ -476,20 +489,32 @@ class ExP():
                 label = torch.cat((label, aug_label))
 
 
-                tok, outputs = self.model(img)
+                tok, train_outputs = self.model(img)
 
-                train_loss = self.criterion_cls(outputs, label) 
+                train_loss = self.criterion_cls(train_outputs, label) 
 
                 self.optimizer.zero_grad()
                 train_loss.backward()
                 self.optimizer.step()
                 
-                print(i)
+                #print(i)
 
+            # Evaluate the model on the validation set
+            with torch.no_grad():
+                for i, (inputs, labels) in enumerate(self.val_dataloader):
+                    
+                    inputs = Variable(inputs.cuda().type(self.Tensor))
+                    labels = Variable(labels.cuda().type(self.LongTensor))
+                    
+                    tok, val_outputs = self.model(inputs)
+                    
+                    validation_loss = self.criterion_cls(val_outputs,labels)#loss_fn(val_outputs, labels) #loss_fn = nn.CrossEntropyLoss()
+                    #validation_loss += loss.item()
+        
             #early stopping 
-            # validation_loss = validate_one_epoch(model, validation_loader)
-            # if early_stopper.early_stop(validation_loss):             
-            #     break
+            #validation_loss = validate_one_epoch(model, validation_loader)
+            if early_stopper.early_stop(validation_loss):             
+                break
     
             # out_epoch = time.time()
 
@@ -503,7 +528,7 @@ class ExP():
                 loss_test = self.criterion_cls(Cls, test_label)
                 y_pred = torch.max(Cls, 1)[1]
                 acc = float((y_pred == test_label).cpu().numpy().astype(int).sum()) / float(test_label.size(0))
-                train_pred = torch.max(outputs, 1)[1]
+                train_pred = torch.max(train_outputs, 1)[1]
                 train_acc = float((train_pred == label).cpu().numpy().astype(int).sum()) / float(label.size(0))
 
                 print('Epoch:', e,
