@@ -272,7 +272,7 @@ class ExP():
     def __init__(self, nsub):
         super(ExP, self).__init__()
         self.batch_size = 72
-        self.n_epochs = 1000 #default 2000
+        self.n_epochs = 2000 #default 2000
         self.c_dim = 4
         self.lr = 0.0002
         self.b1 = 0.5
@@ -494,7 +494,7 @@ class ExP():
         # Train the cnn model
         #total_step = len(self.train_dataloader)
         #curr_lr = self.lr
-        early_stopper = EarlyStopper(patience=100, min_delta=0.1) #needs to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        early_stopper = EarlyStopper(patience=400, min_delta=0.05) #needs to be adjusted !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         for e in range(self.n_epochs):
             # in_epoch = time.time()
