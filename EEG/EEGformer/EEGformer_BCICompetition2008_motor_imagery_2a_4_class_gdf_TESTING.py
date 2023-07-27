@@ -538,13 +538,14 @@ class ExP():
             #validation_loss = validate_one_epoch(model, validation_loader)
             if early_stopper.early_stop(validation_loss):
                 print("Early stop @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                print("Validation loss ", validation_loss)
                 break
     
             # out_epoch = time.time()
             print("Done epoch. Validation loss: ", validation_loss, " Train loss: ", train_loss)
 
 
-        # test process - SHOULD NOT BE AFTER EACH EPOCH, BUT AFTER THE TRAINING(with validation)
+        # test process
         self.model.eval() #sets the model in evaluation mode
         Tok, Cls = self.model(test_data)
         loss_test = self.criterion_cls(Cls, test_label)

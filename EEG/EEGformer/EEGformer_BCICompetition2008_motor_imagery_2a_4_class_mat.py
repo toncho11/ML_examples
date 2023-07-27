@@ -216,7 +216,7 @@ class ExP():
     def __init__(self, nsub):
         super(ExP, self).__init__()
         self.batch_size = 72
-        self.n_epochs = 500
+        self.n_epochs = 800
         self.c_dim = 4
         self.lr = 0.0002
         self.b1 = 0.5
@@ -383,7 +383,7 @@ class ExP():
                 train_pred = torch.max(outputs, 1)[1]
                 train_acc = float((train_pred == label).cpu().numpy().astype(int).sum()) / float(label.size(0))
 
-                print('Epoch:', e,
+                print('Epoch:', e, " Subject: ", self.nSub, 
                       '  Train loss: %.6f' % loss.detach().cpu().numpy(),
                       '  Test loss: %.6f' % loss_test.detach().cpu().numpy(),
                       '  Train accuracy %.6f' % train_acc,
@@ -405,6 +405,13 @@ class ExP():
         self.log_write.write('The average accuracy is: ' + str(averAcc) + "\n")
         self.log_write.write('The best accuracy is: ' + str(bestAcc) + "\n")
 
+        #free video memory
+        import gc
+        self.model.cpu()
+        del self.model
+        gc.collect()
+        torch.cuda.empty_cache()
+        
         return bestAcc, averAcc, Y_true, Y_pred
         # writer.close()
 
@@ -415,7 +422,7 @@ def main():
     result_write = open("C:\\Temp\\MI\\standard_2a_data\\results\\sub_result.txt", "w")
 
     n_subjects = 3
-    for i in range(n_subjects):
+    for i in range(3,7):
         starttime = datetime.datetime.now()
 
 
@@ -441,12 +448,12 @@ def main():
         print('subject %d duration: '%(i+1) + str(endtime - starttime))
         best = best + bestAcc
         aver = aver + averAcc
-        if i == 0:
-            yt = Y_true
-            yp = Y_pred
-        else:
-            yt = torch.cat((yt, Y_true))
-            yp = torch.cat((yp, Y_pred))
+        # if i == 0:
+        #     yt = Y_true
+        #     yp = Y_pred
+        # else:
+        #     yt = torch.cat((yt, Y_true))
+        #     yp = torch.cat((yp, Y_pred))
 
 
     best = best / n_subjects

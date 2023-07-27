@@ -227,23 +227,6 @@ class Conformer(nn.Sequential):
             TransformerEncoder(depth, emb_size),
             ClassificationHead(emb_size, n_classes)
         )
-
-class EarlyStopper:
-    def __init__(self, patience=1, min_delta=0):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.min_validation_loss = np.inf
-
-    def early_stop(self, validation_loss):
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
-            self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
     
 class ExP():
     def __init__(self, nsub):
@@ -461,7 +444,6 @@ class ExP():
         # Train the cnn model
         total_step = len(self.train_dataloader)
         curr_lr = self.lr
-        early_stopper = EarlyStopper(patience=3, min_delta=10)
         
         for e in range(self.n_epochs):
             # in_epoch = time.time()
@@ -524,6 +506,13 @@ class ExP():
         print('The best accuracy is:', bestAcc)
         self.log_write.write('The average accuracy is: ' + str(averAcc) + "\n")
         self.log_write.write('The best accuracy is: ' + str(bestAcc) + "\n")
+
+        #free video memory
+        import gc
+        self.model.cpu()
+        del self.model
+        gc.collect()
+        torch.cuda.empty_cache()
 
         return bestAcc, averAcc, Y_true, Y_pred
         # writer.close()
