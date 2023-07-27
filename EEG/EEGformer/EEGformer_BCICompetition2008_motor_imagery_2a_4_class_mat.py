@@ -422,7 +422,7 @@ def main():
     result_write = open("C:\\Temp\\MI\\standard_2a_data\\results\\sub_result.txt", "w")
 
     n_subjects = 3
-    for i in range(3,7):
+    for i in range(n_subjects):
         starttime = datetime.datetime.now()
 
 
