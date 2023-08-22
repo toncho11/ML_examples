@@ -29,27 +29,14 @@ from sklearn.pipeline import Pipeline
 from skorch.callbacks import EarlyStopping, EpochScoring
 from skorch.dataset import ValidSplit
 
-from moabb.pipelines.features import FM
+from moabb.pipelines.features import FM #before it was moabb.pipelines.features.Resampler_Epoch 
+
 from moabb.pipelines.utils_pytorch import BraindecodeDatasetLoader, InputShapeSetterEEG
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
 from sklearn.pipeline import make_pipeline
 
 from matplotlib import pyplot as plt
-
-##############################################################################
-# Instanciate the model
-# ----------------
-#
-# Instanciate an instance of EEGConformer [1]_.
-#
-# [1] \
-# 
-# Y. Song, Q. Zheng, B. Liu, and X. Gao,
-# ‘EEG Conformer: Convolutional Transformer for EEG Decoding and Visualization’,
-# IEEE Transactions on Neural Systems and Rehabilitation Engineering,
-# vol. 31, pp. 710–719, 2023, doi: 10.1109/TNSRE.2022.3230250.
-
 
 # Set up GPU if it is there
 cuda = torch.cuda.is_available()
@@ -96,12 +83,7 @@ clf = EEGClassifier(
     verbose=VERBOSE,  # Not printing the results for each epoch
 )
 
-
-##############################################################################
 # Create Pipelines
-# ----------------
-#
-# Pipelines must be a dict of sklearn pipeline transformer.
 
 pipelines_withEpochs = {}
 pipelines_withArray = {}
@@ -120,13 +102,8 @@ pipelines_withArray["MDM"] = make_pipeline(
     MDM()
 )
 
-
-##############################################################################
 # Run evaluation
-# ----------------
-#
-# Compare the pipeline using a within session evaluation.
-# Create the pipelines
+
 paradigm = P300()
 # paradigm.resample = 128
 
