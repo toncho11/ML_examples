@@ -17,7 +17,7 @@ from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014
 #from moabb.datasets.compound_dataset.base import CompoundDataset
 #from moabb.datasets.utils import blocks_reps
 
-from moabb.evaluations.evaluations import CrossSubjectEvaluation
+from moabb.evaluations.evaluations import CrossSubjectEvaluation, WithinSessionEvaluation
 from moabb.paradigms.p300 import P300
 import torch
 import seaborn as sns
@@ -52,8 +52,8 @@ LEARNING_RATE = 0.0001
 WEIGHT_DECAY = 0
 BATCH_SIZE = 64
 SEED = 42
-VERBOSE = 1
-EPOCH = 10
+VERBOSE = 0
+EPOCH = 2 #WARNING set to low number (10 default)
 PATIENCE = 3
 
 # Create the dataset
@@ -67,10 +67,10 @@ create_dataset = BraindecodeDatasetLoader()
 #BNCI2015003	 8	10
 #bi2015a        32  43
 #bi2015b        32  44
-datasets = [bi2013a()] #BNCI2014009()
+datasets = [BNCI2014009()] #BNCI2014009()
 
 # Set random Model
-model = EEGNetv4(in_chans=16, n_classes=2, input_window_samples=100)
+model = EEGNetv4(in_chans=1, n_classes=2, input_window_samples=100) #WARNING channels must be set
 #model = EEGConformer(n_classes=2, n_channels=16)
 
 # Define a Skorch classifier
@@ -103,12 +103,18 @@ clf = EEGClassifier(
 pipelines_withEpochs = {}
 pipelines_withArray  = {}
 
-pipelines_withEpochs["braindecode_" + model.__class__.__name__] = Pipeline(
-    [
-        ("resample", Resampler_Epoch(128)),
-        ("braindecode_dataset", create_dataset),
-        (model.__class__.__name__ + "_clf", clf),
-    ]
+# pipelines_withEpochs["bd"] = Pipeline( #"braindecode_" + model.__class__.__name__
+#     [
+#         ("resample", Resampler_Epoch(128)),
+#         ("braindecode_dataset", create_dataset), #to convert from moabb to braindecode
+#         ("clf", clf), #model.__class__.__name__ + "_clf"
+#     ]
+# )
+
+pipelines_withEpochs["bd"] = make_pipeline(
+        #Resampler_Epoch(128),
+        create_dataset, #to convert from moabb to braindecode
+        clf
 )
 
 pipelines_withArray["MDM"] = make_pipeline(
@@ -122,29 +128,12 @@ pipelines_withArray["MDM"] = make_pipeline(
 paradigm = P300()
 # paradigm.resample = 128
 
-# class CustomDataset1(CompoundDataset):
-#     def __init__(self):
-#         biVR = VirtualReality(virtual_reality=True, screen_display=True)
-#         runs = blocks_reps([1, 3], [1, 2, 3, 4, 5])
-#         subjects_list = [
-#             (biVR, 1, "VR", runs),
-#             (biVR, 2, "VR", runs),
-#         ]
-#         CompoundDataset.__init__(
-#             self,
-#             subjects_list=subjects_list,
-#             events=dict(Target=2, NonTarget=1),
-#             code="D1",
-#             interval=[0, 1.0],
-#             paradigm="p300",
-#         )
-
 # redeuce to two subjects for testing
 n_subjects = 2
 for dataset in datasets:
     dataset.subject_list = dataset.subject_list[0:n_subjects]
 
-evaluation1 = CrossSubjectEvaluation(
+evaluation1 = WithinSessionEvaluation(
     paradigm=paradigm,
     datasets=datasets,
     overwrite=True,
@@ -153,7 +142,7 @@ evaluation1 = CrossSubjectEvaluation(
 
 results1 = evaluation1.process(pipelines_withEpochs)
 
-evaluation2 = CrossSubjectEvaluation(
+evaluation2 = WithinSessionEvaluation(
     paradigm=paradigm,
     datasets=datasets,
     overwrite=True,
