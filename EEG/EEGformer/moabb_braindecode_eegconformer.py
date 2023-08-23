@@ -70,8 +70,8 @@ create_dataset = BraindecodeDatasetLoader()
 datasets = [BNCI2014009()] #BNCI2014009()
 
 # Set random Model
-model = EEGNetv4(in_chans=1, n_classes=2, input_window_samples=100) #WARNING channels must be set
-#model = EEGConformer(n_classes=2, n_channels=16)
+#model = EEGNetv4(in_chans=1, n_classes=2, input_window_samples=100) #WARNING channels must be set
+model = EEGConformer(n_classes=2, n_channels=16, final_fc_length=320)
 
 # Define a Skorch classifier
 clf = EEGClassifier(
@@ -91,9 +91,9 @@ clf = EEGClassifier(
         EpochScoring(
             scoring="accuracy", on_train=False, name="valid_acc", lower_is_better=False
         ),
-        InputShapeSetterEEG(
-            params_list=["in_chans", "input_window_samples", "n_classes"],
-        ),
+        # InputShapeSetterEEG(
+        #     params_list=["in_chans", "input_window_samples", "n_classes"],
+        # ),
     ],
     verbose=VERBOSE,  # Not printing the results for each epoch
 )
@@ -111,7 +111,7 @@ pipelines_withArray  = {}
 #     ]
 # )
 
-pipelines_withEpochs["bd"] = make_pipeline(
+pipelines_withEpochs["BD"] = make_pipeline(
         #Resampler_Epoch(128),
         create_dataset, #to convert from moabb to braindecode
         clf
