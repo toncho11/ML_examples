@@ -4,11 +4,13 @@ Requires moabb > 0.5.0
 Requires the still unmerged version of EEGConformer pip install git+https://github.com/braindecode/braindecode.git@refs/pull/454/head
 EEGConformer is loaded through braindecode.
 
+Resampler_Epoch is available after 0.5.0
+
 """
 
 from moabb.datasets.bnci import BNCI2014001
 #from moabb.datasets.braininvaders import VirtualReality, bi2012
-from moabb.datasets import bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
+from moabb.datasets import bi2012, bi2013a, bi2014a, bi2014b, bi2015a, bi2015b, BNCI2014008, BNCI2014009, BNCI2015003, EPFLP300, Lee2019_ERP
 
 #from moabb.datasets.compound_dataset.base import CompoundDataset
 #from moabb.datasets.utils import blocks_reps
@@ -29,7 +31,23 @@ from sklearn.pipeline import Pipeline
 from skorch.callbacks import EarlyStopping, EpochScoring
 from skorch.dataset import ValidSplit
 
-from moabb.pipelines.features import FM #before it was moabb.pipelines.features.Resampler_Epoch 
+#either use Resampler_Epoch from moabb or the version copied here
+#from moabb.pipelines.features import Resampler_Epoch
+import mne
+from sklearn.base import BaseEstimator, TransformerMixin
+class Resampler_Epoch(BaseEstimator, TransformerMixin):
+    """Function that copies and resamples an epochs object."""
+
+    def __init__(self, sfreq):
+        self.sfreq = sfreq
+
+    def fit(self, X, y):
+        return self
+
+    def transform(self, X: mne.Epochs):
+        X = X.copy()
+        X.resample(self.sfreq)
+        return X
 
 from moabb.pipelines.utils_pytorch import BraindecodeDatasetLoader, InputShapeSetterEEG
 from pyriemann.estimation import XdawnCovariances
@@ -55,8 +73,8 @@ PATIENCE = 3
 create_dataset = BraindecodeDatasetLoader()
 
 # Set random Model
-#model = EEGNetv4(in_chans=1, n_classes=2, input_window_samples=100)
-model = EEGConformer(n_classes=2, n_channels=16)
+model = EEGNetv4(in_chans=1, n_classes=2, input_window_samples=100)
+#model = EEGConformer(n_classes=2, n_channels=16)
 
 # Define a Skorch classifier
 clf = EEGClassifier(
@@ -90,7 +108,7 @@ pipelines_withArray = {}
 
 pipelines_withEpochs["EEGConformer"] = Pipeline(
     [
-        ("resample", FM(128)),
+        ("resample", Resampler_Epoch(128)),
         ("braindecode_dataset", create_dataset),
         ("EEGConformer", clf),
     ]
@@ -132,7 +150,7 @@ paradigm = P300()
  #BNCI2015003	 8	10
  #bi2015a        32  43
  #bi2015b        32  44
-datasets = [BNCI2014009()]
+datasets = [bi2012()] #BNCI2014009()
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
