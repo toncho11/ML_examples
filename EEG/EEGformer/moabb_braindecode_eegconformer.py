@@ -101,13 +101,13 @@ clf = EEGClassifier(
 # Create Pipelines
 
 pipelines_withEpochs = {}
-pipelines_withArray = {}
+pipelines_withArray  = {}
 
-pipelines_withEpochs["EEGConformer"] = Pipeline(
+pipelines_withEpochs["braindecode_" + model.__class__.__name__] = Pipeline(
     [
         ("resample", Resampler_Epoch(128)),
         ("braindecode_dataset", create_dataset),
-        ("EEGConformer", clf),
+        (model.__class__.__name__ + "_clf", clf),
     ]
 )
 
