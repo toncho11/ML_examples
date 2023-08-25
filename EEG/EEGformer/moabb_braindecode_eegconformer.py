@@ -53,25 +53,25 @@ WEIGHT_DECAY = 0
 BATCH_SIZE = 64
 SEED = 42
 VERBOSE = 0
-EPOCH = 2 #WARNING set to low number (10 default)
+EPOCH = 100
 PATIENCE = 3
 
 # Create the dataset
 create_dataset = BraindecodeDatasetLoader()
 
 #name, electrodes, subjects
-#bi2013a	    16	24 (normal)
+#bi2013a	    16	24 (normal)                    #final_fc_length=1120, 80 if we do resample 128
 #bi2014a    	16	64 (usually low performance)
-#BNCI2014009	16	10 (usually high performance)
+#BNCI2014009	16	10 (usually high performance)  #final_fc_length=320
 #BNCI2014008	 8	 8
 #BNCI2015003	 8	10
 #bi2015a        32  43
 #bi2015b        32  44
-datasets = [BNCI2014009()] #BNCI2014009()
+datasets = [bi2013a()] #BNCI2014009()
 
 # Set random Model
 #model = EEGNetv4(in_chans=1, n_classes=2, input_window_samples=100) #WARNING channels must be set
-model = EEGConformer(n_classes=2, n_channels=16, final_fc_length=320)
+model = EEGConformer(n_classes=2, n_channels=16, final_fc_length=80)
 
 # Define a Skorch classifier
 clf = EEGClassifier(
@@ -84,7 +84,7 @@ clf = EEGClassifier(
     train_split=ValidSplit(0.2, random_state=SEED),
     device=device,
     callbacks=[
-        EarlyStopping(monitor="valid_loss", patience=PATIENCE),
+        #EarlyStopping(monitor="valid_loss", patience=PATIENCE),
         EpochScoring(
             scoring="accuracy", on_train=True, name="train_acc", lower_is_better=False
         ),
@@ -103,16 +103,8 @@ clf = EEGClassifier(
 pipelines_withEpochs = {}
 pipelines_withArray  = {}
 
-# pipelines_withEpochs["bd"] = Pipeline( #"braindecode_" + model.__class__.__name__
-#     [
-#         ("resample", Resampler_Epoch(128)),
-#         ("braindecode_dataset", create_dataset), #to convert from moabb to braindecode
-#         ("clf", clf), #model.__class__.__name__ + "_clf"
-#     ]
-# )
-
 pipelines_withEpochs["BD"] = make_pipeline(
-        #Resampler_Epoch(128),
+        Resampler_Epoch(128),
         create_dataset, #to convert from moabb to braindecode
         clf
 )
