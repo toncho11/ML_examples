@@ -144,19 +144,20 @@ if error == False:
         #Remember to end the prompt with the same suffix as we used in the training data; ->:
         
         print("Results: ========================================================")
-        prompts = ["What is your name? ->", "How old are you? ->", "What is your profession? ->"]
+        prompts = ["What is your name? ->", "How old are you? ->", "What is your job? ->"]
         
         for p in prompts:
             answer = openai.Completion.create(
               model=fine_tuned_model,
               prompt=p,
               max_tokens=100,
-              temperature=0
+              temperature=0, #lower value will make it more focused and deterministic
+              n = 1
             )
             
             print("Question:", p)
-            #print("Answer:", answer['choices'][0]['text'])
-            print("Answer:", answer['choices'][0]['text'][0:answer['choices'][0]['text'].find(".")+1])
+            print("Answer:", answer['choices'][0]['text'])
+            #print("Answer:", answer['choices'][0]['text'][0:answer['choices'][0]['text'].find(".")+1])
             
             print("-------------------------------------")
     
