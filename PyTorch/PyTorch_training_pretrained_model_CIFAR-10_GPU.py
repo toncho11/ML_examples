@@ -2,12 +2,12 @@
 """
 Created on Fri Sep 16 12:10:25 2022
 
-source: https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
-
 PyTorch classfication of the CIFAR-10 dataset using the pre-trained model vgg19.
 The first layers of VGG19 are freezed and the last one is changed to output 10 classes instead of 1000 classes.
 
-More info: https://stackoverflow.com/questions/65690251/how-to-use-vgg19-transfer-learning-pretraining
+source: https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
+This tutorial trains from zero.
+More info on the pre-trining used here: https://stackoverflow.com/questions/65690251/how-to-use-vgg19-transfer-learning-pretraining
 
 The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 classes, 
 with 6000 images per class. There are 50000 training images and 10000 test images.
@@ -15,6 +15,8 @@ with 6000 images per class. There are 50000 training images and 10000 test image
 You need to restart Python kernel to run this code or clear all variables!!!
 
 We train and test on the CIFAR-10 while using a pre-trained model VGG19 (trained on more than a million images from the ImageNet)
+
+Currently it gives only 55% on the 10000 test images.
 """
 
 import torch
