@@ -13,6 +13,8 @@ The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 classes,
 with 6000 images per class. There are 50000 training images and 10000 test images.
 
 You need to restart Python kernel to run this code or clear all variables!!!
+
+We train and test on the CIFAR-10 while using a pre-trained model VGG19 (trained on more than a million images from the ImageNet)
 """
 
 import torch
@@ -23,6 +25,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print("Running on:", device)
 
 print ("You need to restart Python kernel to run this code or clear all variables!")
 
@@ -100,7 +103,7 @@ if __name__ == '__main__':
     
     #Single prediction
     dataiter = iter(testloader)
-    images, labels = dataiter.next() #provides a batch of samples (of size batch_size)
+    images, labels = next(dataiter) #provides a batch of samples (of size batch_size)
     images = images.to(device) #switch to GPU
     labels = labels.to(device) #switch to GPU
     
