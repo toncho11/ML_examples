@@ -23,8 +23,8 @@
  source: https://github.com/huggingface/transformers/tree/main/examples/pytorch/image-classification
 
 How to run the example beans dataset:
-runfile('C:/Work/PythonCode/ML_examples/Transformers/HuggingFace/run_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace', args='
-    --dataset_name beans \
+runfile('C:/Work/PythonCode/ML_examples/Transformers/HuggingFace/run_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace',
+    args=' --dataset_name beans \
     --output_dir ./beans_outputs/ \
     --remove_unused_columns False \
     --label_column_name labels \
