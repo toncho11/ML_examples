@@ -95,7 +95,7 @@ def ProcessSamples(samples, X, y, folder, subject, m, tau , electrodes, percenta
 
     for sample_i in samples:
         print("Process Sample:",sample_i)
-        label = y[sample_i]
+        label  = y[sample_i]
         sample = X[sample_i]
     
         single_epoch_subject_rp = multivariateRP(sample, electrodes, m, tau, percentage)

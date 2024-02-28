@@ -22,12 +22,16 @@
  
  source: https://github.com/huggingface/transformers/tree/main/examples/pytorch/image-classification
 
+ Problem:
+ https://github.com/huggingface/transformers/issues/135
+ https://github.com/huggingface/transformers/pull/12664
+ https://github.com/huggingface/transformers/issues/13127
  https://github.com/huggingface/notebooks/blob/main/examples/image_classification_albumentations.ipynb
  
  
-runfile('C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/hugging_face_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace',
-    args=' --train_dir C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/data/resized \
-    --output_dir ./beans_outputs/ \
+runfile('C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/hugging_face_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/',
+    args=' --train_dir C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/data/rp_m_5_tau_30_f1_1_f2_24_el_16_nsub_10_per_20_nepo_800_set_BNCI2014009_as_image \
+    --output_dir ./rp_outputs/ \
     --remove_unused_columns False \
     --do_train \
     --do_eval \
