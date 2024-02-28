@@ -22,12 +22,13 @@
  
  source: https://github.com/huggingface/transformers/tree/main/examples/pytorch/image-classification
 
-How to run the example beans dataset:
-runfile('C:/Work/PythonCode/ML_examples/Transformers/HuggingFace/run_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace',
-    args=' --dataset_name beans \
+ https://github.com/huggingface/notebooks/blob/main/examples/image_classification_albumentations.ipynb
+ 
+ 
+runfile('C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/hugging_face_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace',
+    args=' --train_dir C:/Work/PythonCode/ML_examples/EEG/moabb.bi2013a/data/resized \
     --output_dir ./beans_outputs/ \
     --remove_unused_columns False \
-    --label_column_name labels \
     --do_train \
     --do_eval \
     --learning_rate 2e-5 \
@@ -208,7 +209,7 @@ class ModelArguments:
         },
     )
     ignore_mismatched_sizes: bool = field(
-        default=False,
+        default=True,
         metadata={"help": "Will enable to load a pretrained model whose head dimensions are different."},
     )
 
@@ -354,7 +355,9 @@ def main():
         revision=model_args.model_revision,
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
+        ignore_mismatched_sizes = True
     )
+    
     model = AutoModelForImageClassification.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -363,14 +366,19 @@ def main():
         revision=model_args.model_revision,
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
-        ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
+        #ignore_mismatched_sizes=model_args.ignore_mismatched_sizes, 
+        
+        #otherwise error: https://github.com/huggingface/transformers/issues/13127
+        ignore_mismatched_sizes = True, #model_args.ignore_mismatched_sizes, 
     )
+    
     image_processor = AutoImageProcessor.from_pretrained(
         model_args.image_processor_name or model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
+        ignore_mismatched_sizes = True
     )
 
     # Define torchvision transforms to be applied to each image.
