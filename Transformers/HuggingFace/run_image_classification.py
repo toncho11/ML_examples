@@ -14,10 +14,17 @@
 # See the License for the specific language governing permissions and
 
 """
-source: https://github.com/huggingface/transformers/tree/main/examples/pytorch/image-classification
 
-How to run:
-runfile('C:/Work/PythonCode/ML_examples/Transformers/HuggingFace/run_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace', args='--dataset_name beans \
+ Provides classfication of images where we use a pre-trained model and we fine-tune it on our dataset.
+ The default model is:
+ "Vision Transformer (ViT) model pre-trained on ImageNet-21k 
+ (14 million images, 21,843 classes) at resolution 224x224."
+ 
+ source: https://github.com/huggingface/transformers/tree/main/examples/pytorch/image-classification
+
+How to run the example beans dataset:
+runfile('C:/Work/PythonCode/ML_examples/Transformers/HuggingFace/run_image_classification.py', wdir='C:/Work/PythonCode/ML_examples/Transformers/HuggingFace', args='
+    --dataset_name beans \
     --output_dir ./beans_outputs/ \
     --remove_unused_columns False \
     --label_column_name labels \
