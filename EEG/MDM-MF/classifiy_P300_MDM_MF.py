@@ -20,7 +20,8 @@ from moabb import set_log_level
 from moabb.datasets import bi2013a
 from moabb.evaluations import WithinSessionEvaluation
 from moabb.paradigms import P300
-from pyriemann.classification import MDM, MeanField
+from pyriemann.classification import MDM
+from enchanced_mdm_mf import MeanField
 
 print(__doc__)
 
@@ -51,7 +52,7 @@ datasets = [bi2013a()]  # MOABB provides several other P300 datasets
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
-n_subjects = 1
+n_subjects = 10
 for dataset in datasets:
     dataset.subject_list = dataset.subject_list[0:n_subjects]
 
@@ -59,7 +60,7 @@ overwrite = True  # set to True if we want to overwrite cached results
 
 pipelines = {}
 
-pipelines["XD+MDM_MF"] = make_pipeline(
+pipelines["XD+MDM_MF_3PM"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -67,7 +68,18 @@ pipelines["XD+MDM_MF"] = make_pipeline(
         estimator="lwf",
         xdawn_estimator="scm",
     ),
-    MeanField(),
+    MeanField(power_list=[-1, 0, 1]),
+)
+
+pipelines["XD+MDM_MF_10PM"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    MeanField(power_list=[-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]),
 )
 
 # this is a non quantum pipeline
