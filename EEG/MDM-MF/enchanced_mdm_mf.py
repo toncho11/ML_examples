@@ -128,7 +128,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         return self
 
     def _get_label(self, x, labs_unique):
+        
         m = np.zeros((len(self.power_list), len(labs_unique)))
+        
         for ip, p in enumerate(self.power_list):
             for ill, ll in enumerate(labs_unique):
                 m[ip, ill] = distance(
@@ -159,9 +161,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         """
         labs_unique = sorted(self.covmeans_[self.power_list[0]].keys())
 
-        pred = Parallel(n_jobs=self.n_jobs)(delayed(self._get_label)(
-            x, labs_unique)
-            for x in X)
+        pred = Parallel(n_jobs=self.n_jobs)(delayed(self._get_label)(x, labs_unique)
+             for x in X
+            )
+        
         return np.array(pred)
 
     def _predict_distances(self, X):
@@ -169,10 +172,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
         dist = []
         for x in X:
-            m = {}
+            m = {} #m contains a distance to a power mean
+            
+            #TODO: needs to be done parallel
             for p in self.power_list:
                 m[p] = []
-                for ll in self.classes_:
+                for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
                     m[p].append(
                         distance(
                             x,
@@ -180,10 +185,19 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                             metric=self.metric,
                         )
                     )
-            pmin = min(m.items(), key=lambda x: np.sum(x[1]))[0]
-            dist.append(np.array(m[pmin]))
-
-        return np.stack(dist)
+                    
+            combined = []
+            for v in m.values():
+                combined.extend(v)
+            
+            combined = np.array(combined)
+            
+            #print("Combined: ", len(self.power_list) , len(self.classes_), combined.shape)
+            dist.append(combined)
+        
+        dist = np.array(dist)
+        #print("Dist shape", dist.shape)
+        return dist
 
     def transform(self, X):
         """Get the distance to each means field.
