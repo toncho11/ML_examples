@@ -78,7 +78,8 @@ paradigm = P300(resample=128,fmin=1, fmax=24)
 #bi2015a          32    43
 #bi2015b          32    44
    
-datasets = [bi2013a()] #bi2014a(),
+#datasets = [bi2013a()] #bi2014a(),
+datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003()]
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a(), bi2015b()]
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
@@ -226,7 +227,7 @@ stats = compute_dataset_statistics(results)
 P, T = find_significant_differences(stats)
 #agg = stats.groupby(['dataset']).mean()
 #print(agg)
-print(stats)
+print(stats.to_string()) #not all datasets are in stats
 
 #negative SMD value favors the first algorithm, postive SMD the second 
 fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF_LDA", "MDM")
