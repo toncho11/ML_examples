@@ -32,6 +32,7 @@ from moabb.evaluations import WithinSessionEvaluation, CrossSessionEvaluation, C
 from moabb.paradigms import P300
 from pyriemann.classification import MDM
 from enchanced_mdm_mf import MeanField
+from pyriemann.classification import MeanField as MeanField_orig
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPRegressor
@@ -78,8 +79,8 @@ paradigm = P300(resample=128,fmin=1, fmax=24)
 #bi2015a          32    43
 #bi2015b          32    44
    
-#datasets = [bi2013a()] #bi2014a(),
-datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003()]
+datasets = [bi2013a(),BNCI2014008()] #bi2014a(),
+#datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a()]
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a(), bi2015b()]
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
@@ -116,9 +117,9 @@ pipelines["MDM_MF"] = make_pipeline(
         xdawn_estimator="scm",
     ),
     #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means,
+    MeanField_orig(power_list=power_means,
               method_label="inf_means",
-              n_jobs=12,
+              n_jobs=1,
               ),
 )
 
@@ -134,7 +135,7 @@ pipelines["MDM_MF_LDA"] = make_pipeline(
     MeanField(power_list=power_means,
               method_label="sum_means", #not used if used as transformer
               n_jobs=12,
-             ),
+              ),
     LDA()
 )
 
@@ -189,6 +190,9 @@ evaluation = WithinSessionEvaluation(
 
 results = evaluation.process(pipelines)
 
+print("Results:")
+print(results)
+
 print("Averaging the session performance:")
 print(results.groupby("pipeline").mean("score")[["score", "time"]])
 
@@ -223,16 +227,27 @@ plt.show()
 # plt.show()
 
 #generate statistics for the summary plot
+#Compute matrices of p-values and effects for all algorithms over all datasets via combined p-values and
+#combined effects methods
 stats = compute_dataset_statistics(results)
 P, T = find_significant_differences(stats)
 #agg = stats.groupby(['dataset']).mean()
 #print(agg)
 print(stats.to_string()) #not all datasets are in stats
 
-#negative SMD value favors the first algorithm, postive SMD the second 
+#negative SMD value favors the first algorithm, postive SMD the second
+#A meta-analysis style plot that shows the standardized effect with confidence intervals over
+#all datasets for two algorithms. Hypothesis is that alg1 is larger than alg2
 fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF_LDA", "MDM")
 plt.show()
 
-#summary plot
+fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF_LDA", "MDM_MF")
+plt.show()
+
+fig = moabb_plt.meta_analysis_plot(stats, "MDM", "MDM_MF")
+plt.show()
+
+#summary plot - significance matrix to compare pipelines.
+#Visualize significances as a heatmap with green/grey/red for significantly higher/significantly lower.
 moabb_plt.summary_plot(P, T)
 plt.show()
