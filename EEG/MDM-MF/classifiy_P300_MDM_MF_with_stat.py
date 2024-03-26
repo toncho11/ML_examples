@@ -26,7 +26,8 @@ from moabb.datasets import (
     Lee2019_ERP,
     bi2014a,
     bi2015a,
-    bi2015b
+    bi2015b,
+    EPFLP300
 )
 from moabb.evaluations import WithinSessionEvaluation, CrossSessionEvaluation, CrossSubjectEvaluation
 from moabb.paradigms import P300
@@ -79,9 +80,11 @@ paradigm = P300(resample=128,fmin=1, fmax=24)
 #bi2015a          32    43
 #bi2015b          32    44
    
-datasets = [bi2013a(),BNCI2014008()] #bi2014a(),
+#datasets = [bi2013a(),BNCI2014008()] #bi2014a(),
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a()]
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a(), bi2015b()]
+#original 5 datasets
+datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(),EPFLP300]
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
@@ -93,7 +96,8 @@ overwrite = True  # set to True if we want to overwrite cached results
 
 pipelines = {}
 
-power_means = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+#power_means = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1]
 #power_means = [-1, -0.75, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, 1]
 
 # pipelines["XD+MDM_MF_3PM"] = make_pipeline(
@@ -180,6 +184,21 @@ pipelines["MDM"] = make_pipeline(
         xdawn_estimator="scm",
     ),
     MDM(),
+)
+
+pipelines["MDM_MF_SVM"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    svm.SVC(kernel="rbf")
 )
 
 print("Total pipelines to evaluate: ", len(pipelines))
