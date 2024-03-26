@@ -85,7 +85,7 @@ for d in datasets:
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
-n_subjects = 3
+n_subjects = 1
 for dataset in datasets:
     dataset.subject_list = dataset.subject_list[0:n_subjects]
 

@@ -18,11 +18,12 @@ import warnings
 import seaborn as sns
 import pandas as pd
 from moabb import set_log_level
+#P300
 from moabb.datasets import (
-    bi2013a,
-    BNCI2014008,
-    BNCI2014009,
-    BNCI2015003,
+    BI2013a,
+    BNCI2014_008,
+    BNCI2014_009,
+    BNCI2015_003,
     EPFLP300,
     Lee2019_ERP,
     bi2014a,
@@ -30,7 +31,7 @@ from moabb.datasets import (
     bi2015b,
     EPFLP300
 )
-
+#Motor imagery
 from moabb.datasets import (
     BNCI2014_001, 
     Zhou2016, 
@@ -83,7 +84,7 @@ set_log_level("info")
 # We have to do this because the classes are called 'Target' and 'NonTarget'
 # but the evaluation function uses a LabelEncoder, transforming them
 # to 0 and 1
-labels_dict = {"Target": 1, "NonTarget": 0}
+#labels_dict = {"Target": 1, "NonTarget": 0}
 
 paradigm_P300 = P300(resample=128,fmin=1, fmax=24)
 paradigm_MI   = MotorImagery(fmin=8,fmax=32)
@@ -102,15 +103,43 @@ paradigm_MI   = MotorImagery(fmin=8,fmax=32)
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a(), bi2015b()]
 
 #original 5 ds for P300
-datasets_P300 = [bi2013a(), BNCI2014008(), BNCI2014009(), BNCI2015003(), EPFLP300()]
+datasets_P300 = [BI2013a()]#, BNCI2014_008(), BNCI2014_009(), BNCI2015_003(), EPFLP300()]
 #original 12 ds for MI 
-#BNCI2015_001(), #not working
-datasets_MI = [ Zhou2016(),
-                BNCI2014_001(),          
-                BNCI2014_002(), BNCI2014_004(), BNCI2015_004(), 
-                AlexMI(), Weibo2014(), Cho2017(), PhysionetMI(), 
-                Shin2017A(), GrosseWentrup2009()
+#BNCI2015_001(), #not working "did not have enough events in None to run analysis"
+#BNCI2014_002(), #not working "did not have enough events in None to run analysis"
+#BNCI2014_004(), #not working "did not have enough events in None to run analysis"
+datasets_MI = [ BNCI2015_004(),
+                #BNCI2015_001(),
+                #Zhou2016(),
+                #BNCI2014_001(),
+                #BNCI2014_002(),    
+                #BNCI2014_004()
+                #AlexMI(), 
+                Weibo2014(), 
+                #Cho2017(), 
+                PhysionetMI(), 
+                #Shin2017A(), 
+                #GrosseWentrup2009()
                 ]
+
+#checks
+for d in datasets_P300:
+    name = type(d).__name__
+    print(name)
+    if name not in [(lambda x: type(x).__name__)(x) for x in paradigm_P300.datasets]:
+        print("Error: dataset not compatible with selected paradigm", name)
+        import sys
+        sys.exit(1)
+        
+for d in datasets_MI:
+    name = type(d).__name__
+    print(name)
+    if name not in [(lambda x: type(x).__name__)(x) for x in paradigm_MI.datasets]:
+        print("Error: dataset not compatible with selected paradigm", name)
+        import sys
+        sys.exit(1)
+        
+
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
 n_subjects = 1
@@ -128,7 +157,7 @@ pipelines = {}
 #original p
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
-# pipelines["XD+MDM_MF_3PM"] = make_pipeline(
+# pipelines["MDM_MF"] = make_pipeline(
 #     # applies XDawn and calculates the covariance matrix, output it matrices
 #     XdawnCovariances(
 #         nfilter=3,
@@ -136,56 +165,44 @@ power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 
 #         estimator="lwf",
 #         xdawn_estimator="scm",
 #     ),
-#     MeanField(power_list=[-1, 0, 1],
-#               method_label="inf_means"),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField_orig(power_list=power_means,
+#               method_label="inf_means",
+#               n_jobs=1,
+#               ),
 # )
 
-pipelines["MDM_MF"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField_orig(power_list=power_means,
-              method_label="inf_means",
-              n_jobs=1,
-              ),
-)
+# pipelines["MDM_MF_LDA"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(
+#         nfilter=3,
+#         classes=[labels_dict["Target"]],
+#         estimator="lwf",
+#         xdawn_estimator="scm",
+#     ),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=12,
+#               ),
+#     LDA()
+# )
 
-pipelines["MDM_MF_LDA"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    LDA()
-)
-
-pipelines["MDM_MF_LR"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    LogisticRegression(penalty="l1", solver="liblinear")
-)
+# pipelines["MDM_MF_LR"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(
+#         nfilter=3,
+#         classes=[labels_dict["Target"]],
+#         estimator="lwf",
+#         xdawn_estimator="scm",
+#     ),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=12,
+#               ),
+#     LogisticRegression(penalty="l1", solver="liblinear")
+# )
 
 # pipelines["XD+MDM_MF_10PM_GPR"] = make_pipeline(
 #     # applies XDawn and calculates the covariance matrix, output it matrices
@@ -207,27 +224,27 @@ pipelines["MDM_MF_LR"] = make_pipeline(
 pipelines["MDM"] = make_pipeline(
     XdawnCovariances(
         nfilter=3,
-        classes=[labels_dict["Target"]],
+        #classes=[labels_dict["Target"]],
         estimator="lwf",
         xdawn_estimator="scm",
     ),
     MDM(),
 )
 
-pipelines["MDM_MF_SVM"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    MeanField(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    svm.SVC(kernel="rbf")
-)
+# pipelines["MDM_MF_SVM"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(
+#         nfilter=3,
+#         classes=[labels_dict["Target"]],
+#         estimator="lwf",
+#         xdawn_estimator="scm",
+#     ),
+#     MeanField(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=12,
+#               ),
+#     svm.SVC(kernel="rbf")
+# )
 
 print("Total pipelines to evaluate: ", len(pipelines))
 
@@ -235,7 +252,8 @@ evaluation_P300 = WithinSessionEvaluation(
     paradigm=paradigm_P300, datasets=datasets_P300, suffix="examples", overwrite=overwrite
 )
 evaluation_MI = WithinSessionEvaluation(
-    paradigm=paradigm_MI, datasets=datasets_MI, suffix="examples", overwrite=overwrite
+    paradigm=paradigm_MI, datasets=datasets_MI, suffix="examples", overwrite=overwrite,
+    #return_epochs=True
 )
 
 results_P300 = evaluation_P300.process(pipelines)
