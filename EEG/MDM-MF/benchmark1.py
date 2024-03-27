@@ -47,7 +47,7 @@ from moabb.datasets import (
     Shin2017A
 )
 from moabb.evaluations import WithinSessionEvaluation, CrossSessionEvaluation, CrossSubjectEvaluation
-from moabb.paradigms import P300, MotorImagery
+from moabb.paradigms import P300, MotorImagery, LeftRightImagery
 from pyriemann.classification import MDM
 from enchanced_mdm_mf import MeanField
 from pyriemann.classification import MeanField as MeanField_orig
@@ -88,6 +88,7 @@ set_log_level("info")
 
 paradigm_P300 = P300(resample=128,fmin=1, fmax=24)
 paradigm_MI   = MotorImagery(fmin=8,fmax=32)
+paradigm_LR   = LeftRightImagery()
 
 #name,    electrodes,   subjects
 #bi2013a	      16	24 (normal)                    
@@ -104,23 +105,28 @@ paradigm_MI   = MotorImagery(fmin=8,fmax=32)
 
 #original 5 ds for P300
 datasets_P300 = [BI2013a()]#, BNCI2014_008(), BNCI2014_009(), BNCI2015_003(), EPFLP300()]
-#original 12 ds for MI 
-#BNCI2015_001(), #not working "did not have enough events in None to run analysis"
-#BNCI2014_002(), #not working "did not have enough events in None to run analysis"
-#BNCI2014_004(), #not working "did not have enough events in None to run analysis"
-datasets_MI = [ BNCI2015_004(),
-                #BNCI2015_001(),
-                #Zhou2016(),
-                #BNCI2014_001(),
-                #BNCI2014_002(),    
-                #BNCI2014_004()
-                #AlexMI(), 
-                Weibo2014(), 
-                #Cho2017(), 
-                PhysionetMI(), 
-                #Shin2017A(), 
-                #GrosseWentrup2009()
+#original 12 ds for MI/LR 
+datasets_MI = [ BNCI2015_004(), #5 classes
+                BNCI2015_001(), #2 classes
+                BNCI2014_002(), #2 classes
+                AlexMI(),       #3 classes
                 ]
+
+datasets_LR = [BNCI2014_001(),
+               BNCI2014_004(),
+               Cho2017(), 
+               GrosseWentrup2009(),
+               PhysionetMI(),
+               Shin2017A(), 
+               Weibo2014(), 
+               Zhou2016(),
+               ]
+
+paradigms_MI = []
+for dataset in datasets_MI:
+    events = list(dataset.event_id)
+    paradigm = MotorImagery(events=events, n_classes=len(events))
+    paradigms_MI.append(paradigm)
 
 #checks
 for d in datasets_P300:
@@ -135,6 +141,14 @@ for d in datasets_MI:
     name = type(d).__name__
     print(name)
     if name not in [(lambda x: type(x).__name__)(x) for x in paradigm_MI.datasets]:
+        print("Error: dataset not compatible with selected paradigm", name)
+        import sys
+        sys.exit(1)
+        
+for d in datasets_LR:
+    name = type(d).__name__
+    print(name)
+    if name not in [(lambda x: type(x).__name__)(x) for x in paradigm_LR.datasets]:
         print("Error: dataset not compatible with selected paradigm", name)
         import sys
         sys.exit(1)
@@ -251,15 +265,24 @@ print("Total pipelines to evaluate: ", len(pipelines))
 evaluation_P300 = WithinSessionEvaluation(
     paradigm=paradigm_P300, datasets=datasets_P300, suffix="examples", overwrite=overwrite
 )
-evaluation_MI = WithinSessionEvaluation(
-    paradigm=paradigm_MI, datasets=datasets_MI, suffix="examples", overwrite=overwrite,
+evaluation_LR = WithinSessionEvaluation(
+    paradigm=paradigm_LR, datasets=datasets_LR, suffix="examples", overwrite=overwrite,
     #return_epochs=True
 )
 
 results_P300 = evaluation_P300.process(pipelines)
-results_MI   = evaluation_MI.process(pipelines)
+results_LR   = evaluation_LR.process(pipelines)
 
-results = pd.concat([results_P300, results_MI],ignore_index=True)
+results = pd.concat([results_P300, results_LR],ignore_index=True)
+
+for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
+    evaluation_MI = WithinSessionEvaluation(
+        paradigm=paradigm_MI,
+        datasets=[dataset_MI],
+        overwrite=True,
+    )
+    results_per_MI_pardigm = evaluation_MI.process(pipelines)
+    results = pd.concat([results, results_per_MI_pardigm],ignore_index=True)
 
 print("Results:")
 print(results)
