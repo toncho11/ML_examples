@@ -104,7 +104,7 @@ paradigm_LR   = LeftRightImagery()
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a(), bi2015b()]
 
 #original 5 ds for P300
-datasets_P300 = [BI2013a()]#, BNCI2014_008(), BNCI2014_009(), BNCI2015_003(), EPFLP300()]
+datasets_P300 = [BI2013a(), BNCI2014_008(), BNCI2014_009(), BNCI2015_003()] #, EPFLP300()
 #original 12 ds for MI/LR 
 datasets_MI = [ BNCI2015_004(), #5 classes
                 BNCI2015_001(), #2 classes
@@ -114,14 +114,15 @@ datasets_MI = [ BNCI2015_004(), #5 classes
 
 datasets_LR = [BNCI2014_001(),
                BNCI2014_004(),
-               Cho2017(), 
+               Cho2017(),      #49 subjects
                GrosseWentrup2009(),
-               PhysionetMI(),
-               Shin2017A(), 
+               PhysionetMI(),  #109 subjects
+               Shin2017A(accept=True), 
                Weibo2014(), 
                Zhou2016(),
                ]
 
+#each MI dataset can have different classes and events and this requires a different MI paradigm
 paradigms_MI = []
 for dataset in datasets_MI:
     events = list(dataset.event_id)
@@ -156,13 +157,18 @@ for d in datasets_LR:
 
 # reduce the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
-n_subjects = 1
+n_subjects = 30
 for dataset in datasets_P300:
-    dataset.subject_list = dataset.subject_list[0:n_subjects]
+    n_subjects_ds = min(n_subjects,len(dataset.subject_list))
+    dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 for dataset in datasets_MI:
-    dataset.subject_list = dataset.subject_list[0:n_subjects]
+    n_subjects_ds = min(n_subjects,len(dataset.subject_list))
+    dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
+for dataset in datasets_LR:
+    n_subjects_ds = min(n_subjects,len(dataset.subject_list))
+    dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 
-overwrite = True  # set to True if we want to overwrite cached results
+overwrite = False  # set to True if we want to overwrite cached results
 
 pipelines = {}
 
@@ -267,7 +273,6 @@ evaluation_P300 = WithinSessionEvaluation(
 )
 evaluation_LR = WithinSessionEvaluation(
     paradigm=paradigm_LR, datasets=datasets_LR, suffix="examples", overwrite=overwrite,
-    #return_epochs=True
 )
 
 results_P300 = evaluation_P300.process(pipelines)
@@ -275,6 +280,7 @@ results_LR   = evaluation_LR.process(pipelines)
 
 results = pd.concat([results_P300, results_LR],ignore_index=True)
 
+#each MI dataset uses its own configured MI paradigm
 for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
     evaluation_MI = WithinSessionEvaluation(
         paradigm=paradigm_MI,
