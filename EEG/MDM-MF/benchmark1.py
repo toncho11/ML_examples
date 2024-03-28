@@ -6,6 +6,10 @@ Classification of P300 datasets from MOABB using MDM-MF
 MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
 Paper: https://hal.science/hal-02315131
 
+Warning:
+Use MOABB 1.0 with https://github.com/NeuroTechX/moabb/issues/514 fixed.
+Otherwise evaluation silently fails on multiple datasets.
+
 """
 # Author: Anton Andreev
 # Modified from plot_classify_EEG_tangentspace.py of pyRiemann
@@ -84,11 +88,11 @@ set_log_level("info")
 # We have to do this because the classes are called 'Target' and 'NonTarget'
 # but the evaluation function uses a LabelEncoder, transforming them
 # to 0 and 1
-#labels_dict = {"Target": 1, "NonTarget": 0}
+labels_dict = {"Target": 1, "NonTarget": 0}
 
-paradigm_P300 = P300(resample=128,fmin=1, fmax=24)
-paradigm_MI   = MotorImagery(fmin=8,fmax=32)
-paradigm_LR   = LeftRightImagery()
+paradigm_P300 = P300()#(resample=128,fmin=1, fmax=24)
+paradigm_MI   = MotorImagery()#(fmin=8,fmax=32)
+paradigm_LR   = LeftRightImagery()#(fmin=8,fmax=32)
 
 #name,    electrodes,   subjects
 #bi2013a	      16	24 (normal)                    
@@ -110,17 +114,17 @@ datasets_MI = [ BNCI2015_004(), #5 classes
                 BNCI2015_001(), #2 classes
                 BNCI2014_002(), #2 classes
                 AlexMI(),       #3 classes
-                ]
+              ]
 
-datasets_LR = [BNCI2014_001(),
-               BNCI2014_004(),
-               Cho2017(),      #49 subjects
-               GrosseWentrup2009(),
-               PhysionetMI(),  #109 subjects
-               Shin2017A(accept=True), 
-               Weibo2014(), 
-               Zhou2016(),
-               ]
+datasets_LR = [ BNCI2014_001(),
+                BNCI2014_004(),
+                Cho2017(),      #49 subjects
+                GrosseWentrup2009(),
+                PhysionetMI(),  #109 subjects
+                Shin2017A(accept=True), 
+                Weibo2014(), 
+                Zhou2016(),
+              ]
 
 #each MI dataset can have different classes and events and this requires a different MI paradigm
 paradigms_MI = []
@@ -129,7 +133,7 @@ for dataset in datasets_MI:
     paradigm = MotorImagery(events=events, n_classes=len(events))
     paradigms_MI.append(paradigm)
 
-#checks
+#checks if correct paradigm is used
 for d in datasets_P300:
     name = type(d).__name__
     print(name)
@@ -155,17 +159,17 @@ for d in datasets_LR:
         sys.exit(1)
         
 
-# reduce the number of subjects, the Quantum pipeline takes a lot of time
+# adjust the number of subjects, the Quantum pipeline takes a lot of time
 # if executed on the entire dataset
-n_subjects = 30
+max_n_subjects = 30
 for dataset in datasets_P300:
-    n_subjects_ds = min(n_subjects,len(dataset.subject_list))
+    n_subjects_ds = min(max_n_subjects,len(dataset.subject_list))
     dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 for dataset in datasets_MI:
-    n_subjects_ds = min(n_subjects,len(dataset.subject_list))
+    n_subjects_ds = min(max_n_subjects,len(dataset.subject_list))
     dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 for dataset in datasets_LR:
-    n_subjects_ds = min(n_subjects,len(dataset.subject_list))
+    n_subjects_ds = min(max_n_subjects,len(dataset.subject_list))
     dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 
 overwrite = False  # set to True if we want to overwrite cached results
@@ -177,94 +181,109 @@ pipelines = {}
 #original p
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
-# pipelines["MDM_MF"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField_orig(power_list=power_means,
-#               method_label="inf_means",
-#               n_jobs=1,
-#               ),
-# )
+pipelines["MDM_MF"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField_orig(power_list=power_means,
+              method_label="inf_means",
+              n_jobs=12,
+              ),
+)
 
-# pipelines["MDM_MF_LDA"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=12,
-#               ),
-#     LDA()
-# )
+pipelines["MDM_MF_LDA"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LDA()
+)
 
-# pipelines["MDM_MF_LR"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=12,
-#               ),
-#     LogisticRegression(penalty="l1", solver="liblinear")
-# )
+pipelines["MDM_MF_LR"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LogisticRegression(penalty="l1", solver="liblinear")
+)
 
-# pipelines["XD+MDM_MF_10PM_GPR"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=12,
-#              ),
-#     GaussianProcessRegressor(alpha = 0.1, kernel = RBF(length_scale_bounds = (0.1, 1.0)))
-# )
+pipelines["XD+MDM_MF_GPR"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    GaussianProcessRegressor(alpha = 0.1, kernel = RBF(length_scale_bounds = (0.1, 1.0)))
+)
+
+pipelines["MDM_MF_SVM"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    svm.SVC(kernel="rbf")
+)
 
 # this is a non quantum pipeline
 pipelines["MDM"] = make_pipeline(
     XdawnCovariances(
         nfilter=3,
-        #classes=[labels_dict["Target"]],
+        classes=[labels_dict["Target"]],
         estimator="lwf",
         xdawn_estimator="scm",
     ),
     MDM(),
 )
 
-# pipelines["MDM_MF_SVM"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     MeanField(power_list=power_means,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=12,
-#               ),
-#     svm.SVC(kernel="rbf")
-# )
+pipelines["MDM_MF_SVM"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    svm.SVC(kernel="rbf")
+)
 
 print("Total pipelines to evaluate: ", len(pipelines))
 
@@ -285,7 +304,7 @@ for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
     evaluation_MI = WithinSessionEvaluation(
         paradigm=paradigm_MI,
         datasets=[dataset_MI],
-        overwrite=True,
+        overwrite=overwrite,
     )
     results_per_MI_pardigm = evaluation_MI.process(pipelines)
     results = pd.concat([results, results_per_MI_pardigm],ignore_index=True)
