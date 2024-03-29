@@ -110,10 +110,10 @@ paradigm_LR   = LeftRightImagery()#(fmin=8,fmax=32)
 #original 5 ds for P300
 datasets_P300 = [BI2013a(), BNCI2014_008(), BNCI2014_009(), BNCI2015_003()] #, EPFLP300()
 #original 12 ds for MI/LR 
-datasets_MI = [ BNCI2015_004(), #5 classes
+datasets_MI = [ BNCI2015_004(), #5 classes, problem continous
                 BNCI2015_001(), #2 classes
                 BNCI2014_002(), #2 classes
-                AlexMI(),       #3 classes
+                AlexMI(),       #3 classesm, problem continous
               ]
 
 datasets_LR = [ BNCI2014_001(),
@@ -212,7 +212,7 @@ pipelines["MDM_MF_LDA"] = make_pipeline(
     LDA()
 )
 
-pipelines["MDM_MF_LR"] = make_pipeline(
+pipelines["MDM_MF_LR_l1"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -226,6 +226,22 @@ pipelines["MDM_MF_LR"] = make_pipeline(
               n_jobs=12,
               ),
     LogisticRegression(penalty="l1", solver="liblinear")
+)
+
+pipelines["MDM_MF_LR_l2"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LogisticRegression(penalty="l2", solver="lbfgs")
 )
 
 pipelines["XD+MDM_MF_GPR"] = make_pipeline(
@@ -270,32 +286,28 @@ pipelines["MDM"] = make_pipeline(
     MDM(),
 )
 
-pipelines["MDM_MF_SVM"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    MeanField(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    svm.SVC(kernel="rbf")
-)
-
 print("Total pipelines to evaluate: ", len(pipelines))
 
 evaluation_P300 = WithinSessionEvaluation(
-    paradigm=paradigm_P300, datasets=datasets_P300, suffix="examples", overwrite=overwrite
+    paradigm=paradigm_P300, datasets=datasets_P300, suffix="examples", overwrite=overwrite,
+    n_jobs=12,
+    n_jobs_evaluation=12
 )
 evaluation_LR = WithinSessionEvaluation(
     paradigm=paradigm_LR, datasets=datasets_LR, suffix="examples", overwrite=overwrite,
+    n_jobs=12,
+    n_jobs_evaluation=12
 )
 
 results_P300 = evaluation_P300.process(pipelines)
-results_LR   = evaluation_LR.process(pipelines)
+
+#replace XDawnCovariances with Covariances when using MI or LeftRightMI
+for pipe_name in pipelines:
+    pipeline = pipelines[pipe_name]
+    pipeline.steps.pop(0)
+    pipeline.steps.insert(0,['covariances',Covariances('oas')])
+
+results_LR = evaluation_LR.process(pipelines)
 
 results = pd.concat([results_P300, results_LR],ignore_index=True)
 
@@ -304,7 +316,9 @@ for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
     evaluation_MI = WithinSessionEvaluation(
         paradigm=paradigm_MI,
         datasets=[dataset_MI],
-        overwrite=overwrite,
+        overwrite=False,
+        n_jobs=12,
+        n_jobs_evaluation=12
     )
     results_per_MI_pardigm = evaluation_MI.process(pipelines)
     results = pd.concat([results, results_per_MI_pardigm],ignore_index=True)
