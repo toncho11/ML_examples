@@ -90,6 +90,18 @@ set_log_level("info")
 # to 0 and 1
 labels_dict = {"Target": 1, "NonTarget": 0}
 
+overwrite = False  # set to True if we want to overwrite cached results
+
+cache_config = dict(
+    use=True,
+    save_raw=False,
+    save_epochs=True,
+    save_array=False,
+    overwrite_raw=False,
+    overwrite_epochs=False,
+    overwrite_array=False,
+)
+
 paradigm_P300 = P300()#(resample=128,fmin=1, fmax=24)
 paradigm_MI   = MotorImagery()#(fmin=8,fmax=32)
 paradigm_LR   = LeftRightImagery()#(fmin=8,fmax=32)
@@ -110,10 +122,10 @@ paradigm_LR   = LeftRightImagery()#(fmin=8,fmax=32)
 #original 5 ds for P300
 datasets_P300 = [BI2013a(), BNCI2014_008(), BNCI2014_009(), BNCI2015_003()] #, EPFLP300()
 #original 12 ds for MI/LR 
-datasets_MI = [ BNCI2015_004(), #5 classes, problem continous
-                BNCI2015_001(), #2 classes
-                BNCI2014_002(), #2 classes
-                AlexMI(),       #3 classesm, problem continous
+datasets_MI = [ #BNCI2015_004(), #5 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
+                BNCI2015_001(),  #2 classes
+                BNCI2014_002(),  #2 classes
+                #AlexMI(),       #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
               ]
 
 datasets_LR = [ BNCI2014_001(),
@@ -165,14 +177,18 @@ max_n_subjects = 30
 for dataset in datasets_P300:
     n_subjects_ds = min(max_n_subjects,len(dataset.subject_list))
     dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
+    
 for dataset in datasets_MI:
     n_subjects_ds = min(max_n_subjects,len(dataset.subject_list))
+    # name = type(dataset).__name__
+    # if (name == "BNCI2015_004"): #remove first subject
+    #     dataset.subject_list = dataset.subject_list[1:n_subjects_ds]
+    # else:
     dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
+    
 for dataset in datasets_LR:
     n_subjects_ds = min(max_n_subjects,len(dataset.subject_list))
     dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
-
-overwrite = False  # set to True if we want to overwrite cached results
 
 pipelines = {}
 
@@ -291,12 +307,14 @@ print("Total pipelines to evaluate: ", len(pipelines))
 evaluation_P300 = WithinSessionEvaluation(
     paradigm=paradigm_P300, datasets=datasets_P300, suffix="examples", overwrite=overwrite,
     n_jobs=12,
-    n_jobs_evaluation=12
+    n_jobs_evaluation=12,
+    cache_config=cache_config
 )
 evaluation_LR = WithinSessionEvaluation(
     paradigm=paradigm_LR, datasets=datasets_LR, suffix="examples", overwrite=overwrite,
     n_jobs=12,
-    n_jobs_evaluation=12
+    n_jobs_evaluation=12,
+    cache_config=cache_config
 )
 
 results_P300 = evaluation_P300.process(pipelines)
@@ -316,9 +334,10 @@ for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
     evaluation_MI = WithinSessionEvaluation(
         paradigm=paradigm_MI,
         datasets=[dataset_MI],
-        overwrite=False,
+        overwrite=overwrite,
         n_jobs=12,
-        n_jobs_evaluation=12
+        n_jobs_evaluation=12,
+        cache_config=cache_config
     )
     results_per_MI_pardigm = evaluation_MI.process(pipelines)
     results = pd.concat([results, results_per_MI_pardigm],ignore_index=True)
