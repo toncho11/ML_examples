@@ -30,10 +30,13 @@ from moabb.datasets import (
     BNCI2015_003,
     EPFLP300,
     Lee2019_ERP,
-    bi2014a,
-    bi2015a,
-    bi2015b,
-    EPFLP300
+    BI2014a,
+    BI2014b,
+    BI2015a,
+    BI2015b,
+    EPFLP300,
+    Sosulski2019
+    
 )
 #Motor imagery
 from moabb.datasets import (
@@ -118,9 +121,10 @@ paradigm_LR   = LeftRightImagery()#(fmin=8,fmax=32)
 #datasets = [bi2013a(),BNCI2014008()] #bi2014a(),
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a()]
 #datasets = [bi2013a(), BNCI2014008(), BNCI2014009(),BNCI2015003(), bi2014a(), bi2015b()]
+datasets_P300 = [BI2013a(), BNCI2014_008(), BNCI2014_009(), BNCI2015_003(), BI2015a(), BI2015b(), Sosulski2019(), BI2014a(), BI2014b()] #, EPFLP300()
 
 #original 5 ds for P300
-datasets_P300 = [BI2013a(), BNCI2014_008(), BNCI2014_009(), BNCI2015_003()] #, EPFLP300()
+#datasets_P300 = [BI2013a(), BNCI2014_008(), BNCI2014_009(), BNCI2015_003()] #, EPFLP300()
 #original 12 ds for MI/LR 
 datasets_MI = [ #BNCI2015_004(), #5 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
                 BNCI2015_001(),  #2 classes
@@ -405,3 +409,6 @@ plt.show()
 #Visualize significances as a heatmap with green/grey/red for significantly higher/significantly lower.
 moabb_plt.summary_plot(P, T)
 plt.show()
+
+#MDM_LDA and MDM_MF_L2 are the best, MDM_MF_L2 better overall P300/MI, LDA excels more in MI and less in P300
+#results.to_csv('C:\\Users\\antona\\Desktop\\results\\MDM-MF-results\\WithinSessionBenchmark1_MDM_MDMMF_MDMMFLDA_SVM_LR_L1_L2_GPR\\results_dataframe.csv', index=True)
