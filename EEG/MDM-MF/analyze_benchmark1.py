@@ -18,14 +18,26 @@ from matplotlib import pyplot as plt
 
 datasets_P300 = ['BrainInvaders2013a', 
                  'BNCI2014-008', 
-                 'BNCI2014-009', 
-                 'BNCI2015-003', 
-                 'BrainInvaders2015a', 
-                 'BrainInvaders2015b', 
-                 'Sosulski2019', 
-                 'BrainInvaders2014a', 
-                 'BrainInvaders2014b', 
-                 'EPFLP300']
+                  'BNCI2014-009', 
+                  'BNCI2015-003', 
+                  'BrainInvaders2015a', 
+                  'BrainInvaders2015b', 
+                  'Sosulski2019', 
+                  'BrainInvaders2014a', 
+                  'BrainInvaders2014b', 
+                  'EPFLP300'
+                 ]
+datasets_P300_selected = ['BrainInvaders2013a_P', 
+                 'BNCI2014-008_P', 
+                 'BNCI2014-009_P', 
+                 'BNCI2015-003_P', 
+                 'BrainInvaders2015a_P', 
+                 'BrainInvaders2015b_P', 
+                 #'Sosulski2019_P', #problem with the statistics for Sosulski2019_P
+                 'BrainInvaders2014a_P', 
+                 'BrainInvaders2014b_P', 
+                  # 'EPFLP300_P'
+                 ]
 datasets_MI = [ 'BNCI2015-004',  #5 classes, 
                 'BNCI2015-001',  #2 classes
                 'BNCI2014-002',  #2 classes
@@ -57,15 +69,15 @@ def AdjustNames(df):
     
     if (removeP300):
         df = df.drop(df[df['dataset'].str.endswith('_P', na=None)].index)
-        
-    #df = df.drop(df[df['dataset'] != 'BrainInvaders2013a'].index)
-    
-    #df = df.drop(df[df['dataset'] == 'BrainInvaders2014a'].index)
-        
+            
     if (removeMI_LR):
         df = df.drop(df[df['dataset'].str.endswith('_M', na=None)].index)
-
-
+        
+    if (removeP300 == False and removeMI_LR == True):
+        for ind in df.index:
+            if (df['dataset'][ind] not in datasets_P300_selected):
+                df.drop(ind, inplace=True)
+            
     return df
 
 results = AdjustNames(results)
@@ -92,6 +104,18 @@ plt.show()
 fig = moabb_plt.meta_analysis_plot(stats, "MDM", "MDM_MF")
 plt.show()
 
+fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF", "MDM_MF_LR_l2")
+plt.show()
+
+fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF", "MDM_MF_LR_l1") #MDM_MF_LR_l1 best for P300
+plt.show()
+
+fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF_LR_l1", "MDM_MF_LR_l2")
+plt.show()
+
+fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF_LDA", "MDM_MF_LR_l1")
+plt.show()
+
 #summary plot - significance matrix to compare pipelines.
 #Visualize significances as a heatmap with green/grey/red for significantly higher/significantly lower.
 moabb_plt.summary_plot(P, T)
@@ -99,3 +123,7 @@ plt.show()
 
 #MDM_LDA and MDM_MF_L2 are the best, MDM_MF_L2 better overall P300/MI, LDA excels more in MI and less in P300
 #results.to_csv('C:\\Users\\antona\\Desktop\\results\\MDM-MF-results\\WithinSessionBenchmark1_MDM_MDMMF_MDMMFLDA_SVM_LR_L1_L2_GPR\\results_dataframe.csv', index=True)
+
+#MDM_MF_LR_l1 best for P300
+#MDM_MF_LDA - best for MI/LR
+#MDM_MF_LDA - best for all cases
