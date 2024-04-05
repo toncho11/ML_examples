@@ -116,6 +116,9 @@ plt.show()
 fig = moabb_plt.meta_analysis_plot(stats, "MDM_MF_LDA", "MDM_MF_LR_l1")
 plt.show()
 
+fig = moabb_plt.meta_analysis_plot(stats, "MDM", "MDM_MF_LR_l1")
+plt.show()
+
 #summary plot - significance matrix to compare pipelines.
 #Visualize significances as a heatmap with green/grey/red for significantly higher/significantly lower.
 moabb_plt.summary_plot(P, T)
