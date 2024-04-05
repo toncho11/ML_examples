@@ -326,8 +326,10 @@ results_P300 = evaluation_P300.process(pipelines)
 #replace XDawnCovariances with Covariances when using MI or LeftRightMI
 for pipe_name in pipelines:
     pipeline = pipelines[pipe_name]
-    pipeline.steps.pop(0)
-    pipeline.steps.insert(0,['covariances',Covariances('oas')])
+    if pipeline.steps[0][0] == "xdawncovariances":
+        pipeline.steps.pop(0)
+        pipeline.steps.insert(0,['covariances',Covariances('oas')])
+        print("xdawncovariances repalced by covariances")
 
 results_LR = evaluation_LR.process(pipelines)
 
