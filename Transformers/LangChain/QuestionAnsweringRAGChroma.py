@@ -43,16 +43,6 @@ def load_chunk_pdf():
     return texts
     
 texts = load_chunk_pdf()
-#loader = PyPDFLoader("docs/CRR2_final2019.pdf")
-#pages = loader.load_and_split()
-
-# text_splitter = RecursiveCharacterTextSplitter(
-#     chunk_size = 1000,
-#     chunk_overlap  = 100,
-#     length_function = len,
-#     add_start_index = True,)
-
-#texts = text_splitter.split_documents(pages)
 
 db = Chroma.from_documents(texts, OpenAIEmbeddings(openai_api_key = openai_api_key))
 
