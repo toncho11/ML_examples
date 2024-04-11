@@ -6,13 +6,19 @@ Title: Joining Tools and Chains with Decisions.
 It uses the type of agent "zero-shot-react-description" to
 automatically chain several tools until the answer is found.
 
+Modified to use Google Search instead of SerpApi.
+
 pip -q install langchain huggingface_hub openai google-search-results tiktoken wikipedia numexpr langchain-experimental
 
 Youtube: https://www.youtube.com/watch?v=ziu87EXZVUE
 
 Original file is located at https://colab.research.google.com/drive/1QpvUHQzpHPvlMgBElwd5NJQ6qpryVeWE
 
-SerpApi - An API call away to scrape Google search result. In another word, it is the JSON representative of Google search result.
+2 API keys and one ID:
+You need to enable Google "Custom Search API" here: https://console.cloud.google.com/apis/dashboard
+You need to also enable API Keys credentials and get your API key: https://console.cloud.google.com/apis/credentials
+You need to add a search engine and get its CSE id: https://programmablesearchengine.google.com/controlpanel/all
+
 """
 
 """### Creating an Agent"""
