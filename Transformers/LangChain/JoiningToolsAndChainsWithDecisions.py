@@ -6,7 +6,7 @@ Title: Joining Tools and Chains with Decisions.
 It uses the type of agent "zero-shot-react-description" to
 automatically chain several tools until the answer is found.
 
-pip -q install langchain huggingface_hub openai google-search-results tiktoken wikipedia
+pip -q install langchain huggingface_hub openai google-search-results tiktoken wikipedia numexpr langchain-experimental
 
 Youtube: https://www.youtube.com/watch?v=ziu87EXZVUE
 
