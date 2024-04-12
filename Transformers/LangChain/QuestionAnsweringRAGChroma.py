@@ -3,6 +3,8 @@
 
 An example of RAG(Retrieval Augmented Generation)
 
+RAG is way to focus the LLM on a domain and/or provide new data for the LLM without pre-training the LLM.
+
 RAG is a kind of automatic prompt engineering to get some context for you question before 
 submitting it to the LLM, which is done by creating an embedding of your question and searching
 a vector database for sources that can be used to produce this (extra) context.
