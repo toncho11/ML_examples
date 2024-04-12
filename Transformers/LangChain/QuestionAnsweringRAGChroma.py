@@ -26,6 +26,8 @@ It uses OpenAI as LLM and Chroma as vector database.
 pip install pypdf
 pip install chromadb
 
+Good article on RAG vs Fine Tunning: https://medium.com/@bijit211987/when-to-apply-rag-vs-fine-tuning-90a34e7d6d25
+
 @author: antona
 """
 from langchain.text_splitter import RecursiveCharacterTextSplitter
