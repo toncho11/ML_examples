@@ -2,6 +2,22 @@
 """
 
 An example of RAG(Retrieval Augmented Generation)
+
+RAG is a kind of automatic prompt engineering to get some context for you question before 
+submitting it to the LLM, which is done by creating an embedding of your question and searching
+a vector database for sources that can be used to produce this (extra) context.
+
+The implemenation of RAG is in the class ConversationalRetrievalChain which
+uses 3 steps that also include the chat history. Please check the link below:
+https://api.python.langchain.com/en/latest/chains/langchain.chains.conversational_retrieval.base.ConversationalRetrievalChain.html 
+
+Here we provide:
+    - the documents that are used as a grounding context for the LLM
+    - LLM that combined with augmented data will produce the final answer
+    - how are the embeddings produced (ex. OpenAI)
+    - a vector database for the similarity search
+    - how is the conversation history managed
+
 It loads PDF docs and provides answers to your questions.
 It uses OpenAI as LLM and Chroma as vector database.
 
@@ -17,8 +33,10 @@ from langchain_openai import OpenAIEmbeddings
 #from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain.chat_models import ChatOpenAI
-
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
 import os
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 file = open(os.path.join(dir_path,'OpenAiApiKey.txt'), 'r')
 openai_api_key = file.readline()
@@ -48,13 +66,14 @@ db = Chroma.from_documents(texts, OpenAIEmbeddings(openai_api_key = openai_api_k
 
 llm = ChatOpenAI(openai_api_key = openai_api_key, model_name='gpt-3.5-turbo', temperature=0)
 
-retriever = db.as_retriever()
+retriever = db.as_retriever() #wrapper around the db towards the retriever interface
 
 #add context / memory for the chat
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationalRetrievalChain
-
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages= True)
+
+#Chain for having a conversation based on retrieved documents.
+#This chain takes in chat history (a list of messages) and new questions, and then returns an answer to that question. 
+#The algorithm for this chain consists of three parts.
 chain = ConversationalRetrievalChain.from_llm(llm, retriever= retriever, memory= memory)
 
 print("Started conversation:")
