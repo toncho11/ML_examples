@@ -33,8 +33,8 @@ from sklearn import svm
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 #start configuration
-hb_max_n_subjects = 3
-hb_n_jobs = 12
+hb_max_n_subjects = 30
+hb_n_jobs = 24
 hb_overwrite = False
 #end configuration
 
@@ -57,20 +57,20 @@ power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1]
 #               method_label="inf_means"),
 # )
 
-pipelines["MDM_MF"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField_orig(power_list=power_means,
-              method_label="inf_means",
-              n_jobs=1,
-              ),
-)
+# pipelines["MDM_MF"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(
+#         nfilter=3,
+#         classes=[labels_dict["Target"]],
+#         estimator="lwf",
+#         xdawn_estimator="scm",
+#     ),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField_orig(power_list=power_means,
+#               method_label="inf_means",
+#               n_jobs=1,
+#               ),
+# )
 
 pipelines["MDM_MF_LDA"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
@@ -88,9 +88,8 @@ pipelines["MDM_MF_LDA"] = make_pipeline(
     LDA()
 )
 
-power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 200]
 
-pipelines["MDM_MF_LE"] = make_pipeline(
+pipelines["MDM_MF_ORIG"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -101,9 +100,12 @@ pipelines["MDM_MF_LE"] = make_pipeline(
     #sum_means does not make a difference with 10 power means comapred to 3
     MeanField_orig(power_list=power_means,
               method_label="inf_means",
-              n_jobs=1,
+              n_jobs=12,
               ),
 )
+
+#for 200 the mean_logeuclid is calculated instead of power mean
+power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 200]
 
 pipelines["MDM_MF_LDA_LE"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
@@ -119,6 +121,22 @@ pipelines["MDM_MF_LDA_LE"] = make_pipeline(
               n_jobs=12,
               ),
     LDA()
+)
+
+pipelines["MDM_MF_LR_l2"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LogisticRegression(penalty="l2", solver="lbfgs")
 )
 
 # pipelines["XD+MDM_MF_10PM_GPR"] = make_pipeline(
