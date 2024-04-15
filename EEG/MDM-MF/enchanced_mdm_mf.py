@@ -14,7 +14,7 @@ from joblib import Parallel, delayed
 import warnings
 
 from pyriemann.utils.kernel import kernel
-from pyriemann.utils.mean import mean_covariance, mean_power
+from pyriemann.utils.mean import mean_covariance, mean_power, mean_logeuclid
 from pyriemann.utils.distance import distance
 from pyriemann.tangentspace import FGDA, TangentSpace
 
@@ -117,13 +117,21 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.covmeans_ = {}
         for p in self.power_list:
             means_p = {}
-            for ll in self.classes_:
-                means_p[ll] = mean_power(
-                    X[y == ll],
-                    p,
-                    sample_weight=sample_weight[y == ll]
-                )
-            self.covmeans_[p] = means_p
+            if p == 200: #adding an extra mean - this one is logeuclid and not power mean
+                for ll in self.classes_:
+                    means_p[ll] = mean_logeuclid(
+                        X[y == ll],
+                        sample_weight=sample_weight[y == ll]
+                    )
+                self.covmeans_[p] = means_p
+            else:
+                for ll in self.classes_:
+                    means_p[ll] = mean_power(
+                        X[y == ll],
+                        p,
+                        sample_weight=sample_weight[y == ll]
+                    )
+                self.covmeans_[p] = means_p
 
         return self
 
