@@ -85,12 +85,13 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
     """
 
     def __init__(self, power_list=[-1, 0, 1], method_label='sum_means',
-                 metric="riemann", n_jobs=1):
+                 metric="riemann", n_jobs=1, custom_distance = False):
         """Init."""
         self.power_list = power_list
         self.method_label = method_label
         self.metric = metric
         self.n_jobs = n_jobs
+        self.custom_distance = custom_distance #if True sets LogEuclidian for Euclidian mean and Euclidian distance for power mean p=1
 
     def fit(self, X, y, sample_weight=None):
         """Fit (estimates) the centroids.
@@ -187,11 +188,19 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             for p in self.power_list:
                 m[p] = []
                 for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
+                    
+                    metric = self.metric
+                    if self.custom_distance:
+                        if p == 200:
+                            metric = "logeuclid" 
+                        if p == 1:
+                            metric = "euclid" 
+                    
                     m[p].append(
                         distance(
                             x,
                             self.covmeans_[p][ll],
-                            metric=self.metric,
+                            metric=metric,
                         )
                     )
                     
@@ -208,7 +217,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         #print("Dist shape", dist.shape)
         return dist
 
-    def transform(self, X):
+    def transform(self, X,):
         """Get the distance to each means field.
 
         Parameters

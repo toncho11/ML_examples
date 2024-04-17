@@ -35,7 +35,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 #start configuration
 hb_max_n_subjects = 30
 hb_n_jobs = 24
-hb_overwrite = False
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 #end configuration
 
 labels_dict = {"Target": 1, "NonTarget": 0}
@@ -123,7 +123,7 @@ pipelines["MDM_MF_LDA_LE"] = make_pipeline(
     LDA()
 )
 
-pipelines["MDM_MF_LR_l2"] = make_pipeline(
+pipelines["MDM_MF_LR_l2_LE"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,

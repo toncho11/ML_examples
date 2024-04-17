@@ -245,7 +245,77 @@ def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12):
     return results
 
 
-def plot_stat(results):
+
+def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
+    """
+    Allows the results to contain only P300 databases or only Motor Imagery databases
+
+    Parameters
+    ----------
+    df : TYPE
+        DESCRIPTION.
+    removeP300 : TYPE, optional
+        DESCRIPTION. The default is False.
+    removeMI_LR : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    df : TYPE
+        DESCRIPTION.
+
+    """
+    
+    datasets_P300 = ['BrainInvaders2013a', 
+                     'BNCI2014-008', 
+                     'BNCI2014-009', 
+                     'BNCI2015-003', 
+                     'BrainInvaders2015a', 
+                     'BrainInvaders2015b', 
+                     #'Sosulski2019', 
+                     'BrainInvaders2014a', 
+                     'BrainInvaders2014b', 
+                      #'EPFLP300'
+                     ]
+    datasets_MI = [ 'BNCI2015-004',  #5 classes, 
+                    'BNCI2015-001',  #2 classes
+                    'BNCI2014-002',  #2 classes
+                    #'AlexMI',        #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
+                  ]
+    datasets_LR = [ 'BNCI2014-001',
+                    'BNCI2014-004',
+                    'Cho2017',      #49 subjects
+                    'GrosseWentrup2009',
+                    'PhysionetMotorImagery',  #109 subjects
+                    'Shin2017A', 
+                    'Weibo2014', 
+                    'Zhou2016',
+                  ]
+    for ind in df.index:
+        dataset_classified = False
+        if (df['dataset'][ind] in datasets_P300):
+            df['dataset'][ind] = df['dataset'][ind] + "_P"
+            dataset_classified = True
+            
+        elif (df['dataset'][ind] in datasets_MI or df['dataset'][ind] in datasets_LR): 
+             df['dataset'][ind] = df['dataset'][ind] + "_M"
+             dataset_classified = True
+        if dataset_classified == False:
+            print("This dataset was not classified:", df['dataset'][ind])
+    
+    if (removeP300):
+        df = df.drop(df[df['dataset'].str.endswith('_P', na=None)].index)
+            
+    if (removeMI_LR):
+        df = df.drop(df[df['dataset'].str.endswith('_M', na=None)].index)
+            
+    return df
+
+def plot_stat(results, removeP300  = False, removeMI_LR = False):
+    
+    if (removeP300 == True or removeMI_LR == True):
+        results = _AdjustDF(results, removeP300 = removeP300, removeMI_LR = removeMI_LR)
+    
     fig, ax = plt.subplots(facecolor="white", figsize=[8, 4])
 
     sns.stripplot(
