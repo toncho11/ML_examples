@@ -91,7 +91,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.method_label = method_label
         self.metric = metric
         self.n_jobs = n_jobs
-        self.custom_distance = custom_distance #if True sets LogEuclidian for Euclidian mean and Euclidian distance for power mean p=1
+        self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
 
     def fit(self, X, y, sample_weight=None):
         """Fit (estimates) the centroids.
