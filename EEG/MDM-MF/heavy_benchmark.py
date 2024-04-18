@@ -360,3 +360,6 @@ def plot_stat(results, removeP300  = False, removeMI_LR = False):
     # Visualize significances as a heatmap with green/grey/red for significantly higher/significantly lower.
     moabb_plt.summary_plot(P, T)
     plt.show()
+    
+    print("Evaluation in %:")
+    print(results.groupby("pipeline").mean("score")[["score", "time"]])

@@ -125,7 +125,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         sample_weight=sample_weight[y == ll]
                     )
                 self.covmeans_[p] = means_p
-                print("mean_logeuclid")
             else:
                 for ll in self.classes_:
                     means_p[ll] = mean_power(
