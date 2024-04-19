@@ -8,7 +8,8 @@ Classification of P300 datasets from MOABB using MDM-MF
 MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
 Paper: https://hal.science/hal-02315131
 
-Testing LDA vs PCA+LDA vs PCA + Logistic Regression L1 
+This is testing if the new LE_CD_PCA_LR_1 is better than just LR_L1
+for P300 datasets only.
 
 The MFM-MF has these options:
     - LE - LogEuclidian mean added in additional to all power means
@@ -17,12 +18,7 @@ The MFM-MF has these options:
         - the disance to power mean p=1 is Euclidian
 
 Results:
-    - The results are close with LDA being just a little bit better overall than
-    LE_CD_PCA_LDA_8 and LE_CD_PCA_LR_L1_8 which are better for many datasets
-    but worse for others. So in the end there is no clear winner, but still LDA
-    is simpler and just a little bit better (not significantly).
-    - When checking only for P300
-    LE_CD_PCA_LR_L1_8 is significantly better than LDA and LE_CD_PCA_LDA_8
+
     
     
 @author: anton andreev
@@ -76,12 +72,9 @@ pipelines["LDA"] = make_pipeline(
     LDA()
 )
 
-#for 200 the mean_logeuclid is calculated instead of power mean
-power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 200]
-
 from sklearn.decomposition import PCA
 
-pipelines["LE_CD_PCA_LDA_8"] = make_pipeline(
+pipelines["LR_L1"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -91,12 +84,33 @@ pipelines["LE_CD_PCA_LDA_8"] = make_pipeline(
     ),
     #sum_means does not make a difference with 10 power means comapred to 3
     MeanField(power_list=power_means,
-              custom_distance = True,
+              custom_distance = False,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LogisticRegression(penalty="l1", solver="liblinear", n_jobs=6)
+)
+
+#for 200 the mean_logeuclid is calculated instead of power mean
+power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 200]
+
+pipelines["LE_PCA_LR_L1_8"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              custom_distance = False,
               method_label="sum_means", #not used if used as transformer
               n_jobs=12,
               ),
     PCA(n_components=8),#n_components=7
-    LDA()
+    LogisticRegression(penalty="l1", solver="liblinear", n_jobs=6)
+    #LogisticRegression(penalty="l1", solver="liblinear")
 )
 
 pipelines["LE_CD_PCA_LR_L1_8"] = make_pipeline(
@@ -118,7 +132,8 @@ pipelines["LE_CD_PCA_LR_L1_8"] = make_pipeline(
     #LogisticRegression(penalty="l1", solver="liblinear")
 )
 
-results = benchmark_alpha(pipelines, max_n_subjects = hb_max_n_subjects, n_jobs=hb_n_jobs, overwrite = hb_overwrite)
+results = benchmark_alpha(pipelines, max_n_subjects = hb_max_n_subjects, n_jobs=hb_n_jobs, overwrite = hb_overwrite, 
+                          skip_MR_LR = True)
 
 print("Results:")
 print(results)

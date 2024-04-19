@@ -83,7 +83,7 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12):
+def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MR_LR = False):
     """
 
     Parameters
@@ -216,31 +216,32 @@ def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12):
 
     results_P300 = evaluation_P300.process(pipelines)
 
-    # replace XDawnCovariances with Covariances when using MI or LeftRightMI
-    for pipe_name in pipelines:
-        pipeline = pipelines[pipe_name]
-        if pipeline.steps[0][0] == "xdawncovariances":
-            pipeline.steps.pop(0)
-            pipeline.steps.insert(0, ["covariances", Covariances("oas")])
-            print("xdawncovariances repalced by covariances")
-
-    results_LR = evaluation_LR.process(pipelines)
-
-    results = pd.concat([results_P300, results_LR], ignore_index=True)
-
-    # each MI dataset uses its own configured MI paradigm
-    for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
-        evaluation_MI = WithinSessionEvaluation(
-            paradigm=paradigm_MI,
-            datasets=[dataset_MI],
-            overwrite=overwrite,
-            n_jobs=n_jobs,
-            n_jobs_evaluation=n_jobs,
-            cache_config=cache_config,
-        )
-
-        results_per_MI_pardigm = evaluation_MI.process(pipelines)
-        results = pd.concat([results, results_per_MI_pardigm], ignore_index=True)
+    if skip_MR_LR == False: 
+        # replace XDawnCovariances with Covariances when using MI or LeftRightMI
+        for pipe_name in pipelines:
+            pipeline = pipelines[pipe_name]
+            if pipeline.steps[0][0] == "xdawncovariances":
+                pipeline.steps.pop(0)
+                pipeline.steps.insert(0, ["covariances", Covariances("oas")])
+                print("xdawncovariances repalced by covariances")
+    
+        results_LR = evaluation_LR.process(pipelines)
+    
+        results = pd.concat([results_P300, results_LR], ignore_index=True)
+    
+        # each MI dataset uses its own configured MI paradigm
+        for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
+            evaluation_MI = WithinSessionEvaluation(
+                paradigm=paradigm_MI,
+                datasets=[dataset_MI],
+                overwrite=overwrite,
+                n_jobs=n_jobs,
+                n_jobs_evaluation=n_jobs,
+                cache_config=cache_config,
+            )
+    
+            results_per_MI_pardigm = evaluation_MI.process(pipelines)
+            results = pd.concat([results, results_per_MI_pardigm], ignore_index=True)
 
     return results
 
