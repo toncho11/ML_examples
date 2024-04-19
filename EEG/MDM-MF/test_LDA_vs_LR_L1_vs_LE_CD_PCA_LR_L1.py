@@ -18,7 +18,16 @@ The MFM-MF has these options:
         - the disance to power mean p=1 is Euclidian
 
 Results:
-
+    For P300 only:
+    - LR_L1 > LE_PCA_LR_L1
+    - LR_L1 > LE_CD_PCA_LR_L1
+    - LE_PCA_LR_L1 > LE_CD_PCA_LR_L1
+    - LR_L1 > LDA
+    - LE_PCA_LR_L1 > LDA
+    - LE_CD_PCA_LR_L1 > LDA (not statistically significant)
+    
+    So it means that CD does not help.
+    LR_L1 is still the best meaning that adding PCA (8) does not help.
     
     
 @author: anton andreev
@@ -46,7 +55,7 @@ from sklearn import svm
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 #start configuration
-hb_max_n_subjects = 10
+hb_max_n_subjects = 30
 hb_n_jobs = 24
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 #end configuration
@@ -94,7 +103,7 @@ pipelines["LR_L1"] = make_pipeline(
 #for 200 the mean_logeuclid is calculated instead of power mean
 power_means = [-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 200]
 
-pipelines["LE_PCA_LR_L1_8"] = make_pipeline(
+pipelines["LE_PCA_LR_L1"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -108,12 +117,12 @@ pipelines["LE_PCA_LR_L1_8"] = make_pipeline(
               method_label="sum_means", #not used if used as transformer
               n_jobs=12,
               ),
-    PCA(n_components=8),#n_components=7
+    PCA(),#n_components=7
     LogisticRegression(penalty="l1", solver="liblinear", n_jobs=6)
     #LogisticRegression(penalty="l1", solver="liblinear")
 )
 
-pipelines["LE_CD_PCA_LR_L1_8"] = make_pipeline(
+pipelines["LE_CD_PCA_LR_L1"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -127,7 +136,7 @@ pipelines["LE_CD_PCA_LR_L1_8"] = make_pipeline(
               method_label="sum_means", #not used if used as transformer
               n_jobs=12,
               ),
-    PCA(n_components=8),#n_components=7
+    PCA(),#n_components=7
     LogisticRegression(penalty="l1", solver="liblinear", n_jobs=6)
     #LogisticRegression(penalty="l1", solver="liblinear")
 )
