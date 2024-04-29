@@ -18,7 +18,7 @@ The MFM-MF has these options:
         - the disance to power mean p=1 is Euclidian
 
 Results:
-    For P300 only:
+    For P300 only, for 10 subjects, PCA (6):
     - LR_L1 > LE_PCA_LR_L1
     - LR_L1 > LE_CD_PCA_LR_L1
     - LE_PCA_LR_L1 > LE_CD_PCA_LR_L1
@@ -28,6 +28,12 @@ Results:
     
     So it means that CD does not help.
     LR_L1 is still the best meaning that adding PCA (8) does not help.
+    
+    For P300 only, for 10 subjects, PCA (6):
+    - LR_L1 > LDA
+    - LE_CD_PCA_LR_L1 similar to LR_L1 - for some better, for some worse
+    - LE_PCA_LR_L1 is similar to LE_CD_PCA_LR_L1
+    
     
     
 @author: anton andreev
