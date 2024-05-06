@@ -4,11 +4,12 @@ Benchmark Alpha
 ====================================================================
 
 A benchmark on a predefined list of databases for P300 and Motor Imagery (LR).
-Currently it requires the latest version of MOABB where:
+
+Currently it requires the latest version of MOABB (from GIT) where:
     - cache_config is availabe for WithinSessionEvaluation|()
     - this bug is fixed: https://github.com/NeuroTechX/moabb/issues/514
 
-Adapts both the pipeline and the paradigms depending on the test databaase.
+Adapts both the pipeline and the paradigms depending on the evaluated databaase.
 Automatically changes the first transformers from XDawnCovariances() to Covariances()
 when switching from P300 to MotorImagery.
 
@@ -61,14 +62,6 @@ from moabb.evaluations import (
 )
 from moabb.paradigms import P300, MotorImagery, LeftRightImagery
 
-# from pyriemann.classification import MDM
-# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-# from sklearn.linear_model import LogisticRegression
-# from sklearn.neural_network import MLPRegressor
-# from sklearn.gaussian_process import GaussianProcessRegressor
-# from sklearn.gaussian_process.kernels import RBF
-# from sklearn import svm
-
 import moabb.analysis.plotting as moabb_plt
 from moabb.analysis.meta_analysis import (  # noqa: E501
     compute_dataset_statistics,
@@ -88,14 +81,24 @@ def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12, sk
 
     Parameters
     ----------
-    pipelines : TYPE
-        DESCRIPTION.
-    overwrite : TYPE, optional
-        # set to True if we want to overwrite cached results
-
+    pipelines :
+        Pipelines to test. The pipelines are expected to be configured for P300.
+        When switching from P300 to Motor Imagery and if the first transformer
+        is XdawnCovariances then it will be automatically replaced by Covariances()
+    max_n_subjects : int, default = -1
+        The maxmium number of subjects to be used per database.  
+    overwrite : bool, optional
+        Set to True if we want to overwrite cached results.
+    n_jobs : int, default=12
+        The number of jobs to use for the computation. It is used in WithinSessionEvaluation().
+    skip_MR_LR : default = False
+        Only P300 ERP databases will be used for this benchmark.
+    
     Returns
     -------
-    None.
+    df : Pandas dataframe
+        Returns a dataframe with results from the tests.
+    
 
     """
 
@@ -251,21 +254,22 @@ def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12, sk
 
 def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
     """
-    Allows the results to contain only P300 databases or only Motor Imagery databases
+    Allows the results to contain only P300 databases or only Motor Imagery databases.
+    Adds "P" and "M" to each database name for each P300 and MI result. 
 
     Parameters
     ----------
-    df : TYPE
-        DESCRIPTION.
-    removeP300 : TYPE, optional
-        DESCRIPTION. The default is False.
-    removeMI_LR : TYPE, optional
-        DESCRIPTION. The default is False.
+    df : Pandas dataframe 
+        A dataframe with results from the benchrmark.
+    removeP300 : bool, default = False
+        P300 results will be removed from the dataframe.
+    removeMI_LR : bool, default = False
+        Motor Imagery results will be removed from the dataframe.
 
     Returns
     -------
-    df : TYPE
-        DESCRIPTION.
+    df : Pandas dataframe
+        Returns a dataframe with filtered results.
 
     """
     
@@ -315,9 +319,29 @@ def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
     return df
 
 def plot_stat(results, removeP300  = False, removeMI_LR = False):
-    
-    if (removeP300 == True or removeMI_LR == True):
-        results = _AdjustDF(results, removeP300 = removeP300, removeMI_LR = removeMI_LR)
+    """
+    Generates a point plot for each pipeline.
+    Generate statistical plots by comparing every 2 pipelines. Test if the 
+    difference is significant by using SMD. It does that per database and overall
+    with the "Meta-effect" line. 
+    Generates a summary plot - a significance matrix to compare the pipelines. It uses as a heatmap 
+    with green/grey/red for significantly higher/significantly lower.
+
+    Parameters
+    ----------
+    results : Pandas dataframe
+        A dataframe with results from the benchmark
+    removeP300 : TYPE, optional
+        DESCRIPTION. The default is False.
+    removeMI_LR : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    None.
+
+    """
+    results = _AdjustDF(results, removeP300 = removeP300, removeMI_LR = removeMI_LR)
     
     fig, ax = plt.subplots(facecolor="white", figsize=[8, 4])
 
