@@ -8,8 +8,7 @@ Classification of P300 datasets from MOABB using MDM-MF
 MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
 Paper: https://hal.science/hal-02315131
 
-Testing if different set of power means will improve the results.
-Also using different algorithms.
+This is the main test file for LDA and LR. This is the cross subject version.
 
 Tests several algorithms running after MFM_MF:
     - LR - logistic regression
@@ -23,7 +22,9 @@ The MFM-MF has these options:
         - the disance to power mean p=1 is Euclidian
 
 Results:
-
+    - MDM_MF_LR_l1 best for P300
+    - MDM_MF_LDA - best for MI/LR
+    - MDM_MF_LDA - best for all cases
     
     
 @author: anton andreev
@@ -49,10 +50,9 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 from sklearn import svm
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from sklearn.decomposition import PCA
 
 #start configuration
-hb_max_n_subjects = 30
+hb_max_n_subjects = 5
 hb_n_jobs = 24
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 #end configuration
@@ -62,11 +62,54 @@ pipelines = {}
 
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
-power_means_extended = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1]
+pipelines["MDM_MF"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField_orig(power_list=power_means,
+              method_label="inf_means",
+              n_jobs=12,
+              ),
+)
 
-power_means_extended2 = [-1. -0.9, -0.1, 0.1, 0.9, 1]
+pipelines["MDM_MF_LDA"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LDA()
+)
 
-# pipelines["MDM_MF"] = make_pipeline(
+pipelines["MDM_MF_LR_l1"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LogisticRegression(penalty="l1", solver="liblinear")
+)
+
+# pipelines["MDM_MF_LR_l2"] = make_pipeline(
 #     # applies XDawn and calculates the covariance matrix, output it matrices
 #     XdawnCovariances(
 #         nfilter=3,
@@ -75,78 +118,54 @@ power_means_extended2 = [-1. -0.9, -0.1, 0.1, 0.9, 1]
 #         xdawn_estimator="scm",
 #     ),
 #     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField_orig(power_list=power_means,
-#               method_label="inf_means",
+#     MeanField(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
 #               n_jobs=12,
-              
 #               ),
+#     LogisticRegression(penalty="l2", solver="lbfgs")
 # )
 
-pipelines["LDA"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
+# pipelines["XD+MDM_MF_GPR"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(
+#         nfilter=3,
+#         classes=[labels_dict["Target"]],
+#         estimator="lwf",
+#         xdawn_estimator="scm",
+#     ),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=12,
+#               ),
+#     GaussianProcessRegressor(alpha = 0.1, kernel = RBF(length_scale_bounds = (0.1, 1.0)))
+# )
+
+# pipelines["MDM_MF_SVM"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(
+#         nfilter=3,
+#         classes=[labels_dict["Target"]],
+#         estimator="lwf",
+#         xdawn_estimator="scm",
+#     ),
+#     MeanField(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=12,
+#               ),
+#     svm.SVC(kernel="rbf")
+# )
+
+# this is a non quantum pipeline
+pipelines["MDM"] = make_pipeline(
     XdawnCovariances(
         nfilter=3,
         classes=[labels_dict["Target"]],
         estimator="lwf",
         xdawn_estimator="scm",
     ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    LDA()
+    MDM(),
 )
-
-pipelines["LDA_E"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means_extended,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              custom_distance=False
-              ),
-    LDA()
-)
-
-pipelines["MDM_MF_LR_l2"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    LogisticRegression(penalty="l2", solver="lbfgs")
-)
-
-pipelines["MDM_MF_LR_l2_E"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means_extended,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    LogisticRegression(penalty="l2", solver="lbfgs")
-)
-
 
 results = benchmark_alpha(pipelines, max_n_subjects = hb_max_n_subjects, n_jobs=hb_n_jobs, overwrite = hb_overwrite)
 

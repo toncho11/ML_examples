@@ -125,6 +125,13 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         sample_weight=sample_weight[y == ll]
                     )
                 self.covmeans_[p] = means_p
+            elif p == 300: #adding an extra mean - this one is logeuclid and not power mean, p=300 forces a LogEuclidian distance later
+                for ll in self.classes_:
+                    means_p[ll] = mean_logeuclid(
+                        X[y == ll],
+                        sample_weight=sample_weight[y == ll]
+                    )
+                self.covmeans_[p] = means_p
             else:
                 for ll in self.classes_:
                     means_p[ll] = mean_power(
@@ -193,7 +200,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         if p == 200:
                             metric = "logeuclid" 
                         if p == 1:
-                            metric = "euclid" 
+                            metric = "euclid"
+                    
+                    if p == 300: #forces a Log Euclidian distance for p=300
+                        metric = "logeuclid" 
                     
                     m[p].append(
                         distance(

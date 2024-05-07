@@ -76,7 +76,7 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MR_LR = False):
+def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MR_LR = False):
     """
 
     Parameters
@@ -198,24 +198,44 @@ def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12, sk
 
     print("Total pipelines to evaluate: ", len(pipelines))
 
-    evaluation_P300 = WithinSessionEvaluation(
-        paradigm=paradigm_P300,
-        datasets=datasets_P300,
-        suffix="examples",
-        overwrite=overwrite,
-        n_jobs=n_jobs,
-        n_jobs_evaluation=n_jobs,
-        cache_config=cache_config,
-    )
-    evaluation_LR = WithinSessionEvaluation(
-        paradigm=paradigm_LR,
-        datasets=datasets_LR,
-        suffix="examples",
-        overwrite=overwrite,
-        n_jobs=n_jobs,
-        n_jobs_evaluation=n_jobs,
-        cache_config=cache_config,
-    )
+    if (evaluation_type == "withinsession"):
+        evaluation_P300 = WithinSessionEvaluation(
+            paradigm=paradigm_P300,
+            datasets=datasets_P300,
+            suffix="examples",
+            overwrite=overwrite,
+            n_jobs=n_jobs,
+            n_jobs_evaluation=n_jobs,
+            cache_config=cache_config,
+        )
+        evaluation_LR = WithinSessionEvaluation(
+            paradigm=paradigm_LR,
+            datasets=datasets_LR,
+            suffix="examples",
+            overwrite=overwrite,
+            n_jobs=n_jobs,
+            n_jobs_evaluation=n_jobs,
+            cache_config=cache_config,
+        )
+    elif (evaluation_type == "crosssubject"):
+        evaluation_P300 = CrossSubjectEvaluation(
+            paradigm=paradigm_P300,
+            datasets=datasets_P300,
+            suffix="examples",
+            overwrite=overwrite,
+            n_jobs=n_jobs,
+            n_jobs_evaluation=n_jobs,
+            cache_config=cache_config,
+        )
+        evaluation_LR = CrossSubjectEvaluation(
+            paradigm=paradigm_LR,
+            datasets=datasets_LR,
+            suffix="examples",
+            overwrite=overwrite,
+            n_jobs=n_jobs,
+            n_jobs_evaluation=n_jobs,
+            cache_config=cache_config,
+        )
 
     results_P300 = evaluation_P300.process(pipelines)
 
@@ -234,7 +254,18 @@ def benchmark_alpha(pipelines, max_n_subjects=-1, overwrite=False, n_jobs=12, sk
     
         # each MI dataset uses its own configured MI paradigm
         for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
-            evaluation_MI = WithinSessionEvaluation(
+            
+            if (evaluation_type == "withinsession"):
+                evaluation_MI = WithinSessionEvaluation(
+                    paradigm=paradigm_MI,
+                    datasets=[dataset_MI],
+                    overwrite=overwrite,
+                    n_jobs=n_jobs,
+                    n_jobs_evaluation=n_jobs,
+                    cache_config=cache_config,
+                )
+            elif (evaluation_type == "crosssubject"):
+                evaluation_MI = CrossSubjectEvaluation(
                 paradigm=paradigm_MI,
                 datasets=[dataset_MI],
                 overwrite=overwrite,
