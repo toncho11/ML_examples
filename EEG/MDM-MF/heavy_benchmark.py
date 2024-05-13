@@ -76,7 +76,7 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MR_LR = False):
+def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MR_LR = False, skip_P300 = False):
     """
 
     Parameters
@@ -101,7 +101,9 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
     
 
     """
-
+    
+    print("Version 1.0")
+    
     cache_config = dict(
         use=True,
         save_raw=False,
@@ -130,7 +132,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
     datasets_MI = [  # BNCI2015_004(), #5 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
         BNCI2015_001(),  # 2 classes
         BNCI2014_002(),  # 2 classes
-        # AlexMI(),       #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
+        AlexMI(),       #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
     ]
 
     datasets_LR = [
@@ -236,8 +238,11 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
             n_jobs_evaluation=n_jobs,
             cache_config=cache_config,
         )
+    else:
+        raise ValueError('Unknown evaluation type!')
 
-    results_P300 = evaluation_P300.process(pipelines)
+    if (skip_P300 == False):
+        results_P300 = evaluation_P300.process(pipelines)
 
     if skip_MR_LR == False: 
         # replace XDawnCovariances with Covariances when using MI or LeftRightMI
@@ -249,8 +254,11 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
                 print("xdawncovariances repalced by covariances")
     
         results_LR = evaluation_LR.process(pipelines)
-    
-        results = pd.concat([results_P300, results_LR], ignore_index=True)
+        
+        if (skip_P300 == False):
+            results = pd.concat([results_P300, results_LR], ignore_index=True)
+        else:
+            results = results_LR
     
         # each MI dataset uses its own configured MI paradigm
         for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
@@ -318,7 +326,7 @@ def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
     datasets_MI = [ 'BNCI2015-004',  #5 classes, 
                     'BNCI2015-001',  #2 classes
                     'BNCI2014-002',  #2 classes
-                    #'AlexMI',        #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
+                    'AlexMI',        #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
                   ]
     datasets_LR = [ 'BNCI2014-001',
                     'BNCI2014-004',
@@ -421,3 +429,8 @@ def plot_stat(results, removeP300  = False, removeMI_LR = False):
     
     print("Evaluation in %:")
     print(results.groupby("pipeline").mean("score")[["score", "time"]])
+    
+    print("Evaluation in % per database:")
+    print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
+    
+    
