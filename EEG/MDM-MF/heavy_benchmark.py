@@ -431,6 +431,7 @@ def plot_stat(results, removeP300  = False, removeMI_LR = False):
     print(results.groupby("pipeline").mean("score")[["score", "time"]])
     
     print("Evaluation in % per database:")
-    print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
+    #print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
+    print(results.groupby(["dataset","pipeline"]).describe())
     
     

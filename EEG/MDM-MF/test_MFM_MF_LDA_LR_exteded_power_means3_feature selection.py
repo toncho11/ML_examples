@@ -54,7 +54,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.decomposition import PCA
 
 #start configuration
-hb_max_n_subjects = 10
+hb_max_n_subjects = 5
 hb_n_jobs = 24
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 #end configuration
@@ -113,6 +113,22 @@ pipelines["LDA"] = make_pipeline(
     LDA()
 )
 
+pipelines["LDA_LE"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means_extended_LEM_LED,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LDA()
+)
+
 from sklearn.feature_selection import SelectFromModel
 from sklearn.svm import LinearSVC
 pipelines["LDA_SFM_LE"] = make_pipeline(
@@ -148,7 +164,7 @@ pipelines["LDA_SFM_FO_LE"] = make_pipeline(
               method_label="sum_means", #not used if used as transformer
               n_jobs=12,
               ),
-    SelectFromModel(RandomForestClassifier(), threshold='median'),
+    SelectFromModel(RandomForestClassifier()),
     LDA()
 )
 
@@ -169,8 +185,35 @@ pipelines["L1_SFM_LE"] = make_pipeline(
     LogisticRegression(penalty="l1", solver="liblinear")
 )
 
+pipelines["LR_l1"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanField(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=12,
+              ),
+    LogisticRegression(penalty="l1", solver="liblinear")
+)
+
+pipelines["MDM"] = make_pipeline(
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    MDM(),
+)
+
+
 # from mlxtend.feature_selection import SequentialFeatureSelector
-# pipelines["LDA_SFS_LR_LE"] = make_pipeline(
+# pipelines["LDA_SFS_LE"] = make_pipeline(
 #     # applies XDawn and calculates the covariance matrix, output it matrices
 #     XdawnCovariances(
 #         nfilter=3,
@@ -179,11 +222,11 @@ pipelines["L1_SFM_LE"] = make_pipeline(
 #         xdawn_estimator="scm",
 #     ),
 #     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means_extended_LE,
+#     MeanField(power_list=power_means_LEM_LED,
 #               method_label="sum_means", #not used if used as transformer
 #               n_jobs=12,
 #               ),
-#     SequentialFeatureSelector(estimator = LogisticRegression()),
+#     SequentialFeatureSelector(estimator = RandomForestClassifier(),forward=False),
 #     LDA()
 # )
 
@@ -209,11 +252,13 @@ pipelines["L1_SFM_LE"] = make_pipeline(
 
 
 results = benchmark_alpha(pipelines, 
-                          evaluation_type="withinsession", 
+                          #evaluation_type="withinsession",
+                          evaluation_type="crosssubject", 
                           max_n_subjects = hb_max_n_subjects, 
                           n_jobs=hb_n_jobs, 
                           overwrite = hb_overwrite,
-                          #skip_MR_LR=True
+                          skip_P300 = False,
+                          skip_MR_LR = True,
                           )
 
 print("Results:")
