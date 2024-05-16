@@ -22,6 +22,9 @@ The MFM-MF has these options:
         - the disance to power mean p=1 is Euclidian
 
 Results:
+    There is no significant improvement in using different power means.
+    Results are mixed meaning that it improves the score for some datasets
+    and worsens for others until the mean improvment is zeroed.
 
     
     
