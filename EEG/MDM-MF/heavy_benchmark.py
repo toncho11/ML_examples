@@ -24,7 +24,7 @@ import seaborn as sns
 import pandas as pd
 from moabb import set_log_level
 
-# P300
+# P300 databases
 from moabb.datasets import (
     BI2013a,
     BNCI2014_008,
@@ -40,7 +40,7 @@ from moabb.datasets import (
     Sosulski2019,
 )
 
-# Motor imagery
+# Motor imagery databases
 from moabb.datasets import (
     BNCI2014_001,
     Zhou2016,
