@@ -59,7 +59,7 @@ from sklearn.model_selection import GridSearchCV
 #start configuration
 hb_max_n_subjects = 10 #2 subjects works
 hb_n_jobs = 24
-hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 #end configuration
 
 pipelines = {}

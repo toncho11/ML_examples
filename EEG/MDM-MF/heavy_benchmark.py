@@ -45,7 +45,7 @@ from moabb.datasets import (
     BNCI2015_001,
     BNCI2014_002,
     BNCI2014_004,
-    #BNCI2015_004,
+    BNCI2015_004, #not tested
     AlexMI,
     Weibo2014,
     Cho2017,
@@ -75,7 +75,7 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MI_LR = False, skip_P300 = False,
+def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MI = False, skip_P300 = False,
                     replace_x_dawn_cov_par_cov_for_MI = True
                     ):
     """
@@ -129,7 +129,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         BI2014b(),
     ]
 
-    datasets_MI = [  # BNCI2015_004(), #5 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
+    datasets_MI = [  BNCI2015_004(), #not tested
         BNCI2015_001(),
         BNCI2014_002(),
         AlexMI(),
@@ -143,7 +143,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         PhysionetMI(),
         Shin2017A(accept=True),
         Weibo2014(),
-        Zhou2016(),
+        Zhou2016(), #gives error on cov matrix not PD
     ]
 
     # each MI dataset can have different classes and events and this requires a different MI paradigm
@@ -241,7 +241,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
     if (skip_P300 == False):
         results_P300 = evaluation_P300.process(pipelines)
 
-    if skip_MI_LR == False and replace_x_dawn_cov_par_cov_for_MI == True: 
+    if skip_MI == False and replace_x_dawn_cov_par_cov_for_MI == True: 
         # replace XDawnCovariances with Covariances when using MI or LeftRightMI
         for pipe_name in pipelines:
             pipeline = pipelines[pipe_name]
@@ -286,7 +286,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
 
     return results
 
-def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
+def _AdjustDF(df, removeP300  = False, removeMI = False):
     """
     Allows the results to contain only P300 databases or only Motor Imagery databases.
     Adds "P" and "M" to each database name for each P300 and MI result. 
@@ -347,12 +347,12 @@ def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
     if (removeP300):
         df = df.drop(df[df['dataset'].str.endswith('_P', na=None)].index)
             
-    if (removeMI_LR):
+    if (removeMI):
         df = df.drop(df[df['dataset'].str.endswith('_M', na=None)].index)
             
     return df
 
-def plot_stat(results, removeP300  = False, removeMI_LR = False):
+def plot_stat(results, removeP300  = False, removeMI = False):
     """
     Generates a point plot for each pipeline.
     Generate statistical plots by comparing every 2 pipelines. Test if the 
@@ -375,7 +375,7 @@ def plot_stat(results, removeP300  = False, removeMI_LR = False):
     None.
 
     """
-    results = _AdjustDF(results, removeP300 = removeP300, removeMI_LR = removeMI_LR)
+    results = _AdjustDF(results, removeP300 = removeP300, removeMI = removeMI)
     
     fig, ax = plt.subplots(facecolor="white", figsize=[8, 4])
 
