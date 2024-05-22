@@ -3,15 +3,15 @@
 Benchmark Alpha
 ====================================================================
 
-A benchmark on a predefined list of databases for P300 and Motor Imagery (LR).
+A benchmark on a predefined list of databases for P300 and Motor Imagery (MI).
 
-Currently it requires the latest version of MOABB (from GIT) where:
+Currently it requires the latest version of MOABB (from Github) where:
     - cache_config is availabe for WithinSessionEvaluation|()
-    - this bug is fixed: https://github.com/NeuroTechX/moabb/issues/514
+    - bug 514 is fixed: https://github.com/NeuroTechX/moabb/issues/514
 
-Adapts both the pipeline and the paradigms depending on the evaluated databaase.
+Adapts both the pipeline and the paradigms depending on the evaluated database.
 Automatically changes the first transformers from XDawnCovariances() to Covariances()
-when switching from P300 to MotorImagery.
+when switching from P300 to MI.
 
 """
 # Author: Anton Andreev
@@ -36,8 +36,6 @@ from moabb.datasets import (
     BI2014b,
     BI2015a,
     BI2015b,
-    EPFLP300,
-    Sosulski2019,
 )
 
 # Motor imagery databases
@@ -47,7 +45,7 @@ from moabb.datasets import (
     BNCI2015_001,
     BNCI2014_002,
     BNCI2014_004,
-    BNCI2015_004,
+    #BNCI2015_004,
     AlexMI,
     Weibo2014,
     Cho2017,
@@ -63,12 +61,13 @@ from moabb.evaluations import (
 from moabb.paradigms import P300, MotorImagery, LeftRightImagery
 
 import moabb.analysis.plotting as moabb_plt
-from moabb.analysis.meta_analysis import (  # noqa: E501
+from moabb.analysis.meta_analysis import (
     compute_dataset_statistics,
     find_significant_differences,
 )
 
 print(__doc__)
+print("Version 1.0 21/05/2024")
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=RuntimeWarning)
@@ -76,7 +75,9 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MR_LR = False, skip_P300 = False):
+def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MI_LR = False, skip_P300 = False,
+                    replace_x_dawn_cov_par_cov_for_MI = True
+                    ):
     """
 
     Parameters
@@ -99,10 +100,9 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
     df : Pandas dataframe
         Returns a dataframe with results from the tests.
     
-
+    History:
+        21/05/2024 Initial version.
     """
-    
-    print("Version 1.0")
     
     cache_config = dict(
         use=True,
@@ -127,20 +127,20 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         BI2015b(),
         BI2014a(),
         BI2014b(),
-    ]  # Sosulski2019(), EPFLP300()
+    ]
 
     datasets_MI = [  # BNCI2015_004(), #5 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
-        BNCI2015_001(),  # 2 classes
-        BNCI2014_002(),  # 2 classes
-        AlexMI(),       #3 classes, Error: Classification metrics can't handle a mix of multiclass and continuous targets
+        BNCI2015_001(),
+        BNCI2014_002(),
+        AlexMI(),
     ]
 
     datasets_LR = [
         BNCI2014_001(),
         BNCI2014_004(),
-        Cho2017(),  # 49 subjects
+        Cho2017(),
         GrosseWentrup2009(),
-        PhysionetMI(),  # 109 subjects
+        PhysionetMI(),
         Shin2017A(accept=True),
         Weibo2014(),
         Zhou2016(),
@@ -171,7 +171,6 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         if name not in [(lambda x: type(x).__name__)(x) for x in paradigm_MI.datasets]:
             print("Error: dataset not compatible with selected paradigm", name)
             import sys
-
             sys.exit(1)
 
     for d in datasets_LR:
@@ -180,11 +179,9 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         if name not in [(lambda x: type(x).__name__)(x) for x in paradigm_LR.datasets]:
             print("Error: dataset not compatible with selected paradigm", name)
             import sys
-
             sys.exit(1)
 
-    # adjust the number of subjects, the Quantum pipeline takes a lot of time
-    # if executed on the entire dataset
+    # adjust the number of subjects min(max_n_subjects, total_count)
     if max_n_subjects != -1:
         for dataset in datasets_P300:
             n_subjects_ds = min(max_n_subjects, len(dataset.subject_list))
@@ -244,14 +241,14 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
     if (skip_P300 == False):
         results_P300 = evaluation_P300.process(pipelines)
 
-    if skip_MR_LR == False: 
+    if skip_MI_LR == False and replace_x_dawn_cov_par_cov_for_MI == True: 
         # replace XDawnCovariances with Covariances when using MI or LeftRightMI
         for pipe_name in pipelines:
             pipeline = pipelines[pipe_name]
             if pipeline.steps[0][0] == "xdawncovariances":
                 pipeline.steps.pop(0)
                 pipeline.steps.insert(0, ["covariances", Covariances("oas")])
-                print("xdawncovariances repalced by covariances")
+                print("xdawncovariances transformer replaced by covariances skip_MI_LR")
     
         results_LR = evaluation_LR.process(pipelines)
         
@@ -288,8 +285,6 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         results = results_P300
 
     return results
-
-
 
 def _AdjustDF(df, removeP300  = False, removeMI_LR = False):
     """
@@ -401,16 +396,14 @@ def plot_stat(results, removeP300  = False, removeMI_LR = False):
 
     plt.show()
 
-    # generate statistics for the summary plot
-    # Compute matrices of p-values and effects for all algorithms over all datasets via combined p-values and
+    # Generate statistics for the summary plot
+    # Computes matrices of p-values and effects for all algorithms over all datasets via combined p-values and
     # combined effects methods
     stats = compute_dataset_statistics(results)
     P, T = find_significant_differences(stats)
-    # agg = stats.groupby(['dataset']).mean()
-    # print(agg)
     print(stats.to_string())  # not all datasets are in stats
 
-    # Negative SMD value favors the first algorithm, postive SMD the second
+    # Negative SMD value favors the first(left) algorithm, postive SMD the second(right)
     # A meta-analysis style plot that shows the standardized effect with confidence intervals over
     # all datasets for two algorithms. Hypothesis is that alg1 is larger than alg2
     pipelines = results["pipeline"].unique()
@@ -422,8 +415,8 @@ def plot_stat(results, removeP300  = False, removeMI_LR = False):
             )
             plt.show()
 
-    # summary plot - significance matrix to compare pipelines.
-    # Visualize significances as a heatmap with green/grey/red for significantly higher/significantly lower.
+    # Summary Plot - provides a significance matrix to compare pipelines.
+    # Visualizes the significances as a heatmap with green/grey/red for significantly higher/significantly lower.
     moabb_plt.summary_plot(P, T)
     plt.show()
     
