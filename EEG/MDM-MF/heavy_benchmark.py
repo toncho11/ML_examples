@@ -129,20 +129,20 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
         BI2014b(),
     ]
 
-    datasets_MI = [  #BNCI2015_004(), #not tested
+    datasets_MI = [  BNCI2015_004(), #not tested
         BNCI2015_001(),
-        ##BNCI2014_002(),
-        #AlexMI(),
+        BNCI2014_002(),
+        AlexMI(),
     ]
 
     datasets_LR = [
         BNCI2014_001(),
         BNCI2014_004(),
         Cho2017(),
-        #GrosseWentrup2009(),
-        #PhysionetMI(),
-        #Shin2017A(accept=True),
-        #Weibo2014(),
+        GrosseWentrup2009(),
+        PhysionetMI(),
+        Shin2017A(accept=True),
+        Weibo2014(),
         #Zhou2016(), #gives error on cov matrix not PD
     ]
 
