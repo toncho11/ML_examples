@@ -75,8 +75,8 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MI = False, skip_P300 = False,
-                    replace_x_dawn_cov_par_cov_for_MI = True
+def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MI = False, skip_P300 = False,
+                    replace_x_dawn_cov_par_cov_for_MI = True,
                     ):
     """
 
@@ -129,21 +129,21 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         BI2014b(),
     ]
 
-    datasets_MI = [  BNCI2015_004(), #not tested
+    datasets_MI = [  #BNCI2015_004(), #not tested
         BNCI2015_001(),
-        BNCI2014_002(),
-        AlexMI(),
+        ##BNCI2014_002(),
+        #AlexMI(),
     ]
 
     datasets_LR = [
         BNCI2014_001(),
         BNCI2014_004(),
         Cho2017(),
-        GrosseWentrup2009(),
-        PhysionetMI(),
-        Shin2017A(accept=True),
-        Weibo2014(),
-        Zhou2016(), #gives error on cov matrix not PD
+        #GrosseWentrup2009(),
+        #PhysionetMI(),
+        #Shin2017A(accept=True),
+        #Weibo2014(),
+        #Zhou2016(), #gives error on cov matrix not PD
     ]
 
     # each MI dataset can have different classes and events and this requires a different MI paradigm
@@ -239,7 +239,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
         raise ValueError('Unknown evaluation type!')
 
     if (skip_P300 == False):
-        results_P300 = evaluation_P300.process(pipelines)
+        results_P300 = evaluation_P300.process(pipelines,param_grid=params_grid)
 
     if skip_MI == False and replace_x_dawn_cov_par_cov_for_MI == True: 
         # replace XDawnCovariances with Covariances when using MI or LeftRightMI
@@ -250,7 +250,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
                 pipeline.steps.insert(0, ["covariances", Covariances("oas")])
                 print("xdawncovariances transformer replaced by covariances skip_MI_LR")
     
-        results_LR = evaluation_LR.process(pipelines)
+        results_LR = evaluation_LR.process(pipelines, param_grid=params_grid)
         
         if (skip_P300 == False):
             results = pd.concat([results_P300, results_LR], ignore_index=True)
@@ -279,7 +279,7 @@ def benchmark_alpha(pipelines, evaluation_type = "withinsession", max_n_subjects
                 cache_config=cache_config,
             )
     
-            results_per_MI_pardigm = evaluation_MI.process(pipelines)
+            results_per_MI_pardigm = evaluation_MI.process(pipelines, param_grid = params_grid)
             results = pd.concat([results, results_per_MI_pardigm], ignore_index=True)
     else:
         results = results_P300
@@ -424,7 +424,7 @@ def plot_stat(results, removeP300  = False, removeMI = False):
     print(results.groupby("pipeline").mean("score")[["score", "time"]])
     
     print("Evaluation in % per database:")
-    #print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
-    print(results.groupby(["dataset","pipeline"]).describe())
+    print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
+    #print(results.groupby(["dataset","pipeline"]).describe())
     
     

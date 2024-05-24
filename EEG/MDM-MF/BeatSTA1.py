@@ -48,10 +48,6 @@ Tests several algorithms running after MFM_MF:
     - LDA
         - PM: [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
         - as MF_orig but with LDA
-        
-    - AD_TS_GR_SVM_F
-        - loaded from file and represents state of the art classification for Motor Imagery
-        - It uses Data Augmentation with Grid Search, Tangent Space, SVM with Grid Search
     
 
 The MFM-MF has these options:
@@ -61,17 +57,6 @@ The MFM-MF has these options:
         - the disance to power mean p=1 is Euclidian
 
 Results:
-    
-        It seems our LDA_SFM_LE the STA AD_TS_GR_SVM are the best.
-        In terms SMD AD_TS_GR_SVM  is a bit better, but without significance (no red dots).
-                           score        time
-        pipeline                            
-        AD_TS_GR_SVM_F  0.725212   11.937689
-        LDA             0.715469  163.861067
-        LDA_SFM_LE      0.729060  452.168756
-        MF_orig         0.709337  152.740309
-        PL_LDA          0.717018  452.597359
-        PL_SFO_LDA      0.682985  362.700065
     
     
 @author: anton andreev
@@ -136,13 +121,14 @@ class SelectFromModelEx(SelectFromModel):
         return self
 
 #start configuration
-hb_max_n_subjects = 5
+hb_max_n_subjects = 10
 hb_n_jobs = 24
-hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 #end configuration
 
 labels_dict = {"Target": 1, "NonTarget": 0}
 pipelines = {}
+params_grid = None
 
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
@@ -214,25 +200,37 @@ grid_ad =  GridSearchCV(AugmentedDataset(), param_grid_ad , refit = True, verbos
 grid_svc = GridSearchCV(SVC()             , param_grid_svc, refit = True, verbose = 0, scoring='balanced_accuracy') 
 
 
-pipelines["AD_SVM_LE_G"] = make_pipeline(
-     grid_ad,
-     Covariances(estimator="cov"),
-     MeanField(power_list=power_means_extended_LEM_LED,
-               method_label="sum_means", #not used if used as transformer
-               n_jobs=12,
-               ),
-     #SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-     grid_svc,
- )
+pipelines["AD_SVM_LE"] = make_pipeline(
+      AugmentedDataset(),#grid_ad,
+      Covariances(estimator="cov"),
+      MeanField(power_list=power_means_extended_LEM_LED,
+                method_label="sum_means", #not used if used as transformer
+                n_jobs=12,
+                ),
+      #SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
+      SVC()#grid_svc,
+  )
+
+pipelines["AD_LDA_LE"] = make_pipeline(
+      AugmentedDataset(),#grid_ad,
+      Covariances(estimator="cov"),
+      MeanField(power_list=power_means_extended_LEM_LED,
+                method_label="sum_means", #not used if used as transformer
+                n_jobs=12,
+                ),
+      SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
+      LDA(),
+  )
 
 # from sklearn.neural_network import MLPClassifier
-# pipelines["NN_SFM_LE"] = make_pipeline(
+# pipelines["AD_NN_LE"] = make_pipeline(
+#      grid_ad,
 #      Covariances(estimator="cov"),
 #      MeanField(power_list=power_means_extended_LEM_LED,
 #                method_label="sum_means", #not used if used as transformer
 #                n_jobs=12,
 #                ),
-#      SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
+#      #SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
 #      MLPClassifier(hidden_layer_sizes=(64, 32),
 #                     max_iter=1000, random_state=42)
 #  )
@@ -321,13 +319,20 @@ pipelines["AD_SVM_LE_G"] = make_pipeline(
 #     MDM(),
 # )
 
-#load baseline pipeline
 from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
 pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
-params_grid = generate_param_grid(pipeline_configs)
+
+#no GS
 for c in pipeline_configs:
     if c["name"] == "AUG Tang SVM Grid":
-        pipelines["AD_TS_GR_SVM_F2"] = c["pipeline"]
+        pipelines["AD_TS_GR_SVM_F"] = c["pipeline"]
+      
+# with GS
+# params_grid = generate_param_grid(pipeline_configs)
+
+# for c in pipeline_configs:
+#     if c["name"] == "AUG Tang SVM Grid":
+#         pipelines["AD_TS_GR_SVM_G"] = c["pipeline"]
 
 results = benchmark_alpha(pipelines, 
                           params_grid = params_grid, 
@@ -335,7 +340,7 @@ results = benchmark_alpha(pipelines,
                           evaluation_type="crosssubject", 
                           max_n_subjects = hb_max_n_subjects, 
                           n_jobs=hb_n_jobs, 
-                          overwrite = False,
+                          overwrite = hb_overwrite,
                           skip_P300 = True,
                           skip_MI   = False,
                           replace_x_dawn_cov_par_cov_for_MI=True

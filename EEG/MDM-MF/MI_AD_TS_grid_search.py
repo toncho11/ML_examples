@@ -63,6 +63,7 @@ hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 #end configuration
 
 pipelines = {}
+params_grid  = None
 
 pipelines["TS_LDA"] = make_pipeline(
     Covariances(),
@@ -70,45 +71,65 @@ pipelines["TS_LDA"] = make_pipeline(
     LDA()#LogisticRegression(penalty="l1", solver="liblinear")
 )
 
-param_grid = {         'C': [0.5, 1.0, 1.5],  
-                  'kernel': ['rbf','linear'],
-                   'order': [1,2,3,4,5,6,7,8,9,10],  
-                     'lag': [1,2,3,4,5,6,7,8,9,10]}
+# from moabb.pipelines.utils import parse_pipelines_from_directory
+# pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
+# for c in pipeline_configs:
+#     if c["name"] == "AUG Tang SVM Grid":
+#         pipelines["AD_TS_GR_SVM_F"] = c["pipeline"]
 
-grid_ad =  GridSearchCV(AugmentedDataset(), param_grid, refit = True, verbose = 0, scoring='balanced_accuracy') 
-grid_svc = GridSearchCV(SVC()             , param_grid, refit = True, verbose = 0, scoring='balanced_accuracy') 
+# param_grid_ad =  {
+#                    'order': [1,2,3,4,5,6,7,8,9,10],  
+#                      'lag': [1,2,3,4,5,6,7,8,9,10]
+#                  }
+
+# param_grid_svc = {         'C': [0.5, 1.0, 1.5],  
+#                   'kernel': ['rbf','linear'],      
+#                   }
+
+# grid_ad =  GridSearchCV(AugmentedDataset(), param_grid_ad , refit = True, verbose = 0, scoring='balanced_accuracy') 
+# grid_svc = GridSearchCV(SVC()             , param_grid_svc, refit = True, verbose = 0, scoring='balanced_accuracy') 
 
 # augmnetation and grid search
-pipelines["AD_TS_GR_SVM"] = make_pipeline(
-    grid_ad,
-    Covariances(),
-    TangentSpace(),
-    grid_svc,
-) 
+# pipelines["AD_TS_GR_SVM"] = make_pipeline(
+#     grid_ad,
+#     Covariances(),
+#     TangentSpace(),
+#     grid_svc,
+# ) 
 
-# no augmentation and no gridsearch
-pipelines["TS_GR_SVM"] = make_pipeline(
-    Covariances(),
-    TangentSpace(),
-    SVC(),
-)
+# # no augmentation and no gridsearch
+# pipelines["TS_SVM"] = make_pipeline(
+#     Covariances(),
+#     TangentSpace(),
+#     SVC(),
+# )
 
-# augmentation and no grid search
-pipelines["AD_TS_GR_SVM"] = make_pipeline(
-    AugmentedDataset(),
-    Covariances(),
-    TangentSpace(),
-    SVC(),
-)
+# # augmentation and no grid search
+# pipelines["AD_TS_SVM"] = make_pipeline(
+#     AugmentedDataset(),
+#     Covariances(),
+#     TangentSpace(),
+#     SVC(),
+# )
+
+from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
+pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
+
+params_grid = generate_param_grid(pipeline_configs)
+
+for c in pipeline_configs:
+    if c["name"] == "AUG Tang SVM Grid":
+        pipelines["AD_TS_GR_SVM_F2"] = c["pipeline"]
 
 results = benchmark_alpha(pipelines, 
+                          params_grid = params_grid, 
                           #evaluation_type="withinsession",
                           evaluation_type="crosssubject", 
                           max_n_subjects = hb_max_n_subjects, 
                           n_jobs=hb_n_jobs, 
                           overwrite = hb_overwrite,
                           skip_P300 = True,
-                          skip_MI = False,
+                          skip_MI   = False,
                           replace_x_dawn_cov_par_cov_for_MI=True
                           )
 
