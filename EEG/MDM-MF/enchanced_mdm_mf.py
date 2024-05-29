@@ -244,9 +244,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         
                     if p == 1:
                         metric = "euclid"
-                        
-                    # if p == 300: #forces a Log Euclidian distance for p=300
-                    #     metric = "logeuclid" 
                     
                     if p == -1:
                         metric="harmonic"
@@ -257,13 +254,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     squared = False
                     
                     if metric is None:
-                        #print("0.5 distance")
- 
+                        #print("p based distance") 
                         m[p].append(
                             distance_custom(x, self.covmeans_[p][ll], k=p, squared = squared)
                         )
                     else:
-                        #print("known distance")
+                        #print("manually selected distance -1,1,200")
                         m[p].append(
                             distance(
                                 x,
