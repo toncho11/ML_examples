@@ -17,7 +17,44 @@ from pyriemann.utils.kernel import kernel
 from pyriemann.utils.mean import mean_covariance, mean_power, mean_logeuclid
 from pyriemann.utils.distance import distance
 from pyriemann.tangentspace import FGDA, TangentSpace
+from pyriemann.utils.distance import distance_euclid
 
+import scipy
+
+#this is a custom distance that gets an additional parameter
+def distance_custom(A, B, k, squared=False):
+    r"""Harmonic distance between invertible matrices.
+
+    The harmonic distance between two invertible matrices :math:`\mathbf{A}`
+    and :math:`\mathbf{B}` is:
+
+    .. math::
+        d(\mathbf{A},\mathbf{B}) =
+        \Vert \mathbf{A}^{-1} - \mathbf{B}^{-1} \Vert_F
+
+    Parameters
+    ----------
+    A : ndarray, shape (..., n, n)
+        First invertible matrices, at least 2D ndarray.
+    B : ndarray, shape (..., n, n)
+        Second invertible matrices, same dimensions as A.
+    squared : bool, default False
+        Return squared distance.
+
+        .. versionadded:: 0.5
+
+    Returns
+    -------
+    d : float or ndarray, shape (...,)
+        Harmonic distance between A and B.
+
+    See Also
+    --------
+    distance
+    """
+    
+    return distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
+    #return distance_euclid(np.linalg.inv(A), np.linalg.inv(B), squared=squared)
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):
@@ -117,7 +154,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
         self.covmeans_ = {}
         for p in self.power_list:
+            
             means_p = {}
+            
             if p == 200: #adding an extra mean - this one is logeuclid and not power mean
                 for ll in self.classes_:
                     means_p[ll] = mean_logeuclid(
@@ -125,13 +164,13 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         sample_weight=sample_weight[y == ll]
                     )
                 self.covmeans_[p] = means_p
-            elif p == 300: #adding an extra mean - this one is logeuclid and not power mean, p=300 forces a LogEuclidian distance later
-                for ll in self.classes_:
-                    means_p[ll] = mean_logeuclid(
-                        X[y == ll],
-                        sample_weight=sample_weight[y == ll]
-                    )
-                self.covmeans_[p] = means_p
+            # elif p == 300: #adding an extra mean - this one is logeuclid and not power mean, p=300 forces a LogEuclidian distance later
+            #     for ll in self.classes_:
+            #         means_p[ll] = mean_logeuclid(
+            #             X[y == ll],
+            #             sample_weight=sample_weight[y == ll]
+            #         )
+            #     self.covmeans_[p] = means_p
             else:
                 for ll in self.classes_:
                     means_p[ll] = mean_power(
@@ -195,23 +234,44 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 m[p] = []
                 for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
                     
-                    metric = self.metric
-                    if self.custom_distance:
-                        if p == 200:
-                            metric = "logeuclid" 
-                        if p == 1:
-                            metric = "euclid"
+                    #metric = self.metric
+                    #if self.custom_distance:
                     
-                    if p == 300: #forces a Log Euclidian distance for p=300
-                        metric = "logeuclid" 
+                    metric = None
                     
-                    m[p].append(
-                        distance(
-                            x,
-                            self.covmeans_[p][ll],
-                            metric=metric,
+                    if p == 200:
+                        metric = "logeuclid"
+                        
+                    if p == 1:
+                        metric = "euclid"
+                        
+                    # if p == 300: #forces a Log Euclidian distance for p=300
+                    #     metric = "logeuclid" 
+                    
+                    if p == -1:
+                        metric="harmonic"
+                    
+                    if p<=0.1 and p>=-0.1:
+                        metric = "riemann"
+                        
+                    squared = False
+                    
+                    if metric is None:
+                        #print("0.5 distance")
+ 
+                        m[p].append(
+                            distance_custom(x, self.covmeans_[p][ll], k=p, squared = squared)
                         )
-                    )
+                    else:
+                        #print("known distance")
+                        m[p].append(
+                            distance(
+                                x,
+                                self.covmeans_[p][ll],
+                                metric=metric,
+                                squared = squared,
+                            )
+                        )
                     
             combined = []
             for v in m.values():
