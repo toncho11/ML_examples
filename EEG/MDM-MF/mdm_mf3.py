@@ -64,7 +64,7 @@ Results:
 
 from pyriemann.estimation import XdawnCovariances, ERPCovariances, Covariances
 from sklearn.pipeline import make_pipeline
-from enchanced_mdm_mf import MeanField
+from enchanced_mdm_mf import MeanField as MeanFieldNew
 from pyriemann.classification import MeanField as MeanField_orig
 from moabb.evaluations import (
     WithinSessionEvaluation,
@@ -123,7 +123,8 @@ class SelectFromModelEx(SelectFromModel):
 #start configuration
 hb_max_n_subjects = 10
 hb_n_jobs = 24
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
+mdm_mf_jobs = 1
 #end configuration
 
 labels_dict = {"Target": 1, "NonTarget": 0}
@@ -132,14 +133,14 @@ params_grid = None
 
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
-power_means_extended = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1]
+#power_means_extended = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1]
 
-power_means_extended_LEM = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200]
+#power_means_extended_LEM = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200]
 
 #both : log euclidian with riemann distance and logeuclidian with log euclidian distance
-power_means_extended_LEM_LED = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200]
+#power_means_extended_LEM_LED = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200]
 
-power_means_LEM_LED = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1, 200]
+#power_means_LEM_LED = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1, 200]
 
 # power_means_extended2 = [-1, -0.9, -0.1, 0.1, 0.9, 1]
 
@@ -148,168 +149,6 @@ power_means_LEM_LED = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5
 # power_means_extended4 = [0.01, 0.9, 1]
 
 # power_means_extended5 = [-1, -0.9, -0.01]
-
-
-# pipelines["MF_orig"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField_orig(power_list=power_means,
-#               method_label="inf_means",
-#               n_jobs=12,
-              
-#               ),
-# )
-
-# pipelines["LDA_SFM_LE"] = make_pipeline(
-#      # applies XDawn and calculates the covariance matrix, output it matrices
-#      XdawnCovariances(
-#          nfilter=3,
-#          classes=[labels_dict["Target"]],
-#          estimator="lwf",
-#          xdawn_estimator="scm",
-#      ),
-#      #sum_means does not make a difference with 10 power means comapred to 3
-#      MeanField(power_list=power_means_extended_LEM_LED,
-#                method_label="sum_means", #not used if used as transformer
-#                n_jobs=12,
-#                ),
-#      SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#      LDA()#LogisticRegression(penalty="l1", solver="liblinear")
-#  )
-
-from moabb.pipelines.features import AugmentedDataset
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV 
-
-param_grid_ad =  {
-                    'order': [1,2,3,4,5,6,7,8,9,10],  
-                      'lag': [1,2,3,4,5,6,7,8,9,10]
-                  }
-
-param_grid_svc = {         'C': [0.5, 1.0, 1.5],  
-                  'kernel': ['rbf','linear'],      
-                  }
-
-grid_ad =  GridSearchCV(AugmentedDataset(), param_grid_ad , refit = True, verbose = 0, scoring='balanced_accuracy') 
-grid_svc = GridSearchCV(SVC()             , param_grid_svc, refit = True, verbose = 0, scoring='balanced_accuracy') 
-
-# pipelines["AD_SVM_LE_G"] = make_pipeline(
-#       grid_ad,
-#       Covariances(estimator="cov"),
-#       MeanField(power_list=power_means_extended_LEM_LED,
-#                 method_label="sum_means", #not used if used as transformer
-#                 n_jobs=12,
-#                 ),
-#       #SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#       grid_svc,
-#   )
-
-# pipelines["AD_LDA_LE_G"] = make_pipeline(
-#       grid_ad,
-#       Covariances(estimator="cov"),
-#       MeanField(power_list=power_means_extended_LEM_LED,
-#                 method_label="sum_means", #not used if used as transformer
-#                 n_jobs=12,
-#                 ),
-#       SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#       LDA(),
-#   )
-
-# pipelines["AD_SVM_LE"] = make_pipeline(
-#       AugmentedDataset(),#grid_ad,
-#       Covariances(estimator="cov"),
-#       MeanField(power_list=power_means_extended_LEM_LED,
-#                 method_label="sum_means", #not used if used as transformer
-#                 n_jobs=12,
-#                 ),
-#       #SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#       SVC()#grid_svc,
-#   )
-
-# pipelines["AD_LDA_LE"] = make_pipeline(
-#       AugmentedDataset(),#grid_ad,
-#       Covariances(estimator="cov"),
-#       MeanField(power_list=power_means_extended_LEM_LED,
-#                 method_label="sum_means", #not used if used as transformer
-#                 n_jobs=12,
-#                 ),
-#       SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#       LDA(),
-#   )
-
-# from sklearn.neural_network import MLPClassifier
-# pipelines["AD_NN_LE"] = make_pipeline(
-#      grid_ad,
-#      Covariances(estimator="cov"),
-#      MeanField(power_list=power_means_extended_LEM_LED,
-#                method_label="sum_means", #not used if used as transformer
-#                n_jobs=12,
-#                ),
-#      #SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#      MLPClassifier(hidden_layer_sizes=(64, 32),
-#                     max_iter=1000, random_state=42)
-#  )
-
-
-# #polynomial logistic regression
-# pipelines["PL_LDA"] = make_pipeline(
-#      # applies XDawn and calculates the covariance matrix, output it matrices
-#      XdawnCovariances(
-#          nfilter=3,
-#          classes=[labels_dict["Target"]],
-#          estimator="lwf",
-#          xdawn_estimator="scm",
-#      ),
-#      #sum_means does not make a difference with 10 power means comapred to 3
-#      MeanField(power_list=power_means_extended_LEM_LED,
-#                method_label="sum_means", #not used if used as transformer
-#                n_jobs=12,
-#                ),
-#      PolynomialFeatures(degree = 2, interaction_only=False, include_bias=True),
-#      LDA()#LogisticRegression(penalty="l1", solver="liblinear")
-#  )
-
-# #current best - should be PL_SFM_LR_LE
-# pipelines["PL_SFO_LDA"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means_extended_LEM_LED,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=12,
-#               ),
-#     PolynomialFeatures(degree = 2, interaction_only=False, include_bias=True),
-#     SelectFromModel(LinearSVC(dual="auto", penalty="l1")),
-#     LDA()#LogisticRegression(penalty="l1", solver="liblinear")
-# )
-
-#new to test if LE adds something
-# pipelines["LDA_LE"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means_extended_LEM_LED,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=12,
-#               ),
-#     LDA()#LogisticRegression(penalty="l1", solver="liblinear")
-# )
 
 pipelines["ORIG"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
@@ -322,12 +161,11 @@ pipelines["ORIG"] = make_pipeline(
     #sum_means does not make a difference with 10 power means comapred to 3
     MeanField_orig(power_list=power_means,
               method_label="inf_means",
-              n_jobs=12,
+              n_jobs=mdm_mf_jobs,
               ),
 )
 
-#to compare with original
-pipelines["LR_L1"] = make_pipeline(
+pipelines["LDA_ORIG"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     XdawnCovariances(
         nfilter=3,
@@ -336,34 +174,17 @@ pipelines["LR_L1"] = make_pipeline(
         xdawn_estimator="scm",
     ),
     #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means_LEM_LED,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
+    MeanFieldNew(power_list=power_means,
+              method_label="inf_means", #not used if used as transformer
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean=False,
+              custom_distance=False
               ),
-    LogisticRegression(penalty="l1", solver="liblinear")
-    #LDA()
-)
-
-pipelines["LDA"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(
-        nfilter=3,
-        classes=[labels_dict["Target"]],
-        estimator="lwf",
-        xdawn_estimator="scm",
-    ),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means_LEM_LED,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
-              ),
-    #LogisticRegression(penalty="l1", solver="liblinear")
     LDA()
 )
 
-pipelines["AD_LR_L1"] = make_pipeline(
+pipelines["LDA_EM"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
-    AugmentedDataset(),
     XdawnCovariances(
         nfilter=3,
         classes=[labels_dict["Target"]],
@@ -371,40 +192,68 @@ pipelines["AD_LR_L1"] = make_pipeline(
         xdawn_estimator="scm",
     ),
     #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField(power_list=power_means_LEM_LED,
+    MeanFieldNew(power_list=power_means,
               method_label="sum_means", #not used if used as transformer
-              n_jobs=12,
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean=True,
+              custom_distance=False
               ),
-    LogisticRegression(penalty="l1", solver="liblinear")
-    #LDA()
+    LDA()
 )
 
-# from sklearn.linear_model import LassoCV 
+pipelines["LDA_CD"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanFieldNew(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean=False,
+              custom_distance=True
+              ),
+    LDA()
+)
 
-# pipelines["MDM"] = make_pipeline(
+pipelines["LDA_EM_CD"] = make_pipeline(
+    # applies XDawn and calculates the covariance matrix, output it matrices
+    XdawnCovariances(
+        nfilter=3,
+        classes=[labels_dict["Target"]],
+        estimator="lwf",
+        xdawn_estimator="scm",
+    ),
+    #sum_means does not make a difference with 10 power means comapred to 3
+    MeanFieldNew(power_list=power_means,
+              method_label="sum_means", #not used if used as transformer
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean=True,
+              custom_distance=True
+              ),
+    LDA()
+)
+
+#########################################################################################
+# pipelines["LDA"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
 #     XdawnCovariances(
 #         nfilter=3,
 #         classes=[labels_dict["Target"]],
 #         estimator="lwf",
 #         xdawn_estimator="scm",
 #     ),
-#     MDM(),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField(power_list=power_means_LEM_LED,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=mdm_mf_jobs,
+#               ),
+#     #LogisticRegression(penalty="l1", solver="liblinear")
+#     LDA()
 # )
-
-# from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
-# pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
-
-# #no GS
-# # for c in pipeline_configs:
-# #     if c["name"] == "AUG Tang SVM Grid":
-# #         pipelines["AD_TS_GR_SVM_F"] = c["pipeline"]
-      
-# #with GS
-# params_grid = generate_param_grid(pipeline_configs)
-
-# for c in pipeline_configs:
-#     if c["name"] == "AUG Tang SVM Grid":
-#         pipelines["AD_TS_GR_SVM_G"] = c["pipeline"]
 
 results = benchmark_alpha(pipelines, 
                           #params_grid = params_grid, 
@@ -413,7 +262,7 @@ results = benchmark_alpha(pipelines,
                           max_n_subjects = hb_max_n_subjects, 
                           n_jobs=hb_n_jobs, 
                           overwrite = hb_overwrite,
-                          skip_P300 = False,
+                          skip_P300 = True,
                           skip_MI   = False,
                           replace_x_dawn_cov_par_cov_for_MI=True
                           )

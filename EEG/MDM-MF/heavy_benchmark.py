@@ -396,29 +396,29 @@ def plot_stat(results, removeP300  = False, removeMI = False):
 
     plt.show()
 
-    # # Generate statistics for the summary plot
-    # # Computes matrices of p-values and effects for all algorithms over all datasets via combined p-values and
-    # # combined effects methods
-    # stats = compute_dataset_statistics(results)
-    # P, T = find_significant_differences(stats)
-    # print(stats.to_string())  # not all datasets are in stats
+    # Generate statistics for the summary plot
+    # Computes matrices of p-values and effects for all algorithms over all datasets via combined p-values and
+    # combined effects methods
+    stats = compute_dataset_statistics(results)
+    P, T = find_significant_differences(stats)
+    print(stats.to_string())  # not all datasets are in stats
 
-    # # Negative SMD value favors the first(left) algorithm, postive SMD the second(right)
-    # # A meta-analysis style plot that shows the standardized effect with confidence intervals over
-    # # all datasets for two algorithms. Hypothesis is that alg1 is larger than alg2
-    # pipelines = results["pipeline"].unique()
-    # pipelines_sorted = sorted(pipelines)
-    # for i in range(0, len(pipelines_sorted)):
-    #     for j in range(i + 1, len(pipelines_sorted)):
-    #         fig = moabb_plt.meta_analysis_plot(
-    #             stats, pipelines_sorted[i], pipelines_sorted[j]
-    #         )
-    #         plt.show()
+    # Negative SMD value favors the first(left) algorithm, postive SMD the second(right)
+    # A meta-analysis style plot that shows the standardized effect with confidence intervals over
+    # all datasets for two algorithms. Hypothesis is that alg1 is larger than alg2
+    pipelines = results["pipeline"].unique()
+    pipelines_sorted = sorted(pipelines)
+    for i in range(0, len(pipelines_sorted)):
+        for j in range(i + 1, len(pipelines_sorted)):
+            fig = moabb_plt.meta_analysis_plot(
+                stats, pipelines_sorted[i], pipelines_sorted[j]
+            )
+            plt.show()
 
-    # # Summary Plot - provides a significance matrix to compare pipelines.
-    # # Visualizes the significances as a heatmap with green/grey/red for significantly higher/significantly lower.
-    # moabb_plt.summary_plot(P, T)
-    # plt.show()
+    # Summary Plot - provides a significance matrix to compare pipelines.
+    # Visualizes the significances as a heatmap with green/grey/red for significantly higher/significantly lower.
+    moabb_plt.summary_plot(P, T)
+    plt.show()
     
     print("Evaluation in %:")
     print(results.groupby("pipeline").mean("score")[["score", "time"]])

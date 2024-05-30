@@ -122,12 +122,15 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
     """
 
     def __init__(self, power_list=[-1, 0, 1], method_label='sum_means',
-                 metric="riemann", n_jobs=1, custom_distance = False):
+                 metric="riemann", n_jobs=1, 
+                 euclidean_mean = False,
+                 custom_distance = False):
         """Init."""
         self.power_list = power_list
         self.method_label = method_label
         self.metric = metric
         self.n_jobs = n_jobs
+        self.euclidean_mean = euclidean_mean
         self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
 
     def fit(self, X, y, sample_weight=None):
@@ -147,6 +150,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self : MeanField instance
             The MeanField instance.
         """
+        
+        if self.euclidean_mean:
+            self.power_list.append(200)
+            
         self.classes_ = np.unique(y)
 
         if sample_weight is None:
@@ -158,19 +165,13 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             means_p = {}
             
             if p == 200: #adding an extra mean - this one is logeuclid and not power mean
+                #print("euclidean mean")
                 for ll in self.classes_:
                     means_p[ll] = mean_logeuclid(
                         X[y == ll],
                         sample_weight=sample_weight[y == ll]
                     )
                 self.covmeans_[p] = means_p
-            # elif p == 300: #adding an extra mean - this one is logeuclid and not power mean, p=300 forces a LogEuclidian distance later
-            #     for ll in self.classes_:
-            #         means_p[ll] = mean_logeuclid(
-            #             X[y == ll],
-            #             sample_weight=sample_weight[y == ll]
-            #         )
-            #     self.covmeans_[p] = means_p
             else:
                 for ll in self.classes_:
                     means_p[ll] = mean_power(
@@ -222,64 +223,83 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         return np.array(pred)
 
+    def _calculate_distance(self,A,B,p):
+        
+        squared = False
+        
+        if self.custom_distance:
+            dist = distance(
+                    A,
+                    B,
+                    metric=self.metric,
+                    squared = squared,
+                )
+        else:
+            metric = None
+            
+            if p == 200:
+                metric = "logeuclid"
+                #print("euclidean distance")
+                
+            if p == 1:
+                metric = "euclid"
+            
+            if p == -1:
+                metric="harmonic"
+            
+            if p<=0.1 and p>=-0.1:
+                metric = "riemann"
+            
+            if metric is None:
+                #print("p based distance") 
+                dist = distance_custom(A, B, k=p, squared = squared)
+            else:
+                #print("manually selected distance -1,1,200")
+                dist = distance(
+                        A,
+                        B,
+                        metric=metric,
+                        squared = squared,
+                    )
+                
+        return dist
+    
+    def _calucalte_distance_per_mean(self,x):
+        
+        #dist = []
+        m = {} #contains a distance to a power mean
+        
+        for p in self.power_list:
+            m[p] = []
+            for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
+                dist_p = self._calculate_distance(x,self.covmeans_[p][ll],p)
+                m[p].append(dist_p)
+                
+        combined = [] #combined for all classes
+        for v in m.values():
+            combined.extend(v)
+        
+        combined = np.array(combined)
+        
+        #print("Combined: ", len(self.power_list) , len(self.classes_), combined.shape)
+        #dist.append(combined)
+        
+        return combined
+        
     def _predict_distances(self, X):
         """Helper to predict the distance. Equivalent to transform."""
 
-        dist = []
-        for x in X:
-            m = {} #m contains a distance to a power mean
+        if (self.n_jobs == 1):
+            dist = []
+            for x in X:
+                distances_per_mean = self._calucalte_distance_per_mean(x)
+                dist.append(distances_per_mean)
+        else:
+            dist = Parallel(n_jobs=self.n_jobs)(delayed(self._calucalte_distance_per_mean)(x)
+                 for x in X
+                )
             
-            #TODO: needs to be done parallel
-            for p in self.power_list:
-                m[p] = []
-                for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
-                    
-                    #metric = self.metric
-                    #if self.custom_distance:
-                    
-                    metric = None
-                    
-                    if p == 200:
-                        metric = "logeuclid"
-                        
-                    if p == 1:
-                        metric = "euclid"
-                    
-                    if p == -1:
-                        metric="harmonic"
-                    
-                    if p<=0.1 and p>=-0.1:
-                        metric = "riemann"
-                        
-                    squared = False
-                    
-                    if metric is None:
-                        #print("p based distance") 
-                        m[p].append(
-                            distance_custom(x, self.covmeans_[p][ll], k=p, squared = squared)
-                        )
-                    else:
-                        #print("manually selected distance -1,1,200")
-                        m[p].append(
-                            distance(
-                                x,
-                                self.covmeans_[p][ll],
-                                metric=metric,
-                                squared = squared,
-                            )
-                        )
-                    
-            combined = []
-            for v in m.values():
-                combined.extend(v)
-            
-            combined = np.array(combined)
-            
-            #print("Combined: ", len(self.power_list) , len(self.classes_), combined.shape)
-            dist.append(combined)
-        
         dist = np.array(dist)
-        #print("Dist shape", dist.shape)
         return dist
 
     def transform(self, X,):
