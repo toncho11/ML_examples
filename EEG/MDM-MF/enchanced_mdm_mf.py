@@ -189,8 +189,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         for ip, p in enumerate(self.power_list):
             for ill, ll in enumerate(labs_unique):
-                m[ip, ill] = distance(
-                    x, self.covmeans_[p][ll], metric=self.metric, squared=True)
+                m[ip, ill] = self._calculate_distance(x, self.covmeans_[p][ll], p)
+                # m[ip, ill] = distance(
+                #     x, self.covmeans_[p][ll], metric=self.metric, squared=True)
 
         if self.method_label == 'sum_means':
             ipmin = np.argmin(np.sum(m, axis=1))

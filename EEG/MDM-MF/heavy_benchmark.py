@@ -248,7 +248,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
             if pipeline.steps[0][0] == "xdawncovariances":
                 pipeline.steps.pop(0)
                 pipeline.steps.insert(0, ["covariances", Covariances("oas")])
-                print("xdawncovariances transformer replaced by covariances skip_MI_LR")
+                print("xdawncovariances transformer replaced by covariances")
     
         results_LR = evaluation_LR.process(pipelines, param_grid=params_grid)
         

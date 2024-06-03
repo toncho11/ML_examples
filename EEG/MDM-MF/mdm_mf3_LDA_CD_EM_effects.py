@@ -7,57 +7,48 @@ Classification of MI datasets from MOABB using MDM-MF
 
 MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
 Paper: https://hal.science/hal-02315131
-
-Testing if more power means will improve the results.
-It uses several methods for feature selection (to reduce the number of means used):
-    - SFM - Select From Model (ex. LinearSVC)
-    - PL  - PolynomialFeatures (actually adds more features)
-
-When p=200 an Euclidean mean is created with Riemann distance
-When p=300 an Euclidean mean is created with Eucledan distance
-
-Tests several algorithms running after MFM_MF:
     
-    - MF_orig - original MFM when published
-      - PM: [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
-      
-    - LDA_SFM_LE
-      - Uses more power means, Euclidean mean with both Riemann distance and Euclidean distance (200,300)
-          - PM + EU: [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200, 300]
-      - Uses Select From Model for feature selection with estimator LinearSVC (l1)
-      - LDA
-      
-    - PL_LDA 
-        - Uses more power means, Euclidean mean with both Riemann distance and Euclidean distance (200,300)
-            - PM + EU: [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200, 300]
-        - Uses PolynomialFeatures preprocessor before classifications 
-        - LDA
-        
-    - PL_SFO_LDA 
-        - Uses more power means, Euclidean mean with both Riemann distance and Euclidean distance (200,300)
-            - PM + EU: [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200, 300]
-        - Uses PolynomialFeatures preprocessor (degree = 2, bias added = true)
-        - Uses Select From Model for feature selection with estimator LinearSVC (l1)
-        - LDA
-        
-    - LDA_LE
-        - Uses more power means, Euclidean mean with both Riemann distance and Euclidean distance (200,300)
-            - PM + EU: [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200, 300]
-        - Logistic Regression l1 as final classifier
-        
-    - LDA
-        - PM: [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
-        - as MF_orig but with LDA
-    
-
 The MFM-MF has these options:
     - LE - LogEuclidian mean added in additional to all power means
     - CD - custom distances 
-        - the distance to the LogEuclidian mean is LogEuclidian
-        - the disance to power mean p=1 is Euclidian
+        if p == 1:
+            metric = "euclid"
+        
+        if p == -1:
+            metric="harmonic"
+        
+        if p<=0.1 and p>=-0.1:
+            metric = "riemann"
 
+Pipelines:
+    - ORIG
+    - LDA_ORIG  (original with LDA)
+    - L1_CD     (new MDM_MF with Logistic Regression with L1)
+    - LDA_CD    (new MDM_MF with LDA and Custom Distances)
+    - LDA_EM_CD (new MDM_MF with LDA, Custom Distances and Log Euclidean Mean) 
+    
 Results:
     
+    This is only MI within session.
+    
+    Evaluation in %:
+                  score      time
+    pipeline                     
+    LDA_CD     0.771369  2.139092
+    LDA_EM     0.748174  4.645749
+    LDA_EM_CD  0.761737  2.163243
+    LDA_ORIG   0.753366  8.228932
+    ORIG       0.715032  2.033205
+    
+    The results show that:
+        - using both LDA and CD provide the best result: 5.6% more than ORIG.
+            - LDA adds 3.8% (2/3) roughly
+            - and CD adds approximately 1.8% more (1/3)
+        - EM 
+            - decreases with 1% when used with combination with LDA and CD
+            - still it is slightly better in terms of SMD, but result is not significant at all
+            
+    Note: it is currently not possible to run ORIG + CD only (but if needed could be)
     
 @author: anton andreev
 """
@@ -90,36 +81,6 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
-class SelectFromModelEx(SelectFromModel):
-
-    def _get_feature_importances(self,estimator):
-        """Retrieve or aggregate feature importances from estimator"""
-        importances = getattr(estimator, "feature_importances_", None)
-        
-        if importances is None and hasattr(estimator, "coef_"):
-            if estimator.coef_.ndim == 1:
-                importances = np.abs(estimator.coef_)
-        
-            else:
-                importances = np.sum(np.abs(estimator.coef_), axis=0)
-        
-        elif importances is None:
-            raise ValueError(
-                "The underlying estimator %s has no `coef_` or "
-                "`feature_importances_` attribute. Either pass a fitted estimator"
-                " to SelectFromModel or call fit before calling transform."
-                % estimator.__class__.__name__)
-    
-        return importances
-
-    def fit(self, X, y=None, **fit_params):
-        print("Fitting SelectFromModelEx model estimator ...")
-        super().fit(X, y, **fit_params)
-        importances = self._get_feature_importances(self)
-        print("Done fitting SelectFromModelEx model estimator ...")
-        
-        return self
-
 #start configuration
 hb_max_n_subjects = -1
 hb_n_jobs = 24
@@ -132,23 +93,6 @@ pipelines = {}
 params_grid = None
 
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
-
-#power_means_extended = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1]
-
-#power_means_extended_LEM = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200]
-
-#both : log euclidian with riemann distance and logeuclidian with log euclidian distance
-#power_means_extended_LEM_LED = [-1, -0.99, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 1, 200]
-
-#power_means_LEM_LED = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1, 200]
-
-# power_means_extended2 = [-1, -0.9, -0.1, 0.1, 0.9, 1]
-
-# power_means_extended3 = [-1, -0.9, -0.01, 0.01, 0.9, 1]
-
-# power_means_extended4 = [0.01, 0.9, 1]
-
-# power_means_extended5 = [-1, -0.9, -0.01]
 
 pipelines["ORIG"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
@@ -166,6 +110,7 @@ pipelines["ORIG"] = make_pipeline(
 )
 
 #no LDA, just custom distances
+#not possible currently
 # pipelines["CD_EM_ORIG"] = make_pipeline(
 #     # applies XDawn and calculates the covariance matrix, output it matrices
 #     XdawnCovariances(
@@ -254,24 +199,6 @@ pipelines["LDA_EM_CD"] = make_pipeline(
               ),
     LDA()
 )
-
-#########################################################################################
-# pipelines["LDA"] = make_pipeline(
-#     # applies XDawn and calculates the covariance matrix, output it matrices
-#     XdawnCovariances(
-#         nfilter=3,
-#         classes=[labels_dict["Target"]],
-#         estimator="lwf",
-#         xdawn_estimator="scm",
-#     ),
-#     #sum_means does not make a difference with 10 power means comapred to 3
-#     MeanField(power_list=power_means_LEM_LED,
-#               method_label="sum_means", #not used if used as transformer
-#               n_jobs=mdm_mf_jobs,
-#               ),
-#     #LogisticRegression(penalty="l1", solver="liblinear")
-#     LDA()
-# )
 
 results = benchmark_alpha(pipelines, 
                           #params_grid = params_grid, 
