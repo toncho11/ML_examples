@@ -252,7 +252,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 metric = "riemann"
             
             if metric is None:
-                #print("p based distance") 
+                #print("p based distance")
+                #this is the case for example: -0.75, -0.5, -0.25, +0.75, +0.5, +0.25
                 dist = distance_custom(A, B, k=p, squared = squared)
             else:
                 #print("manually selected distance -1,1,200")
