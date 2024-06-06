@@ -95,36 +95,6 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
-class SelectFromModelEx(SelectFromModel):
-
-    def _get_feature_importances(self,estimator):
-        """Retrieve or aggregate feature importances from estimator"""
-        importances = getattr(estimator, "feature_importances_", None)
-        
-        if importances is None and hasattr(estimator, "coef_"):
-            if estimator.coef_.ndim == 1:
-                importances = np.abs(estimator.coef_)
-        
-            else:
-                importances = np.sum(np.abs(estimator.coef_), axis=0)
-        
-        elif importances is None:
-            raise ValueError(
-                "The underlying estimator %s has no `coef_` or "
-                "`feature_importances_` attribute. Either pass a fitted estimator"
-                " to SelectFromModel or call fit before calling transform."
-                % estimator.__class__.__name__)
-    
-        return importances
-
-    def fit(self, X, y=None, **fit_params):
-        print("Fitting SelectFromModelEx model estimator ...")
-        super().fit(X, y, **fit_params)
-        importances = self._get_feature_importances(self)
-        print("Done fitting SelectFromModelEx model estimator ...")
-        
-        return self
-
 #start configuration
 hb_max_n_subjects = 15
 hb_n_jobs = 24
@@ -160,12 +130,20 @@ from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param
 pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
 
 #no GS
-for c in pipeline_configs:
-    if c["name"] == "AUG Tang SVM Grid":
-        pipelines["AD_TS_SVM_F"] = c["pipeline"]
+# for c in pipeline_configs:
+#     if c["name"] == "AUG Tang SVM Grid":
+#         pipelines["AD_TS_SVM_F"] = c["pipeline"]
       
 #with GS
 #params_grid = generate_param_grid(pipeline_configs)
+
+TSLR = True
+
+if TSLR:
+    for c in pipeline_configs:
+        if c["name"] == "Tangent Space LR":
+            pipelines["TSLR"] = c["pipeline"]
+
 
 results = benchmark_alpha(pipelines, 
                           #params_grid = params_grid, 

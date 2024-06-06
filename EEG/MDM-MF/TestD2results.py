@@ -68,8 +68,8 @@ from moabb.paradigms import P300, MotorImagery, LeftRightImagery
 datasets_LR = [
     #BNCI2014_001(), #D2
     #BNCI2014_004(), #D2
-    Cho2017(),      #D2
-    #GrosseWentrup2009(), #D2
+    #Cho2017(),      #D2
+    GrosseWentrup2009(), #D2
     #PhysionetMI(), #D2
     #Shin2017A(accept=True), #D2
     #Weibo2014(), #D2
@@ -83,6 +83,7 @@ datasets_LR = [
 paradigm_LR = LeftRightImagery()
 AUG_Tang_SVM_standard    = False #no grid search
 AUG_Tang_SVM_grid_search = True
+TSLR = True
 
 from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
 pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
@@ -102,6 +103,13 @@ if AUG_Tang_SVM_grid_search:
             pipelines["AD_TS_GS_SVM_F"] = c["pipeline"]
     params_grid = generate_param_grid(pipeline_configs)
     
+if TSLR:
+    for c in pipeline_configs:
+        if c["name"] == "Tangent Space LR":
+            pipelines["TSLR"] = c["pipeline"]
+
+print("Pipelines count: ",len(pipelines)) 
+   
 evaluation_LR = WithinSessionEvaluation(
     paradigm=paradigm_LR,
     datasets=datasets_LR,
