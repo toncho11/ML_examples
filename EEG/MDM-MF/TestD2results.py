@@ -114,5 +114,5 @@ evaluation_LR = WithinSessionEvaluation(
 
 results_LR = evaluation_LR.process(pipelines, param_grid=params_grid)
 
-from heavy_benchmark import plot_stat
-plot_stat(results_LR)
+print("Evaluation in % per database:")
+print(results_LR.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
