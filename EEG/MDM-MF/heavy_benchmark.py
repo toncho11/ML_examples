@@ -52,6 +52,8 @@ from moabb.datasets import (
     GrosseWentrup2009,
     PhysionetMI,
     Shin2017A,
+    Lee2019_MI, #new
+    Schirrmeister2017 #new
 )
 from moabb.evaluations import (
     WithinSessionEvaluation,
@@ -130,20 +132,24 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
     ]
 
     datasets_MI = [  #BNCI2015_004(), #gives very low scores like 0.2 for most users
-        BNCI2015_001(),
-        BNCI2014_002(),
-        AlexMI(),
+        #BNCI2015_001(),
+        #BNCI2014_002(),
+        #AlexMI(),
     ]
 
     datasets_LR = [
-        BNCI2014_001(),
-        BNCI2014_004(),
-        Cho2017(),
-        GrosseWentrup2009(),
-        PhysionetMI(),
-        Shin2017A(accept=True),
-        Weibo2014(),
-        #Zhou2016(), #gives error on cov matrix not PD
+        BNCI2014_001(), #D2
+        BNCI2014_004(), #D2
+        Cho2017(),      #D2
+        GrosseWentrup2009(), #D2
+        PhysionetMI(), #D2
+        Shin2017A(accept=True), #D2
+        Weibo2014(), #D2
+        
+        #Zhou2016(), #D2 #gives error on cov matrix not PD D2
+        #new datasets
+        #Lee2019_MI(), #D2 #not downloadable
+        Schirrmeister2017() #D2
     ]
 
     # each MI dataset can have different classes and events and this requires a different MI paradigm
@@ -258,10 +264,20 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
             results = results_LR
     
         # each MI dataset uses its own configured MI paradigm
-        for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
-            
-            if (evaluation_type == "withinsession"):
-                evaluation_MI = WithinSessionEvaluation(
+        if len(datasets_MI) > 0:
+            for paradigm_MI, dataset_MI in zip(paradigms_MI, datasets_MI):
+                
+                if (evaluation_type == "withinsession"):
+                    evaluation_MI = WithinSessionEvaluation(
+                        paradigm=paradigm_MI,
+                        datasets=[dataset_MI],
+                        overwrite=overwrite,
+                        n_jobs=n_jobs,
+                        n_jobs_evaluation=n_jobs,
+                        cache_config=cache_config,
+                    )
+                elif (evaluation_type == "crosssubject"):
+                    evaluation_MI = CrossSubjectEvaluation(
                     paradigm=paradigm_MI,
                     datasets=[dataset_MI],
                     overwrite=overwrite,
@@ -269,18 +285,9 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
                     n_jobs_evaluation=n_jobs,
                     cache_config=cache_config,
                 )
-            elif (evaluation_type == "crosssubject"):
-                evaluation_MI = CrossSubjectEvaluation(
-                paradigm=paradigm_MI,
-                datasets=[dataset_MI],
-                overwrite=overwrite,
-                n_jobs=n_jobs,
-                n_jobs_evaluation=n_jobs,
-                cache_config=cache_config,
-            )
-    
-            results_per_MI_pardigm = evaluation_MI.process(pipelines, param_grid = params_grid)
-            results = pd.concat([results, results_per_MI_pardigm], ignore_index=True)
+        
+                results_per_MI_pardigm = evaluation_MI.process(pipelines, param_grid = params_grid)
+                results = pd.concat([results, results_per_MI_pardigm], ignore_index=True)
     else:
         results = results_P300
 
@@ -331,6 +338,8 @@ def _AdjustDF(df, removeP300  = False, removeMI = False):
                     'Shin2017A', 
                     'Weibo2014', 
                     'Zhou2016',
+                    'Lee2019_MI', #new
+                    'Schirrmeister2017' #new
                   ]
     for ind in df.index:
         dataset_classified = False
