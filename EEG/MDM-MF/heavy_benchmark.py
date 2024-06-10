@@ -145,10 +145,8 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
         PhysionetMI(), #D2
         Shin2017A(accept=True), #D2
         Weibo2014(), #D2
-        
-        #Zhou2016(), #D2 #gives error on cov matrix not PD D2
-        #new datasets
-        #Lee2019_MI(), #D2 #not downloadable
+        Zhou2016(), #D2 #gives error cov estimator is not regilarized as in "oas"
+        Lee2019_MI(), #D2 requires a newer version of MOABB with url fixed
         Schirrmeister2017() #D2
     ]
 
@@ -210,7 +208,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
             suffix="examples",
             overwrite=overwrite,
             n_jobs=n_jobs,
-            n_jobs_evaluation=n_jobs,
+            #n_jobs_evaluation=n_jobs,
             cache_config=cache_config,
         )
         evaluation_LR = WithinSessionEvaluation(
@@ -219,7 +217,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
             suffix="examples",
             overwrite=overwrite,
             n_jobs=n_jobs,
-            n_jobs_evaluation=n_jobs,
+            #n_jobs_evaluation=n_jobs,
             cache_config=cache_config,
         )
     elif (evaluation_type == "crosssubject"):
@@ -229,7 +227,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
             suffix="examples",
             overwrite=overwrite,
             n_jobs=n_jobs,
-            n_jobs_evaluation=n_jobs,
+            #n_jobs_evaluation=n_jobs,
             cache_config=cache_config,
         )
         evaluation_LR = CrossSubjectEvaluation(
@@ -238,7 +236,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
             suffix="examples",
             overwrite=overwrite,
             n_jobs=n_jobs,
-            n_jobs_evaluation=n_jobs,
+            #n_jobs_evaluation=n_jobs,
             cache_config=cache_config,
         )
     else:
@@ -273,7 +271,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
                         datasets=[dataset_MI],
                         overwrite=overwrite,
                         n_jobs=n_jobs,
-                        n_jobs_evaluation=n_jobs,
+                        #n_jobs_evaluation=n_jobs,
                         cache_config=cache_config,
                     )
                 elif (evaluation_type == "crosssubject"):
@@ -282,7 +280,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
                     datasets=[dataset_MI],
                     overwrite=overwrite,
                     n_jobs=n_jobs,
-                    n_jobs_evaluation=n_jobs,
+                    #n_jobs_evaluation=n_jobs,
                     cache_config=cache_config,
                 )
         

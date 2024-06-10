@@ -85,10 +85,11 @@ AUG_Tang_SVM_standard    = False #no grid search
 AUG_Tang_SVM_grid_search = True
 TSLR = True
 
+pipelines = {}
+
 from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
 pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
 
-pipelines = {}
 
 if AUG_Tang_SVM_standard:
     #no GS

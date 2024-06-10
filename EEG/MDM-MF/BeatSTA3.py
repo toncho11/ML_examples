@@ -96,9 +96,9 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
 #start configuration
-hb_max_n_subjects = 15
+hb_max_n_subjects = -1
 hb_n_jobs = 24
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 #end configuration
 
