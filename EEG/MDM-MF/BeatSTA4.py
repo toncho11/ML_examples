@@ -2,7 +2,7 @@
 """
 
 ====================================================================
-Classification of P300 and MI datasets from MOABB using MDM-MF
+Classification of only MI datasets from MOABB using MDM-MF
 ====================================================================
 
 MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
@@ -27,42 +27,16 @@ The MFM-MF has these options:
 
 Results:
     
-    This is both P300 and MI withinsession.
+                       score      time
+    pipeline                          
+    AD_TS_GS_SVM_F  0.722002      0.688727
+    LDA_CD          0.782034      5.999502
+    LDA_CD_SCM      0.763893      5.568990
+    LR_CV_CD        0.768435      5.544800
+    TSLR            0.808061      0.471176
+    MDM             0.641112      0.239932
+    MF_orig         0.654631      2.919833
     
-    1) Overall result below shows:
-    
-    Evaluation in %:
-                 score      time
-    pipeline                    
-    L1_CD     0.842027  1.166564
-    LDA_CD    0.855700  1.144555
-    ORIG      0.834115  1.023850
-    
-    The overall result is with 2.1% better than ORIG due to the gain in Motor Imagery, but not P300.
-    
-    
-    2) Only Motor Imagery is shown below it shows that both CD and LDA
-    contribute to a 6.6% percent difference with ORIG and LDA_CD is signficantly better
-    than the other 2: ORIG and L1_CD
-        
-    Evaluation in %:
-                 score      time
-    pipeline                    
-    L1_CD     0.710396  2.299669
-    LDA_CD    0.758411  2.281411
-    ORIG      0.692389  2.157802
-    
-    3) On P300 there is no difference in terms of ROC AUC average performance:
-        
-    Evaluation in %:
-                 score      time
-    pipeline                    
-    L1_CD     0.903280  0.586287
-    LDA_CD    0.900043  0.562840
-    ORIG      0.900399  0.445507
-    
-    but L1_CD is signficantly better than ORIG and LDA_CD with 3 dots.
-    So this confirms that LR_L1 is always better than LDA for P300.
             
 @author: anton andreev
 """
@@ -96,7 +70,7 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
 #start configuration
-hb_max_n_subjects = 2
+hb_max_n_subjects = -1
 hb_n_jobs = 24
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -129,18 +103,18 @@ pipelines["LDA_CD"] = make_pipeline(
     LDA()
 )
 
-pipelines["LDA_CD_SCM"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    Covariances("scm"), #instead of oas
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanFieldNew(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean=False,
-              custom_distance=True
-              ),
-    LDA()
-)
+# pipelines["LDA_CD_SCM"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     Covariances("scm"), #instead of oas
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanFieldNew(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean=False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
 
 # from sklearn.model_selection import GridSearchCV 
 # from sklearn.linear_model import Lasso
@@ -161,26 +135,43 @@ pipelines["LDA_CD_SCM"] = make_pipeline(
 #     Lasso(alpha=0.1)
 # )
 
-from sklearn.linear_model import LogisticRegressionCV
-pipelines["LR_CV_CD"] = make_pipeline(
+# from sklearn.linear_model import LogisticRegressionCV
+# pipelines["LR_CV_CD"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     Covariances("oas"),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanFieldNew(power_list=power_means,
+#               method_label="sum_means", #not used if used as transformer
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean=False,
+#               custom_distance=True
+#               ),
+#     LogisticRegressionCV()
+# )
+
+#previous algorithms to compare with
+pipelines["MF_orig"] = make_pipeline(
     # applies XDawn and calculates the covariance matrix, output it matrices
     Covariances("oas"),
     #sum_means does not make a difference with 10 power means comapred to 3
-    MeanFieldNew(power_list=power_means,
-              method_label="sum_means", #not used if used as transformer
+    MeanField_orig(power_list=power_means,
+              method_label="inf_means",
               n_jobs=mdm_mf_jobs,
-              euclidean_mean=False,
-              custom_distance=True
+              
               ),
-    LogisticRegressionCV()
+)
+
+pipelines["MDM"] = make_pipeline(
+    Covariances("oas"),
+    MDM(),
 )
 
 #STA pipelines to compare with
 
 #can not use both
-AUG_Tang_SVM_standard       = False
-AUG_Tang_SVM_grid_search    = False
-TSLR = True
+AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
+AUG_Tang_SVM_grid_search    = False #Zhou2016 subject 4 can fail because of cov covariance estimator
+TSLR = False
 
 from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
 pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")

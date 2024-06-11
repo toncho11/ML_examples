@@ -145,7 +145,7 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
         PhysionetMI(), #D2
         Shin2017A(accept=True), #D2
         Weibo2014(), #D2
-        Zhou2016(), #D2 #gives error cov estimator is not regilarized as in "oas"
+        Zhou2016(), #D2 #gives error with "cov estimator" as is not regularized as in "oas"
         Lee2019_MI(), #D2 requires a newer version of MOABB with url fixed
         Schirrmeister2017() #D2
     ]
