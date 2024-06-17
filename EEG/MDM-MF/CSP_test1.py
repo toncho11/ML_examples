@@ -68,7 +68,16 @@ hb_max_n_subjects = 5
 hb_n_jobs = 36
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
+is_on_grid = False
 #end configuration
+
+if is_on_grid:
+    from mne import get_config, set_config
+    print("Changing MNE folder ...")
+    set_config('MNE_DATA', '/silenus/PROJECTS/pr-eeg-dl/antona/')
+    new_path = get_config("MNE_DATA")
+    print(f"The download directory is currently {new_path}")
+    print("Done changing MNE folder")
 
 #labels_dict = {"Target": 1, "NonTarget": 0}
 pipelines = {}
