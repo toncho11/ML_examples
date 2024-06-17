@@ -27,42 +27,7 @@ The MFM-MF has these options:
 
 Results:
     
-    This is both P300 and MI withinsession.
-    
-    1) Overall result below shows:
-    
-    Evaluation in %:
-                 score      time
-    pipeline                    
-    L1_CD     0.842027  1.166564
-    LDA_CD    0.855700  1.144555
-    ORIG      0.834115  1.023850
-    
-    The overall result is with 2.1% better than ORIG due to the gain in Motor Imagery, but not P300.
-    
-    
-    2) Only Motor Imagery is shown below it shows that both CD and LDA
-    contribute to a 6.6% percent difference with ORIG and LDA_CD is signficantly better
-    than the other 2: ORIG and L1_CD
-        
-    Evaluation in %:
-                 score      time
-    pipeline                    
-    L1_CD     0.710396  2.299669
-    LDA_CD    0.758411  2.281411
-    ORIG      0.692389  2.157802
-    
-    3) On P300 there is no difference in terms of ROC AUC average performance:
-        
-    Evaluation in %:
-                 score      time
-    pipeline                    
-    L1_CD     0.903280  0.586287
-    LDA_CD    0.900043  0.562840
-    ORIG      0.900399  0.445507
-    
-    but L1_CD is signficantly better than ORIG and LDA_CD with 3 dots.
-    So this confirms that LR_L1 is always better than LDA for P300.
+   
             
 @author: anton andreev
 """
@@ -86,7 +51,10 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 from sklearn import svm
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import (
+    LinearDiscriminantAnalysis as LDA,
+    QuadraticDiscriminantAnalysis as QDA,
+)
 from sklearn.decomposition import PCA
 
 from sklearn.feature_selection import SelectFromModel
@@ -95,58 +63,232 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
-class SelectFromModelEx(SelectFromModel):
-
-    def _get_feature_importances(self,estimator):
-        """Retrieve or aggregate feature importances from estimator"""
-        importances = getattr(estimator, "feature_importances_", None)
-        
-        if importances is None and hasattr(estimator, "coef_"):
-            if estimator.coef_.ndim == 1:
-                importances = np.abs(estimator.coef_)
-        
-            else:
-                importances = np.sum(np.abs(estimator.coef_), axis=0)
-        
-        elif importances is None:
-            raise ValueError(
-                "The underlying estimator %s has no `coef_` or "
-                "`feature_importances_` attribute. Either pass a fitted estimator"
-                " to SelectFromModel or call fit before calling transform."
-                % estimator.__class__.__name__)
-    
-        return importances
-
-    def fit(self, X, y=None, **fit_params):
-        print("Fitting SelectFromModelEx model estimator ...")
-        super().fit(X, y, **fit_params)
-        importances = self._get_feature_importances(self)
-        print("Done fitting SelectFromModelEx model estimator ...")
-        
-        return self
-
 #start configuration
-hb_max_n_subjects = 3
-hb_n_jobs = 1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_max_n_subjects = 5
+hb_n_jobs = 36
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 #end configuration
 
-labels_dict = {"Target": 1, "NonTarget": 0}
+#labels_dict = {"Target": 1, "NonTarget": 0}
 pipelines = {}
 params_grid = None
 
-from pyriemann.spatialfilters import CSP
-#from mne.decoding import CSP
+#csp_filters = 8
 
-pipelines["CSP_MDM"] = make_pipeline(
-    ERPCovariances(),
-    CSP(),
-    MDM()
+power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
+
+from pyriemann.spatialfilters import CSP
+
+pipelines["LDA_CD"] = make_pipeline(
+    Covariances("oas"),
+    MeanFieldNew(power_list=power_means,
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean=False,
+              custom_distance=True
+              ),
+    LDA()
 )
 
+# from sklearn.model_selection import GridSearchCV
+# param_grid_csp =  {
+#                     'nfilter': [4,8,10],
+#                     'log'    : [False],
+#                     #'metric' : ["ale", "alm", "euclid", "harmonic", "identity", "kullback_sym", "logdet", "logeuclid", "riemann", "wasserstein",]
+#                     'metric' : ["harmonic", "logdet", "logeuclid", "riemann", "euclid"]
+#                   }
+
+# grid_csp =  GridSearchCV(CSP(), param_grid_csp , refit = True, verbose = 0, scoring='balanced_accuracy') 
+
+# param_grid_mf =  {
+#                     'euclidean_mean' : [True, False],
+#                     'custom_distance': [True, False]
+#                   }
+
+# grid_mf =  GridSearchCV(MeanFieldNew(power_list=power_means), param_grid_mf , refit = True, verbose = 0, scoring='accuracy') 
+
+# pipelines["CSP_GS_M_LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     grid_csp, #CSP has none of the following attributes: predict.
+#     MeanFieldNew(power_list=power_means,
+#                   n_jobs=mdm_mf_jobs,
+#                   euclidean_mean=False,
+#                   custom_distance=True
+#                   ),
+#     LDA()
+# )
+
+# pipelines["CSP_GS_LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     grid_csp,
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean=False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["CSP_8_LDA_CD_H"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter=8,metric="harmonic"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =True,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["CSP_8_LDA_CD_alm"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter=8,metric="alm"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =True,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# current best !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# cov CSP_8_LDA_CD_ale
+# pipelines["CSP_8_LDA_CD_ale"] = make_pipeline(
+#     Covariances("cov"),
+#     CSP(log=False, nfilter=8,metric="ale"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["CSP_8_LDA_EU_CD_ale_cov"] = make_pipeline(
+#     Covariances("cov"),
+#     CSP(log=False, nfilter=8, metric="ale"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =True,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+pipelines["CSP_8_LDA_EU_CD_ale_oas"] = make_pipeline(
+    Covariances("oas"),
+    CSP(log=False, nfilter=8, metric="ale"),
+    MeanFieldNew(power_list=power_means,
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean =True,
+              custom_distance=True
+              ),
+    LDA()
+)
+
+# pipelines["CSP_8_LDA_CD_euc"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter=8,metric="euclid"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["CSP_6_LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter=6),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean=False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["CSP_4_LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter=4),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean=False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["CSP_12_LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter=12),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean=False,
+#               custom_distance=True
+#               ),
+#     LDA()
+# )
+
+# pipelines["QDA"] = make_pipeline(
+#     Covariances("cov"),
+#     MeanFieldNew(power_list=power_means,
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean =False,
+#               custom_distance=True
+#               ),
+#     QDA()
+# )
+
+# pipelines["MDM"] = make_pipeline(
+#     Covariances("oas"),
+#     MDM()
+# )
+
+# pipelines["CSP_MDM"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False, nfilter = csp_filters),
+#     MDM()
+# )
+
+#can not use both
+AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
+AUG_Tang_SVM_grid_search    = False #Zhou2016 subject 4 can fail because of cov covariance estimator
+TSLR = True
+
+from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
+pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
+
+if AUG_Tang_SVM_standard:
+    #no Grid search
+    for c in pipeline_configs:
+        if c["name"] == "AUG Tang SVM Grid":
+            pipelines["AD_TS_SVM_F"] = c["pipeline"]
+    params_grid = None
+      
+if AUG_Tang_SVM_grid_search:
+    for c in pipeline_configs:
+        if c["name"] == "AUG Tang SVM Grid":
+            pipelines["AD_TS_GS_SVM_F"] = c["pipeline"]
+    params_grid = generate_param_grid(pipeline_configs)
+
+if TSLR:
+    for c in pipeline_configs:
+        if c["name"] == "Tangent Space LR":
+            pipelines["TSLR"] = c["pipeline"]
+
 results = benchmark_alpha(pipelines, 
-                          #params_grid = params_grid, 
+                          params_grid = params_grid, 
                           evaluation_type="withinsession",
                           #evaluation_type="crosssubject", 
                           max_n_subjects = hb_max_n_subjects, 
