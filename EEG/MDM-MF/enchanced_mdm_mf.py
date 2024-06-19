@@ -125,7 +125,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  metric="riemann", n_jobs=1, 
                  euclidean_mean  = False,
                  custom_distance = False,
-                 remove_outliers = False
+                 remove_outliers = False,
+                 outliers_th = 2.5
                  ):
         """Init."""
         self.power_list = power_list
@@ -135,6 +136,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.euclidean_mean = euclidean_mean
         self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
         self.remove_outliers = remove_outliers
+        self.outliers_th = outliers_th
     
     def _calculate_mean(self,X, y, p, sample_weight, remove_outliers = False):
         
@@ -175,7 +177,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 # Calculate Z-scores for each data point
                 z_scores[y==ll] = zscore(np.array(m, dtype=float)[y==ll])
             
-            threshold = 2.5
+            threshold = self.outliers_th #default 2.5
             outliers = (z_scores > threshold) | (z_scores < -threshold)
             
             #print ("Removed: ", len(outliers[outliers==True]), " out of ", X.shape[0])

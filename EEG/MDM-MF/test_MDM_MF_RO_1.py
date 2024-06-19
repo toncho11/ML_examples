@@ -64,7 +64,7 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
 #start configuration
-hb_max_n_subjects = 3
+hb_max_n_subjects = 10
 hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -105,13 +105,14 @@ from pyriemann.spatialfilters import CSP
 #     LDA()
 # )
 
-pipelines["LDA_CD_RO"] = make_pipeline(
+pipelines["LDA_CD_RO_TH_2.0"] = make_pipeline(
     Covariances("oas"),
     MeanFieldNew(power_list=power_means,
               n_jobs=mdm_mf_jobs,
               euclidean_mean  =False,
               custom_distance =True,
-              remove_outliers =True
+              remove_outliers =True,
+              outliers_th = 2.0
               ),
     LDA()
 )
