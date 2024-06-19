@@ -106,11 +106,21 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
         21/05/2024 Initial version.
     """
     
+    # cache_config = dict(
+    #     use=True,
+    #     save_raw=False,
+    #     save_epochs=True,
+    #     save_array=True,
+    #     overwrite_raw=False,
+    #     overwrite_epochs=False,
+    #     overwrite_array=False,
+    # )
+    
     cache_config = dict(
-        use=True,
+        use=False,
         save_raw=False,
-        save_epochs=True,
-        save_array=True,
+        save_epochs=False,
+        save_array=False,
         overwrite_raw=False,
         overwrite_epochs=False,
         overwrite_array=False,

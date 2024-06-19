@@ -64,8 +64,8 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
 #start configuration
-hb_max_n_subjects = 5
-hb_n_jobs = 36
+hb_max_n_subjects = 1
+hb_n_jobs = 12
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
@@ -194,16 +194,40 @@ pipelines["LDA_CD"] = make_pipeline(
 #     LDA()
 # )
 
+#INFO convegence increased to 200 in ajd.py
 pipelines["CSP_8_LDA_EU_CD_ale_oas"] = make_pipeline(
     Covariances("oas"),
-    CSP(log=False, nfilter=8, metric="ale"),
+    CSP(log=False, nfilter=8, metric="ale", ),
     MeanFieldNew(power_list=power_means,
               n_jobs=mdm_mf_jobs,
-              euclidean_mean =True,
+              euclidean_mean =False,
               custom_distance=True
               ),
     LDA()
 )
+
+pipelines["CSP_8_LDA_CD_ale_oas"] = make_pipeline(
+    Covariances("oas"),
+    CSP(log=False, nfilter=8, metric="ale", ),
+    MeanFieldNew(power_list=power_means,
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean =False,
+              custom_distance=True
+              ),
+    LDA()
+)
+
+pipelines["CSP_LDA_CD_oas"] = make_pipeline(
+    Covariances("oas"),
+    CSP(log=False),
+    MeanFieldNew(power_list=power_means,
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean =False,
+              custom_distance=True
+              ),
+    LDA()
+)
+
 
 # pipelines["CSP_8_LDA_CD_euc"] = make_pipeline(
 #     Covariances("oas"),

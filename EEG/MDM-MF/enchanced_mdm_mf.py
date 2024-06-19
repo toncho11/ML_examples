@@ -18,7 +18,7 @@ from pyriemann.utils.mean import mean_covariance, mean_power, mean_logeuclid
 from pyriemann.utils.distance import distance
 from pyriemann.tangentspace import FGDA, TangentSpace
 from pyriemann.utils.distance import distance_euclid
-
+from scipy.stats import zscore
 import scipy
 
 #this is a custom distance that gets an additional parameter
@@ -123,8 +123,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
     def __init__(self, power_list=[-1, 0, 1], method_label='sum_means',
                  metric="riemann", n_jobs=1, 
-                 euclidean_mean = False,
-                 custom_distance = False):
+                 euclidean_mean  = False,
+                 custom_distance = False,
+                 remove_outliers = False
+                 ):
         """Init."""
         self.power_list = power_list
         self.method_label = method_label
@@ -132,7 +134,65 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.n_jobs = n_jobs
         self.euclidean_mean = euclidean_mean
         self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
-
+        self.remove_outliers = remove_outliers
+    
+    def _calculate_mean(self,X, y, p, sample_weight, remove_outliers = False):
+        
+        means_p = {}
+        
+        if p == 200: #adding an extra mean - this one is logeuclid and not power mean
+            #print("euclidean mean")
+            for ll in self.classes_:
+                means_p[ll] = mean_logeuclid(
+                    X[y == ll],
+                    sample_weight=sample_weight[y == ll]
+                )
+            self.covmeans_[p] = means_p
+        else:
+            for ll in self.classes_:
+                means_p[ll] = mean_power(
+                    X[y == ll],
+                    p,
+                    sample_weight=sample_weight[y == ll]
+                )
+            self.covmeans_[p] = means_p
+            
+        if remove_outliers:
+            
+            m = [] #contains a distance to a power mean p for class ll
+            X_no_outliers = X.copy() # TODO: check if needed
+            y_no_outliers = y.copy()
+            
+            z_scores = np.zeros(len(y_no_outliers),dtype=float)
+            
+            for idx, x in enumerate (X_no_outliers):
+                ll = y[idx]
+                dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
+                m.append(dist_p)
+            
+            for ll in self.classes_:
+                
+                # Calculate Z-scores for each data point
+                z_scores[y==ll] = zscore(np.array(m, dtype=float)[y==ll])
+            
+            threshold = 2.5
+            outliers = (z_scores > threshold) | (z_scores < -threshold)
+            
+            #print ("Removed: ", len(outliers[outliers==True]), " out of ", X.shape[0])
+            X_no_outliers = X_no_outliers[~outliers]
+            y_no_outliers = y_no_outliers[~outliers]
+            sample_weight = sample_weight[~outliers]
+            
+            if X_no_outliers.shape[0] != (X.shape[0] - len(outliers[outliers==True])):
+                raise Exception("Error while removing outliers!")
+                
+            #remove outliers - recursive call - 1 time
+            #it will now generate new means after the outliers have been removed
+            means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight, False)
+                
+                
+        return means_p
+        
     def fit(self, X, y, sample_weight=None):
         """Fit (estimates) the centroids.
 
@@ -161,25 +221,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
         self.covmeans_ = {}
         for p in self.power_list:
-            
-            means_p = {}
-            
-            if p == 200: #adding an extra mean - this one is logeuclid and not power mean
-                #print("euclidean mean")
-                for ll in self.classes_:
-                    means_p[ll] = mean_logeuclid(
-                        X[y == ll],
-                        sample_weight=sample_weight[y == ll]
-                    )
-                self.covmeans_[p] = means_p
-            else:
-                for ll in self.classes_:
-                    means_p[ll] = mean_power(
-                        X[y == ll],
-                        p,
-                        sample_weight=sample_weight[y == ll]
-                    )
-                self.covmeans_[p] = means_p
+            self.covmeans_[p] = self._calculate_mean(X, y, p, sample_weight, self.remove_outliers)
 
         return self
 
@@ -266,7 +308,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 
         return dist
     
-    def _calucalte_distance_per_mean(self,x):
+    def _calucalte_distances_for_all_means(self,x):
         
         #dist = []
         m = {} #contains a distance to a power mean
@@ -294,10 +336,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         if (self.n_jobs == 1):
             dist = []
             for x in X:
-                distances_per_mean = self._calucalte_distance_per_mean(x)
+                distances_per_mean = self._calucalte_distances_for_all_means(x)
                 dist.append(distances_per_mean)
         else:
-            dist = Parallel(n_jobs=self.n_jobs)(delayed(self._calucalte_distance_per_mean)(x)
+            dist = Parallel(n_jobs=self.n_jobs)(delayed(self._calucalte_distances_for_all_means)(x)
                  for x in X
                 )
             
