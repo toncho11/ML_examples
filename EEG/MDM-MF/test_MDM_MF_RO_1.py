@@ -78,6 +78,10 @@ if is_on_grid:
     new_path = get_config("MNE_DATA")
     print(f"The download directory is currently {new_path}")
     print("Done changing MNE folder")
+    
+    pipeline_folder = "/home/antona/ML_examples/EEG/MDM-MF/pipelines/"
+else:
+    pipeline_folder = "C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\"
 
 #labels_dict = {"Target": 1, "NonTarget": 0}
 pipelines = {}
@@ -118,7 +122,7 @@ AUG_Tang_SVM_grid_search    = False #Zhou2016 subject 4 can fail because of cov 
 TSLR = True
 
 from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
-pipeline_configs = parse_pipelines_from_directory("C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\")
+pipeline_configs = parse_pipelines_from_directory(pipeline_folder)
 
 if AUG_Tang_SVM_standard:
     #no Grid search
