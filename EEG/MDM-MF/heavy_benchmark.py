@@ -146,18 +146,30 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
         #BNCI2014_002(),
         #AlexMI(),
     ]
-
+   
+    #Dataset                 Electrodes   Subjects
+    #BNCI2014_001(),            22           9
+    #BNCI2014_004(),             3           9
+    #Cho2017(),                 64          52
+    #GrosseWentrup2009(),      128          10
+    #PhysionetMI(),             64         109
+    #Shin2017A(accept=True),    30          29
+    #Weibo2014(),               60          10
+    #Zhou2016(),                14           4
+    #Lee2019_MI(),              62          54
+    #Schirrmeister2017()       128          14
+    
     datasets_LR = [
         BNCI2014_001(), #D2
         BNCI2014_004(), #D2
         Cho2017(),      #D2
-        #GrosseWentrup2009(), #D2
-        #PhysionetMI(), #D2
-        #Shin2017A(accept=True), #D2
-        #Weibo2014(), #D2
-        #Zhou2016(), #D2 #gives error with "cov estimator" because it is not regularized as in "oas estimator"
-        #Lee2019_MI(), #D2 requires a newer version of MOABB with url fixed
-        #Schirrmeister2017() #D2, slow processing
+        GrosseWentrup2009(), #D2
+        PhysionetMI(), #D2
+        Shin2017A(accept=True), #D2
+        Weibo2014(), #D2
+        Zhou2016(), #D2 #gives error with "cov estimator" because it is not regularized as in "oas estimator"
+        Lee2019_MI(), #D2 requires a newer version of MOABB with url fixed
+        Schirrmeister2017() #D2, slow processing
     ]
 
     # each MI dataset can have different classes and events and this requires a different MI paradigm
@@ -203,12 +215,12 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
 
         for dataset in datasets_MI:
             n_subjects_ds = min(max_n_subjects, len(dataset.subject_list))
-            print(dataset, n_subjects_ds)
+            #print(dataset, n_subjects_ds)
             dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 
         for dataset in datasets_LR:
             n_subjects_ds = min(max_n_subjects, len(dataset.subject_list))
-            print(dataset, n_subjects_ds)
+            #print(dataset, n_subjects_ds)
             dataset.subject_list = dataset.subject_list[0:n_subjects_ds]
 
     print("Total pipelines to evaluate: ", len(pipelines))

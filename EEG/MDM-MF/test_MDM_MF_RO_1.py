@@ -106,11 +106,11 @@ power_means7 = [-1, 0.5, 0, 0.5, 1]
 
 power_means8 = [-1, 0.5, 0.001, 0.5, 1]
 
-power_means9 = [-1]
+# power_means9 = [-1]
 
-power_means10 = [1]
+# power_means10 = [1]
 
-power_means11 = [0]
+# power_means11 = [0]
 
 from pyriemann.spatialfilters import CSP
 

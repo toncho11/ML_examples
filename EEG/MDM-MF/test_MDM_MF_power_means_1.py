@@ -64,7 +64,7 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
 #start configuration
-hb_max_n_subjects = 3
+hb_max_n_subjects = -1
 hb_n_jobs = -1
 hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -113,35 +113,46 @@ power_means8 = [-1, 0.5, 0.001, 0.5, 1]
 
 from pyriemann.spatialfilters import CSP
 
-# pipelines["CSP_LDA_CD_RO"] = make_pipeline(
+# pipelines["PM2_LDA_CD_RO_TH_2.5"] = make_pipeline(
 #     Covariances("oas"),
-#     CSP(log=False, nfilter=8, metric="ale", ),
-#     MeanFieldNew(power_list=power_means,
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True
-#               ),
-#     LDA()
-# )
-
-# pipelines["CSP_LDA_CD_RO_TH_2.5"] = make_pipeline(
-#     Covariances("oas"),
-#     CSP(log=False, nfilter=8, metric="ale"),
-#     MeanFieldNew(power_list=power_means,
+#     MeanFieldNew(power_list=power_means2,
+#               method_label="lda",
 #               n_jobs=mdm_mf_jobs,
 #               euclidean_mean  =False,
 #               custom_distance =True,
 #               remove_outliers =True,
 #               outliers_th = 2.5
 #               ),
-#     LDA()
 # )
 
-# pipelines["PCA_LDA_CD_RO_TH_2.5"] = make_pipeline(
-#     PCA(n_components = 6),
+# pipelines["PM3_LDA_CD_RO_TH_2.5"] = make_pipeline(
 #     Covariances("oas"),
-#     MeanFieldNew(power_list=power_means,
+#     MeanFieldNew(power_list=power_means3,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  =False,
+#               custom_distance =True,
+#               remove_outliers =True,
+#               outliers_th = 2.5
+#               ),
+# )
+
+# pipelines["PM4_LDA_CD_RO_TH_2.5"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means4,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  =False,
+#               custom_distance =True,
+#               remove_outliers =True,
+#               outliers_th = 2.5
+#               ),
+# )
+
+# pipelines["PM5_LDA_CD_RO_TH_2.5"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means5,
+#               method_label="lda",
 #               n_jobs=mdm_mf_jobs,
 #               euclidean_mean  =False,
 #               custom_distance =True,
@@ -149,109 +160,83 @@ from pyriemann.spatialfilters import CSP
 #               outliers_th = 2.5
 #               ),
     
-#     LDA()
 # )
 
-pipelines["PM2_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means2,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),
-    
-    LDA()
-)
 
-pipelines["PM3_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means3,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),
-    
-    LDA()
-)
+# pipelines["PM6_LDA_CD_RO_TH_2.5"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means6,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  =False,
+#               custom_distance =True,
+#               remove_outliers =True,
+#               outliers_th = 2.5
+#               ),
+# )
 
-pipelines["PM4_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means4,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),
-    
-    LDA()
-)
+# pipelines["PM7_LDA_CD_RO_TH_2.5"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means7,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  =False,
+#               custom_distance =True,
+#               remove_outliers =True,
+#               outliers_th = 2.5
+#               ),   
+# )
 
-pipelines["PM5_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means5,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),
-    
-    LDA()
-)
-
-
-pipelines["PM6_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means6,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),   
-    LDA()
-)
-
-pipelines["PM7_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means7,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),   
-    LDA()
-)
+# pipelines["PM8_LDA_CD"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means8,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  =False,
+#               custom_distance =True,
+#               remove_outliers =False,
+#               outliers_th = 2.5
+#               ),   
+# )
 
 pipelines["PM8_LDA_CD_RO_TH_2.5"] = make_pipeline(
     Covariances("oas"),
     MeanFieldNew(power_list=power_means8,
+              method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean  =False,
               custom_distance =True,
-              remove_outliers =False,
+              remove_outliers =True,
               outliers_th = 2.5
               ),   
-    LDA()
 )
 
-pipelines["PM_LDA_CD_RO_TH_2.5"] = make_pipeline(
+pipelines["CSP_PM8_LDA_CD_RO"] = make_pipeline(
     Covariances("oas"),
-    MeanFieldNew(power_list=power_means,
+    CSP(log=False, nfilter=8, metric="ale"), #manually set to 120 max iterations
+    MeanFieldNew(power_list=power_means8,
+              method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean  =False,
               custom_distance =True,
-              remove_outliers =False,
+              remove_outliers =True,
               outliers_th = 2.5
               ),   
-    LDA()
 )
+
+
+
+# pipelines["PM_LDA_CD_RO_TH_2.5"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanFieldNew(power_list=power_means,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  =False,
+#               custom_distance =True,
+#               remove_outliers =True,
+#               outliers_th = 2.5
+#               ),   
+# )
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator

@@ -20,6 +20,10 @@ from pyriemann.tangentspace import FGDA, TangentSpace
 from pyriemann.utils.distance import distance_euclid
 from scipy.stats import zscore
 import scipy
+from sklearn.discriminant_analysis import (
+    LinearDiscriminantAnalysis as LDA,
+    QuadraticDiscriminantAnalysis as QDA,
+)
 
 #this is a custom distance that gets an additional parameter
 def distance_custom(A, B, k, squared=False):
@@ -137,6 +141,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
         self.remove_outliers = remove_outliers
         self.outliers_th = outliers_th
+        
+        if self.method_label == "lda":
+            self.lda = LDA()
     
     def _calculate_mean(self,X, y, p, sample_weight, remove_outliers = False):
         
@@ -192,7 +199,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             #it will now generate new means after the outliers have been removed
             means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight, False)
                 
-                
         return means_p
         
     def fit(self, X, y, sample_weight=None):
@@ -225,6 +231,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         for p in self.power_list:
             self.covmeans_[p] = self._calculate_mean(X, y, p, sample_weight, self.remove_outliers)
 
+        if self.method_label == "lda":
+            dists = self._predict_distances(X)
+            self.lda.fit(dists,y)
+        
         return self
 
     def _get_label(self, x, labs_unique):
@@ -260,13 +270,26 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         pred : ndarray of int, shape (n_matrices,)
             Predictions for each matrix according to the closest means field.
         """
-        labs_unique = sorted(self.covmeans_[self.power_list[0]].keys())
-
-        pred = Parallel(n_jobs=self.n_jobs)(delayed(self._get_label)(x, labs_unique)
-             for x in X
-            )
         
-        return np.array(pred)
+        if self.method_label == "lda":
+            
+            print("In predict")
+            
+            dists = self._predict_distances(X)
+            
+            pred  = self.lda.predict(dists)
+            
+            return np.array(pred)
+            
+        else:
+            
+            labs_unique = sorted(self.covmeans_[self.power_list[0]].keys())
+    
+            pred = Parallel(n_jobs=self.n_jobs)(delayed(self._get_label)(x, labs_unique)
+                 for x in X
+                )
+            
+            return np.array(pred)
 
     def _calculate_distance(self,A,B,p):
         
@@ -381,4 +404,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         prob : ndarray, shape (n_matrices, n_classes)
             Probabilities for each class.
         """
-        return softmax(-self._predict_distances(X) ** 2)
+        if self.method_label == "lda":
+            
+            dists = self._predict_distances(X)
+            
+            return self.lda.predict_proba(dists)
+            
+        else:
+            return softmax(-self._predict_distances(X) ** 2)
