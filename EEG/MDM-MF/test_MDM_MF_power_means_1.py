@@ -91,7 +91,6 @@ params_grid = None
 
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
-
 power_means2 = [-1, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
 power_means3 = [-0.1, -0.01, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
@@ -102,15 +101,15 @@ power_means5 = [-1, 0, 1]
 
 power_means6 = [-0.7, -0.01, 0.4, 0.8 ]
 
-power_means7 = [-1, 0.5, 0, 0.5, 1]
+power_means7 = [-1, 0.5, 0, 0.5, 1] #best so far
 
 power_means8 = [-1, 0.5, 0.001, 0.5, 1]
 
-power_means9 = [-1]
+# power_means9 = [-1]
 
-power_means10 = [1]
+# power_means10 = [1]
 
-power_means11 = [0]
+# power_means11 = [0]
 
 from pyriemann.spatialfilters import CSP
 
@@ -242,33 +241,9 @@ pipelines["PM8_LDA_CD_RO_TH_2.5"] = make_pipeline(
     LDA()
 )
 
-pipelines["PM9_LDA_CD_RO_TH_2.5"] = make_pipeline(
+pipelines["PM_LDA_CD_RO_TH_2.5"] = make_pipeline(
     Covariances("oas"),
-    MeanFieldNew(power_list=power_means9,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),   
-    LDA()
-)
-
-pipelines["PM10_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means10,
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),   
-    LDA()
-)
-
-pipelines["PM11_LDA_CD_RO_TH_2.5"] = make_pipeline(
-    Covariances("oas"),
-    MeanFieldNew(power_list=power_means11,
+    MeanFieldNew(power_list=power_means,
               n_jobs=mdm_mf_jobs,
               euclidean_mean  =False,
               custom_distance =True,
