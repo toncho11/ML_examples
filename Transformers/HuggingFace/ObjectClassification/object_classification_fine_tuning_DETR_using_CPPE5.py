@@ -88,7 +88,7 @@ cppe5["train"] = cppe5["train"].with_transform(transform_aug_ann)
 #You have successfully augmented the individual images and prepared their annotations. However, preprocessing isn't complete yet. 
 def collate_fn(batch):
     pixel_values = [item["pixel_values"] for item in batch]
-    encoding = image_processor.pad_and_create_pixel_mask(pixel_values, return_tensors="pt")
+    encoding = image_processor.pad(pixel_values, return_tensors="pt")
     labels = [item["labels"] for item in batch]
     batch = {}
     batch["pixel_values"] = encoding["pixel_values"]
@@ -123,7 +123,7 @@ training_args = TrainingArguments(
     weight_decay=1e-4,
     save_total_limit=2,
     remove_unused_columns=False,
-    push_to_hub=True,
+    push_to_hub=False,
 )
 
 #Finally perform the training
