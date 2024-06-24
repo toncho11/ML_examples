@@ -19,7 +19,7 @@ import numpy as np
 import os
 
 #start config
-funetune_model = False
+funetune_model = True
 use_only_2_images_for_training = True #Warning if TRUE not all images are used for Training. This is for tesing only.
 test_image = True
 evaluate_new_funetuned_model = False
