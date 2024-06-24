@@ -77,8 +77,15 @@ warnings.filterwarnings("ignore")
 set_log_level("info")
 
 
-def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsession", max_n_subjects=-1, overwrite=False, n_jobs=12, skip_MI = False, skip_P300 = False,
+def benchmark_alpha(pipelines, params_grid = None, 
+                    evaluation_type = "withinsession", 
+                    max_n_subjects=-1, overwrite=False, 
+                    n_jobs=12, 
+                    skip_MI = False, 
+                    skip_P300 = False,
                     replace_x_dawn_cov_par_cov_for_MI = True,
+                    use_cache = False,
+                    save_cache= False
                     ):
     """
 
@@ -88,39 +95,42 @@ def benchmark_alpha(pipelines, params_grid = None, evaluation_type = "withinsess
         Pipelines to test. The pipelines are expected to be configured for P300.
         When switching from P300 to Motor Imagery and if the first transformer
         is XdawnCovariances then it will be automatically replaced by Covariances()
+    params_grid: default = None
+        Used for hyperparameter tuning with GridSearchCV and MOABB.
+    evaluation_type: Default = "withinsession"
+        Two options are available: "withinsession" and "crosssubject".
     max_n_subjects : int, default = -1
         The maxmium number of subjects to be used per database.  
     overwrite : bool, optional
         Set to True if we want to overwrite cached results.
     n_jobs : int, default=12
         The number of jobs to use for the computation. It is used in WithinSessionEvaluation().
-    skip_MR_LR : default = False
-        Only P300 ERP databases will be used for this benchmark.
-    
+    skip_MI : default = False
+        Skip Motor Imagery datasets for this benchmark.
+    skip_P300 : default = False
+        Skip P300 ERP datasets for this benchmark.
+    replace_x_dawn_cov_par_cov_for_MI : default = True
+        XDawn covariances is automatically replaced with Covariances when
+        used in Motor Imagery.
+    use_cache: default = False
+        Used cache that was previously generated with MOABB.
+    save_cache: default = False
+        Force generation of cache using MOABB.
+           
     Returns
     -------
     df : Pandas dataframe
         Returns a dataframe with results from the tests.
     
     History:
-        21/05/2024 Initial version.
+        24/06/2024 Initial version.
     """
     
-    # cache_config = dict(
-    #     use=True,
-    #     save_raw=False,
-    #     save_epochs=True,
-    #     save_array=True,
-    #     overwrite_raw=False,
-    #     overwrite_epochs=False,
-    #     overwrite_array=False,
-    # )
-    
     cache_config = dict(
-        use=False,
+        use=use_cache,
         save_raw=False,
-        save_epochs=False,
-        save_array=False,
+        save_epochs=save_cache,
+        save_array=save_cache,
         overwrite_raw=False,
         overwrite_epochs=False,
         overwrite_array=False,
@@ -386,25 +396,25 @@ def _AdjustDF(df, removeP300  = False, removeMI = False):
 def plot_stat(results, removeP300  = False, removeMI = False):
     """
     Generates a point plot for each pipeline.
-    Generate statistical plots by comparing every 2 pipelines. Test if the 
+    Generate statistical plots by comparing every 2 pipelines. Test if the
     difference is significant by using SMD. It does that per database and overall
-    with the "Meta-effect" line. 
-    Generates a summary plot - a significance matrix to compare the pipelines. It uses as a heatmap 
+    with the "Meta-effect" line.
+    Generates a summary plot - a significance matrix to compare the pipelines. It uses as a heatmap
     with green/grey/red for significantly higher/significantly lower.
-
+    
     Parameters
     ----------
     results : Pandas dataframe
-        A dataframe with results from the benchmark
-    removeP300 : TYPE, optional
-        DESCRIPTION. The default is False.
-    removeMI_LR : TYPE, optional
-        DESCRIPTION. The default is False.
-
+        A dataframe with results from a benchmark
+    removeMI : default = False
+        Do not icnclude Motor Imagery datasets in the statistics plots.
+    removeP300 : default = False
+        Do not icnclude P300 datasets in the statistics plots.
+    
     Returns
     -------
     None.
-
+    
     """
     results = _AdjustDF(results, removeP300 = removeP300, removeMI = removeMI)
     
