@@ -19,7 +19,7 @@ import numpy as np
 import os
 
 #start config
-funetune_model = True
+train_model = True
 use_only_2_images_for_training = True #Warning if TRUE not all images are used for Training. This is for tesing only.
 test_image = True
 evaluate_new_funetuned_model = False
@@ -155,7 +155,7 @@ trainer = Trainer(
     tokenizer=image_processor,
 )
 
-if funetune_model:
+if train_model:
     
     print ("Starting training (fine-tuning) ...")
     trainer.train()
