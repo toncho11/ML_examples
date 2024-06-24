@@ -172,11 +172,13 @@ if test_image:
     
     print("Load model from disk ...")
     fine_tuned_model = AutoModelForObjectDetection.from_pretrained(model_folder)
+    image_processor_fine_tuned = AutoImageProcessor.from_pretrained(model_folder)
     
     url = "https://image.cnbcfm.com/api/v1/image/106467352-1585602933667virus-medical-flu-mask-health-protection-woman-young-outdoor-sick-pollution-protective-danger-face_t20_o07dbe.jpg?v=1585602987&w=929&h=523&vtcrop=y"
     image = Image.open(requests.get(url, stream=True).raw)
     
-    obj_detector = pipeline("object-detection", model=model, image_processor = image_processor)
+    
+    obj_detector = pipeline("object-detection", model=fine_tuned_model, image_processor = image_processor_fine_tuned)
     #obj_detector = pipeline("object-detection", model="MariaK/detr-resnet-50_finetuned_cppe5")
     obj_detector(image)
 
