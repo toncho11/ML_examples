@@ -57,7 +57,8 @@ def distance_custom(A, B, k, squared=False):
     distance
     """
     
-    return distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
+    #return distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
+    dist = distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
     #return distance_euclid(np.linalg.inv(A), np.linalg.inv(B), squared=squared)
 
 def _check_metric(metric): #in utils in newer versions
@@ -145,7 +146,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         if self.method_label == "lda":
             self.lda = LDA()
     
-    def _calculate_mean(self,X, y, p, sample_weight, remove_outliers = False):
+    def _calculate_mean(self,X, y, p, sample_weight):
         
         means_p = {}
         
@@ -166,39 +167,56 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 )
             self.covmeans_[p] = means_p
             
-        if remove_outliers:
+        return means_p
+    
+    #calculates the power mean p and it also removes the outliers
+    def _calcualte_mean_remove_outliers(self,X, y, p, sample_weight):
+    
+        means_p = {}
+        
+        X_no_outliers = X.copy() # TODO: check if needed
+        y_no_outliers = y.copy()
+        
+        for i in range(4):
             
-            m = [] #contains a distance to a power mean p for class ll
-            X_no_outliers = X.copy() # TODO: check if needed
-            y_no_outliers = y.copy()
+            #print("\nremove outliers iteration: ",i)
             
-            z_scores = np.zeros(len(y_no_outliers),dtype=float)
-            
-            for idx, x in enumerate (X_no_outliers):
-                ll = y[idx]
-                dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
-                m.append(dist_p)
+            #returns the two means (one for each class)
+            means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
             
             for ll in self.classes_:
                 
+                samples_before = X_no_outliers.shape[0]
+                
+                m = [] #contains a distance to a power mean p for class ll
+                
+                z_scores = np.zeros(len(y_no_outliers),dtype=float)
+            
+                # Calcualte all the distances only for class ll and power mean p
+                for idx, x in enumerate (X_no_outliers[y_no_outliers==ll]):
+                    dist_p = self._calculate_distance(x, means_p[ll], p, True)
+                    dist_p = np.log(dist_p)
+                    m.append(dist_p)
+                
+                m = np.array(m, dtype=float)
+                
                 # Calculate Z-scores for each data point
-                z_scores[y==ll] = zscore(np.array(m, dtype=float)[y==ll])
+                z_scores[y_no_outliers==ll] = zscore(m)
             
-            threshold = self.outliers_th #default 2.5
-            outliers = (z_scores > threshold) | (z_scores < -threshold)
-            
-            #print ("Removed: ", len(outliers[outliers==True]), " out of ", X.shape[0])
-            X_no_outliers = X_no_outliers[~outliers]
-            y_no_outliers = y_no_outliers[~outliers]
-            sample_weight = sample_weight[~outliers]
-            
-            if X_no_outliers.shape[0] != (X.shape[0] - len(outliers[outliers==True])):
-                raise Exception("Error while removing outliers!")
+                threshold = self.outliers_th
+                outliers = (z_scores > threshold) | (z_scores < -threshold)
                 
-            #remove outliers - recursive call - 1 time
-            #it will now generate new means after the outliers have been removed
-            means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight, False)
+                #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
+                X_no_outliers = X_no_outliers[~outliers]
+                y_no_outliers = y_no_outliers[~outliers]
+                sample_weight = sample_weight[~outliers]
                 
+                if X_no_outliers.shape[0] != (samples_before - len(outliers[outliers==True])):
+                    raise Exception("Error while removing outliers!")
+        
+        #generate the final power mean (after outliers removal)
+        means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
+        
         return means_p
         
     def fit(self, X, y, sample_weight=None):
@@ -229,7 +247,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
         self.covmeans_ = {}
         for p in self.power_list:
-            self.covmeans_[p] = self._calculate_mean(X, y, p, sample_weight, self.remove_outliers)
+            
+            if (self.remove_outliers):
+                self.covmeans_[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
+            else:
+                self.covmeans_[p] = self._calculate_mean(X, y, p, sample_weight)
 
         if self.method_label == "lda":
             dists = self._predict_distances(X)
@@ -291,9 +313,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             return np.array(pred)
 
-    def _calculate_distance(self,A,B,p):
-        
-        squared = False
+    def _calculate_distance(self,A,B,p,squared=True):
         
         if self.custom_distance:
             dist = distance(

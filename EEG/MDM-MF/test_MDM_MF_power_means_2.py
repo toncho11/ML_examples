@@ -66,9 +66,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from pyriemann.spatialfilters import CSP
 
 #start configuration
-hb_max_n_subjects = -1
+hb_max_n_subjects = 10
 hb_n_jobs = -1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -107,6 +107,12 @@ power_means7 = [-1, 0.5, 0, 0.5, 1] #best so far
 
 power_means8 = [-1, 0.5, 0.001, 0.5, 1]
 
+power_means9 = [-1, -0.75, 0.5, 0.001, 0.5, 0.75, 1]
+
+power_means10 = [-1, -0.75, -0.5, -0.3, 0.001, 0.3, 0.5, 0.75, 1]
+
+power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
+
 # power_means9 = [-1]
 
 # power_means10 = [1]
@@ -143,24 +149,11 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
         # else:
         #     return X
     
-
-# pipelines["CSP_10_A_E_A_PM8_LDA_CD"] = make_pipeline(
+#gives the same score for STA for 10 subjects
+# pipelines["CSP_10_A_E_A_PM9_LDA_CD_RO_2_5"] = make_pipeline(
 #     Covariances("oas"),
 #     CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =False,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_10_A_E_A_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanFieldNew(power_list=power_means8,
+#     MeanFieldNew(power_list=power_means9,
 #               method_label="lda",
 #               n_jobs=mdm_mf_jobs,
 #               euclidean_mean  =False,
@@ -170,176 +163,37 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 #               ),   
 # )
 
-# pipelines["CSP_12_A_E_A_PM8_LDA_CD"] = make_pipeline(
+#only one dot on the smd favoring TSLR
+#CSP_10_A_E_A_PM10_LDA_CD_RO_2_5  0.787601  0.540041
+#TSLR                             0.790168  0.367736
+# pipelines["CSP_10_A_E_A_PM10_LDA_CD_RO_2_5"] = make_pipeline(
 #     Covariances("oas"),
-#     CustomCspTransformer(metric_p="not used",nfilter = 12),
-#     MeanFieldNew(power_list=power_means8,
+#     CustomCspTransformer(metric_p="not used",nfilter = 10),
+#     MeanFieldNew(power_list=power_means10,
 #               method_label="lda",
 #               n_jobs=mdm_mf_jobs,
 #               euclidean_mean  =False,
 #               custom_distance =True,
-#               remove_outliers =False,
+#               remove_outliers =True,
 #               outliers_th = 2.5
 #               ),   
 # )
 
-#best?
-pipelines["CSP_10_A_E_A_PM8_LDA_CD"] = make_pipeline(
+#CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.795498  0.613265
+#TSLR                             0.789618  0.367424
+#std - TSLR is a little bit better, but not statisitally better
+pipelines["CSP_10_A_E_A_PM11_LDA_CD_RO_2_5"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(metric_p="not used",nfilter = 10),
-    MeanFieldNew(power_list=power_means,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
-              outliers_th = 2.5
-              ),   
-)
-
-pipelines["CSP_10_A_E_A_PM8_LDA_CD_RO_1.8"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(metric_p="not used",nfilter = 10),
-    MeanFieldNew(power_list=power_means,
+    MeanFieldNew(power_list=power_means11,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean  =False,
               custom_distance =True,
               remove_outliers =True,
-              outliers_th = 1.8
-              ),   
-)
-
-pipelines["CSP_10_ALE_PM8_LDA_CD"] = make_pipeline(
-    Covariances("oas"),
-    CSP(log=False, metric="ale", nfilter = 10),
-    MeanFieldNew(power_list=power_means8,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =False,
               outliers_th = 2.5
               ),   
 )
-
-
-# pipelines["CSP_A_H_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="harmonic"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_ALE_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="ale"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_ALM_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="alm"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_KS_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="kullback_sym"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_LD_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="logdet"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_LE_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="logeuclid"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_R_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="riemann"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-# pipelines["CSP_A_W_PM8_LDA_CD_RO"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="wasserstein"),
-#     MeanFieldNew(power_list=power_means8,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-
-# # pipelines["PM_LDA_CD_RO_TH_2.5"] = make_pipeline(
-# #     Covariances("oas"),
-# #     MeanFieldNew(power_list=power_means,
-# #               method_label="lda",
-# #               n_jobs=mdm_mf_jobs,
-# #               euclidean_mean  =False,
-# #               custom_distance =True,
-# #               remove_outliers =True,
-# #               outliers_th = 2.5
-# #               ),   
-# # )
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
