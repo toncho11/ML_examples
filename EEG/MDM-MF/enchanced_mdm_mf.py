@@ -133,6 +133,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  remove_outliers = False,
                  outliers_th = 2.5,
                  outliers_depth = 4, #how many times to run the outliers detection on the same data
+                 max_outliers_remove_th = 30
                  ):
         """Init."""
         self.power_list = power_list
@@ -144,6 +145,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.remove_outliers = remove_outliers
         self.outliers_th = outliers_th
         self.outliers_depth = outliers_depth
+        self.max_outliers_remove_th = max_outliers_remove_th
         
         if self.method_label == "lda":
             self.lda = LDA()
@@ -177,11 +179,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         X_no_outliers = X.copy() #so that every power mean p start from the same data
         y_no_outliers = y.copy()
         
-        total_outliers_removed = 0
+        total_outliers_removed_per_class = np.zeros(len(self.classes_))
+        total_samples_per_class          = np.zeros(len(self.classes_))
         
-        #max_outliers_remove_th = 49 # %
-        
-        #total_outliers_removed_per_class = np.zeros(len(self.classes_))
+        for ll in self.classes_:
+            total_samples_per_class[ll] = len(y_no_outliers[y_no_outliers==ll])
         
         for i in range(self.outliers_depth):
             
@@ -217,27 +219,27 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 outliers_count = len(outliers[outliers==True])
                 
                 #check if too many samples are about to be removed
-                #if ((total_outliers_removed + outliers_count) / X.shape[0]) * 100 < max_outliers_remove_th:
+                if ((total_outliers_removed_per_class[ll] + outliers_count) / total_samples_per_class[ll]) * 100 < self.max_outliers_remove_th:
                     #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
                 
-                X_no_outliers = X_no_outliers[~outliers]
-                y_no_outliers = y_no_outliers[~outliers]
-                sample_weight = sample_weight[~outliers]
+                    X_no_outliers = X_no_outliers[~outliers]
+                    y_no_outliers = y_no_outliers[~outliers]
+                    sample_weight = sample_weight[~outliers]
                 
-                if X_no_outliers.shape[0] != (samples_before - outliers_count):
-                    raise Exception("Error while removing outliers!")
+                    if X_no_outliers.shape[0] != (samples_before - outliers_count):
+                        raise Exception("Error while removing outliers!")
                     
-                total_outliers_removed = total_outliers_removed + outliers_count
-                #else:
-                #    print("WARNING: Skipped outliers removal because too many samples were about to be removed.")
+                    total_outliers_removed_per_class[ll] = total_outliers_removed_per_class[ll] + outliers_count
+                else:
+                    print("WARNING: Skipped outliers removal because too many samples were about to be removed.")
         
         #generate the final power mean (after outliers removal)
         means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
         
         #outliers_removed_for_single_mean = X.shape[0] - X_no_outliers.shape[0]
-        #if (total_outliers_removed != outliers_removed_for_single_mean):
-        #    raise Exception("Error outliers removal count")
-        #print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
+        # if (total_outliers_removed != outliers_removed_for_single_mean):
+        #     raise Exception("Error outliers removal count")
+        # print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
         
         #if (outliers_removed_for_single_mean / X.shape[0]) * 100 > max_outliers_remove_th:
         #    raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean, " out of ",X.shape[0])

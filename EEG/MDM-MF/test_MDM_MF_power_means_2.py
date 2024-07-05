@@ -44,6 +44,11 @@ Results:
     CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D4  0.754830  0.594823
     TSLR                                0.752112  0.282282
     
+                                          score      time
+    pipeline                                            
+    CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50  0.754504  0.564354
+    TSLR                                  0.749598  0.266532
+    
               
 @author: anton andreev
 """
@@ -83,7 +88,7 @@ from pyriemann.spatialfilters import CSP
 
 #start configuration
 hb_max_n_subjects = -1
-hb_n_jobs = 1
+hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
@@ -222,7 +227,7 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 #TSLR                             0.751628  0.293454
 #1 dot in favor of TSLR
 #0.001 rempaced by 0
-pipelines["CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4"] = make_pipeline(
+pipelines["CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(metric_p="not used",nfilter = 10),
     MeanFieldNew(power_list=power_means,
@@ -232,7 +237,8 @@ pipelines["CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4"] = make_pipeline(
               custom_distance = True,
               remove_outliers = True,
               outliers_th     = 2.5, #default 2.5
-              outliers_depth  = 4    #default 4
+              outliers_depth  = 4,   #default 4
+              max_outliers_remove_th = 50 #default = 30
               ),   
 )
 
