@@ -27,8 +27,24 @@ The MFM-MF has these options:
 
 Results:
     
-   
-            
+    Evaluation in %:
+                                           score      time
+    pipeline                                           
+    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3     0.751109  0.440589
+    PM11_ORIG_MDM_MF                       0.657300  2.598817
+    TSLR                                   0.751022  0.264263
+    
+    TSLR is SMD better than all. 
+    TSLR is SMD one dot better than CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3.
+    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3 is 3 dots SMD better than ORIG.
+    
+    Evaluation in %:
+                                           score      time
+    pipeline                                              
+    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D4  0.754830  0.594823
+    TSLR                                0.752112  0.282282
+    
+              
 @author: anton andreev
 """
 
@@ -66,8 +82,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from pyriemann.spatialfilters import CSP
 
 #start configuration
-hb_max_n_subjects = 10
-hb_n_jobs = -1
+hb_max_n_subjects = -1
+hb_n_jobs = 1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
@@ -85,11 +101,8 @@ if is_on_grid:
 else:
     pipeline_folder = "C:\\Work\\PythonCode\\ML_examples\\EEG\\MDM-MF\\pipelines\\"
 
-#labels_dict = {"Target": 1, "NonTarget": 0}
 pipelines = {}
 params_grid = None
-
-#csp_filters = 8
 
 power_means = [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
 
@@ -111,7 +124,9 @@ power_means9 = [-1, -0.75, 0.5, 0.001, 0.5, 0.75, 1]
 
 power_means10 = [-1, -0.75, -0.5, -0.3, 0.001, 0.3, 0.5, 0.75, 1]
 
-power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
+#power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
+
+power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means9 = [-1]
 
@@ -148,6 +163,16 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
         #     return X_transformed
         # else:
         #     return X
+
+# CSP_10_A_E_A_
+# pipelines["PM11_ORIG_MDM_MF"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer(metric_p="not used",nfilter = 10),
+#     MeanField_orig(power_list=power_means,
+#               method_label="inf_means",
+#               n_jobs=12,
+#               ),
+# )
     
 #gives the same score for STA for 10 subjects
 # pipelines["CSP_10_A_E_A_PM9_LDA_CD_RO_2_5"] = make_pipeline(
@@ -166,6 +191,7 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 #only one dot on the smd favoring TSLR
 #CSP_10_A_E_A_PM10_LDA_CD_RO_2_5  0.787601  0.540041
 #TSLR                             0.790168  0.367736
+
 # pipelines["CSP_10_A_E_A_PM10_LDA_CD_RO_2_5"] = make_pipeline(
 #     Covariances("oas"),
 #     CustomCspTransformer(metric_p="not used",nfilter = 10),
@@ -179,19 +205,34 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 #               ),   
 # )
 
+#10 subjects
 #CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.795498  0.613265
 #TSLR                             0.789618  0.367424
-#std - TSLR is a little bit better, but not statisitally better
-pipelines["CSP_10_A_E_A_PM11_LDA_CD_RO_2_5"] = make_pipeline(
+#std - TSLR is a little bit better (or 1 dot), but not statisitally better
+
+#all subjecs
+#                                    score      time
+#pipeline                                           
+#CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.755570  1.991089
+#TSLR                             0.752165  0.479386
+
+#all subjects                                     score      time
+#pipeline                                           
+#CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.750435  0.627599
+#TSLR                             0.751628  0.293454
+#1 dot in favor of TSLR
+#0.001 rempaced by 0
+pipelines["CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(metric_p="not used",nfilter = 10),
-    MeanFieldNew(power_list=power_means11,
+    MeanFieldNew(power_list=power_means,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
-              euclidean_mean  =False,
-              custom_distance =True,
-              remove_outliers =True,
-              outliers_th = 2.5
+              euclidean_mean  = False,
+              custom_distance = True,
+              remove_outliers = True,
+              outliers_th     = 2.5, #default 2.5
+              outliers_depth  = 4    #default 4
               ),   
 )
 

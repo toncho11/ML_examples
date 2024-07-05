@@ -131,7 +131,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  euclidean_mean  = False,
                  custom_distance = False,
                  remove_outliers = False,
-                 outliers_th = 2.5
+                 outliers_th = 2.5,
+                 outliers_depth = 4, #how many times to run the outliers detection on the same data
                  ):
         """Init."""
         self.power_list = power_list
@@ -142,6 +143,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
         self.remove_outliers = remove_outliers
         self.outliers_th = outliers_th
+        self.outliers_depth = outliers_depth
         
         if self.method_label == "lda":
             self.lda = LDA()
@@ -169,27 +171,33 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
         return means_p
     
-    #calculates the power mean p and it also removes the outliers
+    #removes outliers and calculates the power mean p on the rest
     def _calcualte_mean_remove_outliers(self,X, y, p, sample_weight):
-    
-        means_p = {}
         
-        X_no_outliers = X.copy() # TODO: check if needed
+        X_no_outliers = X.copy() #so that every power mean p start from the same data
         y_no_outliers = y.copy()
         
-        for i in range(4):
+        total_outliers_removed = 0
+        
+        #max_outliers_remove_th = 49 # %
+        
+        #total_outliers_removed_per_class = np.zeros(len(self.classes_))
+        
+        for i in range(self.outliers_depth):
             
             #print("\nremove outliers iteration: ",i)
             
-            #returns the two means (one for each class)
+            #returns the n means (one for each class)
             means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
             
+            #outlier removal is per class
             for ll in self.classes_:
                 
                 samples_before = X_no_outliers.shape[0]
                 
-                m = [] #contains a distance to a power mean p for class ll
+                m = [] #contains a distance to the power mean p for class ll
                 
+                #length includes all classes, not only the ll
                 z_scores = np.zeros(len(y_no_outliers),dtype=float)
             
                 # Calcualte all the distances only for class ll and power mean p
@@ -200,23 +208,40 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 
                 m = np.array(m, dtype=float)
                 
-                # Calculate Z-scores for each data point
+                # Calculate Z-scores for each data point for the current ll class
+                # For the non ll the zscore stays 0
                 z_scores[y_no_outliers==ll] = zscore(m)
             
-                threshold = self.outliers_th
-                outliers = (z_scores > threshold) | (z_scores < -threshold)
+                outliers = (z_scores > self.outliers_th) | (z_scores < -self.outliers_th)
                 
-                #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
+                outliers_count = len(outliers[outliers==True])
+                
+                #check if too many samples are about to be removed
+                #if ((total_outliers_removed + outliers_count) / X.shape[0]) * 100 < max_outliers_remove_th:
+                    #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
+                
                 X_no_outliers = X_no_outliers[~outliers]
                 y_no_outliers = y_no_outliers[~outliers]
                 sample_weight = sample_weight[~outliers]
                 
-                if X_no_outliers.shape[0] != (samples_before - len(outliers[outliers==True])):
+                if X_no_outliers.shape[0] != (samples_before - outliers_count):
                     raise Exception("Error while removing outliers!")
+                    
+                total_outliers_removed = total_outliers_removed + outliers_count
+                #else:
+                #    print("WARNING: Skipped outliers removal because too many samples were about to be removed.")
         
         #generate the final power mean (after outliers removal)
         means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
         
+        #outliers_removed_for_single_mean = X.shape[0] - X_no_outliers.shape[0]
+        #if (total_outliers_removed != outliers_removed_for_single_mean):
+        #    raise Exception("Error outliers removal count")
+        #print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
+        
+        #if (outliers_removed_for_single_mean / X.shape[0]) * 100 > max_outliers_remove_th:
+        #    raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean, " out of ",X.shape[0])
+            
         return means_p
         
     def fit(self, X, y, sample_weight=None):
@@ -246,6 +271,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             sample_weight = np.ones(X.shape[0])
 
         self.covmeans_ = {}
+        
         for p in self.power_list:
             
             if (self.remove_outliers):
