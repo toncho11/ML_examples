@@ -49,7 +49,13 @@ Results:
     CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50  0.754504  0.564354
     TSLR                                  0.749598  0.266532
     
-              
+    cross subject - 20 subjects
+    Evaluation in %:
+                                              score       time
+    pipeline                                                   
+    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.772424  49.407753
+    TSLR  
+               
 @author: anton andreev
 """
 
@@ -83,13 +89,12 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.base import BaseEstimator, TransformerMixin
-from pyriemann.spatialfilters import CSP
+from  enchanced_mdm_mf_tools import CustomCspTransformer
 
 #start configuration
-hb_max_n_subjects = -1
+hb_max_n_subjects = 5
 hb_n_jobs = -1
-hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -133,41 +138,13 @@ power_means10 = [-1, -0.75, -0.5, -0.3, 0.001, 0.3, 0.5, 0.75, 1]
 
 power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 0.75, 1]
 
+power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
+
 # power_means9 = [-1]
 
 # power_means10 = [1]
 
 # power_means11 = [0]
-
-#it applies CSP only if the number of lectrodes is big e.x >=60
-class CustomCspTransformer(BaseEstimator, TransformerMixin):
-    
-    def __init__(self, metric_p, nfilter = 4):
-        self.metric_p = metric_p
-        self.nfilter = nfilter
-    
-    def fit(self, X, y=None):
-        #print("fit csp")
-        if X.shape[1] < 60:
-            
-            #n_iter_max=200
-            self.csp = CSP(metric = "ale",    nfilter=self.nfilter, log=False)
-        else:
-            self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False)
-            
-        self.csp.fit(X,y)
-        
-        return self
-    
-    def transform(self, X):
-        X_transformed = self.csp.transform(X)
-        return X_transformed
-        
-        # if X.shape[1] < 60:
-        #     X_transformed = self.csp.transform(X)
-        #     return X_transformed
-        # else:
-        #     return X
 
 # CSP_10_A_E_A_
 # pipelines["PM11_ORIG_MDM_MF"] = make_pipeline(
@@ -227,20 +204,69 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 #TSLR                             0.751628  0.293454
 #1 dot in favor of TSLR
 #0.001 rempaced by 0
-pipelines["CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
+# pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50_DM"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer(metric_p="not used",nfilter = 10),
+#     MeanFieldNew(power_list=power_means12,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean         = False,
+#               custom_distance        = True,
+#               remove_outliers        = True,
+#               outliers_th            = 2.5, #default 2.5
+#               outliers_depth         = 4,   #default 4
+#               max_outliers_remove_th = 50, #default = 30
+#               outliers_disable_mean  = True #probably better without it
+#               ),   
+# )
+
+pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(metric_p="not used",nfilter = 10),
-    MeanFieldNew(power_list=power_means,
+    MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
-              euclidean_mean  = False,
-              custom_distance = True,
-              remove_outliers = True,
-              outliers_th     = 2.5, #default 2.5
-              outliers_depth  = 4,   #default 4
-              max_outliers_remove_th = 50 #default = 30
+              euclidean_mean         = False, #default = false
+              custom_distance        = True,
+              remove_outliers        = True,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False #default = false
               ),   
 )
+
+pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
+    Covariances("oas"),
+    CustomCspTransformer(metric_p="not used",nfilter = 10),
+    MeanFieldNew(power_list=power_means12,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              custom_distance        = True,
+              remove_outliers        = False,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False #default = false
+              ),   
+)
+
+# pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer(metric_p="not used",nfilter = 10),
+#     MeanFieldNew(power_list=power_means12,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean         = False,
+#               custom_distance        = True,
+#               remove_outliers        = True,
+#               outliers_th            = 2.5, #default 2.5
+#               outliers_depth         = 4,   #default 4
+#               max_outliers_remove_th = 50, #default = 30
+#               outliers_disable_mean  = False 
+#               ),   
+# )
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
@@ -255,18 +281,21 @@ if AUG_Tang_SVM_standard:
     for c in pipeline_configs:
         if c["name"] == "AUG Tang SVM Grid":
             pipelines["AD_TS_SVM_F"] = c["pipeline"]
-    params_grid = None
+            params_grid = None
+            break
       
 if AUG_Tang_SVM_grid_search:
     for c in pipeline_configs:
         if c["name"] == "AUG Tang SVM Grid":
             pipelines["AD_TS_GS_SVM_F"] = c["pipeline"]
-    params_grid = generate_param_grid(pipeline_configs)
+            params_grid = generate_param_grid(pipeline_configs)
+            break
 
 if TSLR:
     for c in pipeline_configs:
         if c["name"] == "Tangent Space LR":
             pipelines["TSLR"] = c["pipeline"]
+            break
 
 results = benchmark_alpha(pipelines, 
                           params_grid = params_grid, 
