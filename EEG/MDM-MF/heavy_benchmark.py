@@ -173,13 +173,13 @@ def benchmark_alpha(pipelines, params_grid = None,
         BNCI2014_001(), #D2
         BNCI2014_004(), #D2
         Cho2017(),      #D2
-        #GrosseWentrup2009(), #D2
+        GrosseWentrup2009(), #D2
         PhysionetMI(), #D2
         Shin2017A(accept=True), #D2
         Weibo2014(), #D2
         Zhou2016(), #D2 #gives error with "cov estimator" because it is not regularized as in "oas estimator"
         Lee2019_MI(), #D2 requires a newer version of MOABB with url fixed
-        #Schirrmeister2017() #D2, slow processing
+        Schirrmeister2017() #D2, slow processing
     ]
 
     # each MI dataset can have different classes and events and this requires a different MI paradigm
