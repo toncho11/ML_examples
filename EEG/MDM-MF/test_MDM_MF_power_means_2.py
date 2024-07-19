@@ -92,9 +92,9 @@ from sklearn.preprocessing import PolynomialFeatures
 from  enchanced_mdm_mf_tools import CustomCspTransformer
 
 #start configuration
-hb_max_n_subjects = 5
+hb_max_n_subjects = -1
 hb_n_jobs = -1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -222,7 +222,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(metric_p="not used",nfilter = 10),
+    CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
@@ -238,7 +238,7 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
 
 pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(metric_p="not used",nfilter = 10),
+    CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,

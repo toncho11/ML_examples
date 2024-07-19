@@ -21,10 +21,12 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         #print("fit csp")
-        if X.shape[1] < 60:
+        if X.shape[1] <= 64: #default < 60
             
             #n_iter_max=200 needs to be set in the code for "ale"
-            self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 50, n_iter_max = 100)
+            #good maxiter = 20, n_iter_max = 10
+            #5 5 ok
+            self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 10, n_iter_max = 8) # maxiter = 50, n_iter_max = 100)
         else:
             #self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
             self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example

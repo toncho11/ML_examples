@@ -138,10 +138,9 @@ pipelines["csp_pm12"] = make_pipeline(
               ),   
 )
 
-#slow
-# pipelines["method1"] = make_pipeline(
+# pipelines["csp_ajd_pham_L2"] = make_pipeline(
 #     Covariances("oas"),
-#     CSP(metric = "ale", nfilter=10, log=False), #5 iterations
+#     CSP(nfilter=10, log=False), #5 iterations
 #     Diagonalizer(diag_method="ajd_pham", norm_method="L2"),
 #     MeanFieldNew(power_list=power_means12,
 #               method_label="lda",
