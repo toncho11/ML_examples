@@ -12,12 +12,21 @@ import numpy as np
 from numpy.linalg import norm
 from sklearn.preprocessing import normalize
 
-#it applies CSP only if the number of lectrodes is big e.x >=60
+#requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
     
-    def __init__(self, nfilter = 4):
-        #self.metric_p = metric_p
+    #for 128 electrodes ale is better than euclid but slower
+    # Averaging the session performance:
+    #                       score       time
+    # pipeline                              
+    # CSP_A_PM12_LDA_CD  0.853723  16.892366
+    # CSP_E_PM12_LDA_CD  0.823720   1.168123
+    # TSLR               0.875154   2.505664
+    def __init__(self, euclid = False, nfilter = 4): #maxiter_128 = 2, n_iter_max_128=2):
+        self.euclid = euclid
         self.nfilter = nfilter
+        #self.maxiter_128 = maxiter_128
+        #self.n_iter_max_128 = n_iter_max_128
     
     def fit(self, X, y=None):
         #print("fit csp")
@@ -28,8 +37,10 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
             #5 5 ok
             self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 10, n_iter_max = 8) # maxiter = 50, n_iter_max = 100)
         else:
-            #self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
-            self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example
+            if self.euclid:
+                self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
+            else:
+                self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example
             
         self.csp.fit(X,y)
         

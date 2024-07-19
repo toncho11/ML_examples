@@ -55,6 +55,18 @@ Results:
     pipeline                                                   
     CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.772424  49.407753
     TSLR  
+    
+    Using all subjects and the new ALE only CSP Adpater:
+    Evaluation in %:
+                                               score      time
+    pipeline                                                  
+    CSP_10_A_E_A_PM12_LDA_CD                0.757549  1.622950
+    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.760145  1.800371
+    TSLR                                    0.754547  0.259044
+    
+    TSLR still better than LDA_CD_RO_2_5_D4_M50, but no star.
+    LDA_CD_RO_2_5_D4_M50 better than LDA_CD, but no star.
+    TSLR better than LDA_CD with star.
                
 @author: anton andreev
 """
@@ -146,80 +158,6 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-# CSP_10_A_E_A_
-# pipelines["PM11_ORIG_MDM_MF"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanField_orig(power_list=power_means,
-#               method_label="inf_means",
-#               n_jobs=12,
-#               ),
-# )
-    
-#gives the same score for STA for 10 subjects
-# pipelines["CSP_10_A_E_A_PM9_LDA_CD_RO_2_5"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanFieldNew(power_list=power_means9,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-#only one dot on the smd favoring TSLR
-#CSP_10_A_E_A_PM10_LDA_CD_RO_2_5  0.787601  0.540041
-#TSLR                             0.790168  0.367736
-
-# pipelines["CSP_10_A_E_A_PM10_LDA_CD_RO_2_5"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanFieldNew(power_list=power_means10,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean  =False,
-#               custom_distance =True,
-#               remove_outliers =True,
-#               outliers_th = 2.5
-#               ),   
-# )
-
-#10 subjects
-#CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.795498  0.613265
-#TSLR                             0.789618  0.367424
-#std - TSLR is a little bit better (or 1 dot), but not statisitally better
-
-#all subjecs
-#                                    score      time
-#pipeline                                           
-#CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.755570  1.991089
-#TSLR                             0.752165  0.479386
-
-#all subjects                                     score      time
-#pipeline                                           
-#CSP_10_A_E_A_PM11_LDA_CD_RO_2_5  0.750435  0.627599
-#TSLR                             0.751628  0.293454
-#1 dot in favor of TSLR
-#0.001 rempaced by 0
-# pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50_DM"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanFieldNew(power_list=power_means12,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean         = False,
-#               custom_distance        = True,
-#               remove_outliers        = True,
-#               outliers_th            = 2.5, #default 2.5
-#               outliers_depth         = 4,   #default 4
-#               max_outliers_remove_th = 50, #default = 30
-#               outliers_disable_mean  = True #probably better without it
-#               ),   
-# )
-
 pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
@@ -251,22 +189,6 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
               outliers_disable_mean  = False #default = false
               ),   
 )
-
-# pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(metric_p="not used",nfilter = 10),
-#     MeanFieldNew(power_list=power_means12,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean         = False,
-#               custom_distance        = True,
-#               remove_outliers        = True,
-#               outliers_th            = 2.5, #default 2.5
-#               outliers_depth         = 4,   #default 4
-#               max_outliers_remove_th = 50, #default = 30
-#               outliers_disable_mean  = False 
-#               ),   
-# )
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
