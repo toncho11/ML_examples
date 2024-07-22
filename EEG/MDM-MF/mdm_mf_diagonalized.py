@@ -33,7 +33,12 @@ Results:
     TSLR                          0.757967  0.275209
     csp_ajd_pham_L2_pm12_ro_i10   0.754791  1.973434
     csp_ajd_pham_L2_pm12_ro_i200  0.751899  1.950466
-    csp_pm12_ro                   0.757444  1.903261
+    csp_pm12_ro (no diag)         0.757444  1.903261
+    
+    SMD: TSLR -> csp_pm12_ro (no diag) -> i10 -> i200
+    So diagonalization does not reduce the performance too much
+    Restrictions to 10 iterations for the ajd_pham helps a bit.
+    
          
 @author: anton andreev
 """
