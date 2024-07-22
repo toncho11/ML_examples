@@ -22,6 +22,7 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
     # CSP_A_PM12_LDA_CD  0.853723  16.892366
     # CSP_E_PM12_LDA_CD  0.823720   1.168123
     # TSLR               0.875154   2.505664
+    # Difference is with 1 star confidence in favor of ALE
     def __init__(self, euclid = False, nfilter = 4): #maxiter_128 = 2, n_iter_max_128=2):
         self.euclid = euclid
         self.nfilter = nfilter

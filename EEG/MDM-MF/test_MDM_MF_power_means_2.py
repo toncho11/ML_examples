@@ -158,6 +158,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
+#best so far
 pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),

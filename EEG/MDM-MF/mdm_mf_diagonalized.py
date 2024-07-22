@@ -26,6 +26,14 @@ The MFM-MF has these options:
             metric = "riemann"
 
 Results:
+    
+    Evaluation in %:
+                                     score      time
+    pipeline                                        
+    TSLR                          0.757967  0.275209
+    csp_ajd_pham_L2_pm12_ro_i10   0.754791  1.973434
+    csp_ajd_pham_L2_pm12_ro_i200  0.751899  1.950466
+    csp_pm12_ro                   0.757444  1.903261
          
 @author: anton andreev
 """
@@ -63,8 +71,8 @@ from sklearn.preprocessing import PolynomialFeatures
 from  enchanced_mdm_mf_tools import CustomCspTransformer, Diagonalizer
 
 #start configuration
-hb_max_n_subjects = 2
-hb_n_jobs = 1
+hb_max_n_subjects = -1
+hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
@@ -117,9 +125,9 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-pipelines["csp_pm12"] = make_pipeline(
+pipelines["csp_pm12_ro"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(metric_p="not used", nfilter = 10),
+    CustomCspTransformer(nfilter = 10),
     #Diagonalizer(method="rjd"),
     #Diagonalizer(diag_method="rjd",norm_method="not used"),
     #Diagonalizer(diag_method="ajd_pham",norm_method="mean_std"),
@@ -137,12 +145,31 @@ pipelines["csp_pm12"] = make_pipeline(
 )
 
 #best so far, but not better than STA
-pipelines["csp_ajd_pham_L2_pm12_ro"] = make_pipeline(
+pipelines["csp_ajd_pham_L2_pm12_ro_i200"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(metric_p="not used", nfilter = 10),
+    CustomCspTransformer(nfilter = 10),
     #Diagonalizer(method="rjd"),
     #Diagonalizer(diag_method="rjd",norm_method="not used"),
     Diagonalizer(diag_method="ajd_pham", norm_method="L2"),
+    MeanFieldNew(power_list=power_means12,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              custom_distance        = True,
+              remove_outliers        = True,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False #default = false
+              ),   
+)
+
+pipelines["csp_ajd_pham_L2_pm12_ro_i10"] = make_pipeline(
+    Covariances("oas"),
+    CustomCspTransformer(nfilter = 10),
+    #Diagonalizer(method="rjd"),
+    #Diagonalizer(diag_method="rjd",norm_method="not used"),
+    Diagonalizer(diag_method="ajd_pham", norm_method="L2", n_iter_max = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
