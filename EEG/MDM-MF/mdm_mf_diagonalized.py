@@ -39,6 +39,10 @@ Results:
     So diagonalization does not reduce the performance too much
     Restrictions to 10 iterations for the ajd_pham helps a bit.
     
+    The time it takes to make the diagonalization nullifies any speed gains
+    with the current implementation of pyRiemann. Optimized mean and distance
+    functions that use vectors instead of matrices must be implemented.
+    
          
 @author: anton andreev
 """
@@ -133,9 +137,6 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 pipelines["csp_pm12_ro"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
-    #Diagonalizer(method="rjd"),
-    #Diagonalizer(diag_method="rjd",norm_method="not used"),
-    #Diagonalizer(diag_method="ajd_pham",norm_method="mean_std"),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
@@ -149,31 +150,10 @@ pipelines["csp_pm12_ro"] = make_pipeline(
               ),   
 )
 
-#best so far, but not better than STA
-pipelines["csp_ajd_pham_L2_pm12_ro_i200"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
-    #Diagonalizer(method="rjd"),
-    #Diagonalizer(diag_method="rjd",norm_method="not used"),
-    Diagonalizer(diag_method="ajd_pham", norm_method="L2"),
-    MeanFieldNew(power_list=power_means12,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              custom_distance        = True,
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False #default = false
-              ),   
-)
 
 pipelines["csp_ajd_pham_L2_pm12_ro_i10"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
-    #Diagonalizer(method="rjd"),
-    #Diagonalizer(diag_method="rjd",norm_method="not used"),
     Diagonalizer(diag_method="ajd_pham", norm_method="L2", n_iter_max = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",

@@ -1,0 +1,31 @@
+name: CSP MDM MF NEW RO
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: oas
+
+  - name: CustomCspTransformer
+    from: enchanced_mdm_mf_tools
+    parameters:
+      nfilter: 10
+
+  - name: MeanField
+    from: enchanced_mdm_mf
+    parameters:
+      power_list: [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
+      method_label: "lda"
+      custom_distance: True
+      euclidean_mean: False
+      remove_outliers: True
+      outliers_th: 2.5
+      outliers_depth: 4
+      max_outliers_remove_th: 50
+      outliers_disable_mean: False
+      
+      

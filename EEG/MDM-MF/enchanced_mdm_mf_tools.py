@@ -7,7 +7,7 @@ Created on Tue Jul 16 14:08:36 2024
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from pyriemann.spatialfilters import CSP
-from pyriemann.utils.ajd import rjd, ajd_pham
+from pyriemann.utils.ajd import rjd, ajd_pham, ajd, uwedge
 import numpy as np
 from numpy.linalg import norm
 from sklearn.preprocessing import normalize
@@ -23,7 +23,7 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
     # CSP_E_PM12_LDA_CD  0.823720   1.168123
     # TSLR               0.875154   2.505664
     # Difference is with 1 star confidence in favor of ALE
-    def __init__(self, euclid = False, nfilter = 4): #maxiter_128 = 2, n_iter_max_128=2):
+    def __init__(self, euclid = False, nfilter = 10): #maxiter_128 = 2, n_iter_max_128=2):
         self.euclid = euclid
         self.nfilter = nfilter
         #self.maxiter_128 = maxiter_128
@@ -68,10 +68,14 @@ class Diagonalizer(BaseEstimator, TransformerMixin):
         
         #print("fit strict diagonalizer")
         
+        #uwedge, rjd, ajd, 
         if self.diag_method == "rjd":
             
             self.V = rjd(X, n_iter_max=self.n_iter_max) #uses a modified version where D is not calculated to save time
-        
+            #self.V = rjd(X, n_iter_max=500)
+            #self.V = uwedge(X, n_iter_max=500)
+            #self.V = ajd(X, n_iter_max=500)
+           
         elif self.diag_method == "ajd_pham":
             
             V,_ = ajd_pham(X, n_iter_max=self.n_iter_max) #200 is good
@@ -80,19 +84,12 @@ class Diagonalizer(BaseEstimator, TransformerMixin):
             
             if self.norm_method == "L2":
                 
-                # #L2 calculate the L2 norm of a vector, take the square root of the sum of the squared vector values
-                # #Normalize matrix in L2 norm on the columns
-                # rows, cols = len(V), len(V[0])
-                # for col in range(cols):
-                #     length = sum(V[row][col]**2 for row in range(rows)) ** 0.5
-                #     for row in range(rows):
-                #         V[row][col] /= length
-                
                 V = normalize(V, norm="l2", axis = 0)
                         
                 self.V = V
                 
-                diff = 1 - norm(V, axis=0)
+                #verify V
+                diff = 1 - norm(self.V, axis=0)
                 if all(np.absolute(diff) > 0.0001):
                     raise Exception("Columns not converted to L2 norm! Difference is: ", diff)
                 

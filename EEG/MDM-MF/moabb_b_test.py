@@ -93,7 +93,7 @@ results = benchmark(
     #include_datasets=["Zhou2016"],
     exclude_datasets=["Stieger2021"],
     results="./results/",
-    overwrite=True,
+    overwrite=False,
     plot=True,
     output="./benchmark/",
 )
@@ -114,3 +114,7 @@ print(results.groupby("pipeline").mean("score")[["score", "time"]])
 
 score_plot(results)
 plt.show()
+
+print("Building statistic plots")
+from heavy_benchmark import plot_stat
+plot_stat(results)
