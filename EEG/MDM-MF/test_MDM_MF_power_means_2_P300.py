@@ -38,6 +38,8 @@ Results:
     
     xdawn_PM11_LDA_CD_RO_2_5_P300 is SMD better than ORIG_MDM_MF and MDM
     xdawn_TS_SVM is SMD better than all
+    xdawn_TS_SVM is SMD 3* better than xdawn_PM11_LDA_CD_RO_2_5_P300
+    MDM is a bit better than ORIG_MDM_MF
             
 @author: anton andreev
 """
@@ -123,7 +125,7 @@ power_means10 = [-1, -0.75, -0.5, -0.3, 0.001, 0.3, 0.5, 0.75, 1]
 
 power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1] 
 
-#power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 0.75, 1] #0 gave an error?
+power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means9 = [-1]
 
@@ -140,36 +142,6 @@ pipelines["ORIG_MDM_MF"] = make_pipeline(
               n_jobs=12,
               ),
 )
-
-#it applies CSP only if the number of lectrodes is big e.x >=60
-class CustomCspTransformer(BaseEstimator, TransformerMixin):
-    
-    def __init__(self, metric_p, nfilter = 4):
-        self.metric_p = metric_p
-        self.nfilter = nfilter
-    
-    def fit(self, X, y=None):
-        #print("fit csp")
-        if X.shape[1] < 60:
-            
-            #n_iter_max=200
-            self.csp = CSP(metric = "ale",    nfilter=self.nfilter, log=False)
-        else:
-            self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False)
-            
-        self.csp.fit(X,y)
-        
-        return self
-    
-    def transform(self, X):
-        X_transformed = self.csp.transform(X)
-        return X_transformed
-        
-        # if X.shape[1] < 60:
-        #     X_transformed = self.csp.transform(X)
-        #     return X_transformed
-        # else:
-        #     return X
 
 #old means
 # pipelines["xdawn_PM8_LDA_CD_RO_2_5"] = make_pipeline(
@@ -197,16 +169,31 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 #               ),   
 # )
 
-pipelines["xdawn_PM11_LDA_CD_RO_2_5_P300"] = make_pipeline(
+# pipelines["xdawn_PM11_LDA_CD_RO_2_5_P300"] = make_pipeline(
+#     XdawnCovariances(),
+#     MeanFieldNew(power_list=power_means11,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean  = False,
+#               custom_distance = True,
+#               remove_outliers = True,
+#               outliers_th = 2.5,
+#               outliers_depth = 4
+#               ),   
+# )
+
+pipelines["xdawn_PM12_LDA_CD_RO_2_5_P300"] = make_pipeline(
     XdawnCovariances(),
-    MeanFieldNew(power_list=power_means11,
+    MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean  = False,
               custom_distance = True,
-              remove_outliers = True,
-              outliers_th = 2.5,
-              outliers_depth = 4
+              remove_outliers        = True,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False #default = false
               ),   
 )
 
@@ -223,32 +210,6 @@ pipelines["xdawn_TS_SVM"] = make_pipeline(
     SVC()
 )
 
-#can not use both
-AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
-AUG_Tang_SVM_grid_search    = False #Zhou2016 subject 4 can fail because of cov covariance estimator
-TSLR = False
-
-from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
-pipeline_configs = parse_pipelines_from_directory(pipeline_folder)
-
-if AUG_Tang_SVM_standard:
-    #no Grid search
-    for c in pipeline_configs:
-        if c["name"] == "AUG Tang SVM Grid":
-            pipelines["AD_TS_SVM_F"] = c["pipeline"]
-    params_grid = None
-      
-if AUG_Tang_SVM_grid_search:
-    for c in pipeline_configs:
-        if c["name"] == "AUG Tang SVM Grid":
-            pipelines["AD_TS_GS_SVM_F"] = c["pipeline"]
-    params_grid = generate_param_grid(pipeline_configs)
-
-if TSLR:
-    for c in pipeline_configs:
-        if c["name"] == "Tangent Space LR":
-            pipelines["TSLR"] = c["pipeline"]
-
 results = benchmark_alpha(pipelines, 
                           params_grid = params_grid, 
                           evaluation_type="withinsession",
@@ -258,7 +219,7 @@ results = benchmark_alpha(pipelines,
                           overwrite = hb_overwrite,
                           skip_P300 = False,
                           skip_MI   = True,
-                          replace_x_dawn_cov_par_cov_for_MI=True
+                          #replace_x_dawn_cov_par_cov_for_MI=True
                           )
 
 print("Results:")
@@ -269,7 +230,7 @@ print(results.groupby("pipeline").mean("score")[["score", "time"]])
 
 # save results
 save_path = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "results_dataframe_test.csv"
+    os.path.dirname(os.path.realpath(__file__)), "results_dataframe_test_p300.csv"
 )
 results.to_csv(save_path, index=True)
 

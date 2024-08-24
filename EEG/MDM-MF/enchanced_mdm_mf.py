@@ -25,6 +25,9 @@ from sklearn.discriminant_analysis import (
     QuadraticDiscriminantAnalysis as QDA,
 )
 
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+
 #this is a custom distance that gets an additional parameter
 def distance_custom(A, B, k, squared=False):
     r"""Harmonic distance between invertible matrices.
@@ -134,7 +137,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_th = 2.5,
                  outliers_depth = 4, #how many times to run the outliers detection on the same data
                  max_outliers_remove_th = 30,
-                 outliers_disable_mean = False
+                 outliers_disable_mean = False,
+                 outliers_method = "zscore"
                  ):
         """Init."""
         self.power_list = power_list
@@ -148,6 +152,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_depth = outliers_depth
         self.max_outliers_remove_th = max_outliers_remove_th
         self.outliers_disable_mean = outliers_disable_mean
+        self.outliers_method = outliers_method
         
         if self.method_label == "lda":
             self.lda = LDA()
@@ -189,6 +194,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
         is_disabled = False
         
+        if self.outliers_method == "iforest":
+            iso = IsolationForest(contamination='auto') #0.1
+        elif self.outliers_method == "lof":
+            lof = LocalOutlierFactor(contamination='auto', n_neighbors=2) #default = 2
+        
         for i in range(self.outliers_depth):
             
             if is_disabled and self.outliers_disable_mean:
@@ -211,25 +221,46 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
                 # Calcualte all the distances only for class ll and power mean p
                 for idx, x in enumerate (X_no_outliers[y_no_outliers==ll]):
+                    
                     dist_p = self._calculate_distance(x, means_p[ll], p, True)
-                    dist_p = np.log(dist_p)
+                    #dist_p = np.log(dist_p)
                     m.append(dist_p)
                 
                 m = np.array(m, dtype=float)
                 
-                # Calculate Z-scores for each data point for the current ll class
-                # For the non ll the zscore stays 0
-                z_scores[y_no_outliers==ll] = zscore(m)
-            
-                outliers = (z_scores > self.outliers_th) | (z_scores < -self.outliers_th)
+                if self.outliers_method == "zscore":
+                    
+                    m = np.log(m)
+                    # Calculate Z-scores for each data point for the current ll class
+                    # For the non ll the zscore stays 0, so they won't be removed
+                    z_scores[y_no_outliers==ll] = zscore(m)
                 
+                    outliers = (z_scores > self.outliers_th) | (z_scores < -self.outliers_th)
+                    
+                elif self.outliers_method == "iforest":
+                    
+                    m1 = [[k] for k in m]
+                    z_scores[y_no_outliers==ll] = iso.fit_predict(m1)
+                    #outliers is designed to be the size with all classes
+                    outliers = z_scores == -1
+                    
+                elif self.outliers_method == "lof":
+                    
+                    m1 = [[k] for k in m]
+                    z_scores[y_no_outliers==ll] = lof.fit_predict(m1)
+                    #outliers is designed to be the size with all classes
+                    outliers = z_scores == -1
+                    
+                else:   
+                    raise Exception("Invalid Outlier Removal Method")
+
                 outliers_count = len(outliers[outliers==True])
                 
                 #check if too many samples are about to be removed
                 #case 1 less than self.max_outliers_remove_th are to be removed
                 if ((total_outliers_removed_per_class[ll] + outliers_count) / total_samples_per_class[ll]) * 100 < self.max_outliers_remove_th:
                     #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
-                
+            
                     X_no_outliers = X_no_outliers[~outliers]
                     y_no_outliers = y_no_outliers[~outliers]
                     sample_weight = sample_weight[~outliers]
@@ -238,6 +269,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         raise Exception("Error while removing outliers!")
                     
                     total_outliers_removed_per_class[ll] = total_outliers_removed_per_class[ll] + outliers_count
+                
                 else: #case 2 more than self.max_outliers_remove_th are to be removed
                     if self.outliers_disable_mean:
                         is_disabled = True
@@ -411,7 +443,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         m = {} #contains a distance to a power mean
         
         for p in self.power_list:
-            if self.outliers_disable_mean and self.covmeans_disabled[p]:
+            if self.outliers_disable_mean and p in self.covmeans_disabled and self.covmeans_disabled[p]:
                 continue
             m[p] = []
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean

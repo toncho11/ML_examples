@@ -23,8 +23,8 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
     # CSP_E_PM12_LDA_CD  0.823720   1.168123
     # TSLR               0.875154   2.505664
     # Difference is with 1 star confidence in favor of ALE
-    def __init__(self, euclid = False, nfilter = 10): #maxiter_128 = 2, n_iter_max_128=2):
-        self.euclid = euclid
+    def __init__(self, nfilter = 10): #maxiter_128 = 2, n_iter_max_128=2):
+        #self.euclid = euclid
         self.nfilter = nfilter
         #self.maxiter_128 = maxiter_128
         #self.n_iter_max_128 = n_iter_max_128
@@ -36,12 +36,15 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
             #n_iter_max=200 needs to be set in the code for "ale"
             #good maxiter = 20, n_iter_max = 10
             #5 5 ok
+            
+            #self.nfilter = 6
             self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 10, n_iter_max = 8) # maxiter = 50, n_iter_max = 100)
         else:
-            if self.euclid:
-                self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
-            else:
-                self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example
+            # if self.euclid:
+            #     self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
+            # else:
+            #self.nfilter = 10
+            self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example
             
         self.csp.fit(X,y)
         
@@ -121,4 +124,40 @@ class Diagonalizer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         
         return np.array([self.reconstruct_covariance(xi) for xi in X])
+    
+class PCA_SPD(TransformerMixin):
+    
+    def __init__(self, n_components):
+        self.n_components = n_components
+    
+    def set_params(self, **parameters):
+        
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+            
+        return self
+
+    def fit(self, X, y):
+        return self
+    
+    def transform(self, X, y=None):
+        
+        X = np.array(X)
+        new_dataset = np.zeros((X.shape[0], self.n_components, self.n_components))
+        
+        for i in range(X.shape[0]):
+            
+            covariance_to_reduce = X[i]
+            
+            eigenvalues, eigenvectors = np.linalg.eigh(covariance_to_reduce) # Calculate eigenvalues and eigenvectors            
+            
+            idx = eigenvalues.argsort()[::-1] # Sort eigenvalues in descending order
+            
+            eigenvectors = eigenvectors[:,idx][:,:self.n_components] # Sort eigenvectors according to eigenvalues and get the first n_components
+            
+            reduced_covariance = eigenvectors.T @ np.diag(eigenvalues) @ eigenvectors            
+            
+            new_dataset[i] = reduced_covariance
+            
+        return new_dataset 
         

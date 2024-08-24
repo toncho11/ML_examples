@@ -171,7 +171,8 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
               outliers_th            = 2.5,  #default = 2.5
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False #default = false
+              outliers_disable_mean = False, #default = false
+              outliers_method="zscore"
               ),   
 )
 
@@ -187,9 +188,11 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
               outliers_th            = 2.5,  #default = 2.5
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False #default = false
+              outliers_disable_mean  = False, #default = false
+              outliers_method="zscore"
               ),   
 )
+
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator

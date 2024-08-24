@@ -69,7 +69,7 @@ from moabb.analysis.meta_analysis import (
 )
 
 print(__doc__)
-print("Version 1.0 21/05/2024")
+print("Version 1.0 20/08/2024")
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=RuntimeWarning)
@@ -140,12 +140,22 @@ def benchmark_alpha(pipelines, params_grid = None,
     paradigm_MI = MotorImagery()
     paradigm_LR = LeftRightImagery()
 
+    #Dataset                 Electrodes   Subjects
+    #BI2013a(),                              24
+    #BNCI2014_008(),                          8
+    #BNCI2014_009(),                         10
+    #BNCI2015_003(),                         10
+    #BI2015a(),                              43
+    #BI2015b(),                              44
+    #BI2014a(),                              64
+    #BI2014b(),                              38
+      
     datasets_P300 = [
         BI2013a(),
         BNCI2014_008(),
         BNCI2014_009(),
         BNCI2015_003(),
-        BI2015a(),
+        BI2015a(),     
         BI2015b(),
         BI2014a(),
         BI2014b(),
