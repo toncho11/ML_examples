@@ -173,7 +173,7 @@ def benchmark_alpha(pipelines, params_grid = None,
     #Cho2017(),                 64          52
     #GrosseWentrup2009(),      128          10
     #PhysionetMI(),             64         109
-    #Shin2017A(accept=True),    30          29
+    #Shin2017A(),               30          29
     #Weibo2014(),               60          10
     #Zhou2016(),                14           4
     #Lee2019_MI(),              62          54

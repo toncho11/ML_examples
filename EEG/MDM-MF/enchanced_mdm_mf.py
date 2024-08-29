@@ -27,6 +27,8 @@ from sklearn.discriminant_analysis import (
 
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
+import copy
+#from scipy.spatial import distance
 
 #this is a custom distance that gets an additional parameter
 def distance_custom(A, B, k, squared=False):
@@ -61,8 +63,19 @@ def distance_custom(A, B, k, squared=False):
     """
     
     #return distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
-    dist = distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
-    #return distance_euclid(np.linalg.inv(A), np.linalg.inv(B), squared=squared)
+    A1 = scipy.linalg.fractional_matrix_power(A,k)
+    B1 = scipy.linalg.fractional_matrix_power(B,k)
+    
+    # if (A is None):
+    #     print("A is none in distance_custom")
+        
+    # if (B is None):
+    #     print("B is none in distance_custom")
+    
+    #TODO use another distance e.x. distance_riemann
+    dist = distance_euclid(A1, B1, squared=squared)
+    
+    return dist
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):
@@ -129,33 +142,39 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         Brain-Computer Interface Conference, Sep 2019, Graz, Austria.
     """
 
-    def __init__(self, power_list=[-1, 0, 1], method_label='sum_means',
+    def __init__(self, power_list=[-1, 0, 1], 
+                 method_label='sum_means',
                  metric="riemann", n_jobs=1, 
                  euclidean_mean  = False,
-                 custom_distance = False,
+                 distance_strategy = "default_metric",
                  remove_outliers = False,
                  outliers_th = 2.5,
                  outliers_depth = 4, #how many times to run the outliers detection on the same data
                  max_outliers_remove_th = 30,
                  outliers_disable_mean = False,
-                 outliers_method = "zscore"
+                 outliers_method = "zscore",
+                 ts_enabled = False,
                  ):
         """Init."""
         self.power_list = power_list
         self.method_label = method_label
         self.metric = metric
         self.n_jobs = n_jobs
-        self.euclidean_mean = euclidean_mean
-        self.custom_distance = custom_distance #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
+        self.euclidean_mean = euclidean_mean #if True sets LogEuclidian distance for LogEuclidian mean and Euclidian distance for power mean p=1
+        self.distance_strategy = distance_strategy 
         self.remove_outliers = remove_outliers
         self.outliers_th = outliers_th
         self.outliers_depth = outliers_depth
         self.max_outliers_remove_th = max_outliers_remove_th
         self.outliers_disable_mean = outliers_disable_mean
         self.outliers_method = outliers_method
+        self.ts_enabled = ts_enabled
         
         if self.method_label == "lda":
             self.lda = LDA()
+        
+        if self.ts_enabled:
+            self.ts = TangentSpace()
     
     def _calculate_mean(self,X, y, p, sample_weight):
         
@@ -301,7 +320,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         return means_p, is_disabled
         
     def fit(self, X, y, sample_weight=None):
-        """Fit (estimates) the centroids.
+        """Fit (estimates) the centroids. Calculates the power means.
 
         Parameters
         ----------
@@ -328,6 +347,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
         self.covmeans_ = {}
         
+        if self.ts_enabled:
+            self.ts_covmeans_ = {}
+        
         self.covmeans_disabled = {} #new
         
         for p in self.power_list:
@@ -337,10 +359,14 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             else:
                 self.covmeans_[p] = self._calculate_mean(X, y, p, sample_weight)
 
+        if self.ts_enabled:
+           
+            self.ts.fit(X) #experimetal np.vstack((X, self.covmeans_))
+                    
         if self.method_label == "lda":
             dists = self._predict_distances(X)
             self.lda.fit(dists,y)
-        
+
         return self
 
     def _get_label(self, x, labs_unique):
@@ -349,7 +375,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         for ip, p in enumerate(self.power_list):
             for ill, ll in enumerate(labs_unique):
-                m[ip, ill] = self._calculate_distance(x, self.covmeans_[p][ll], p)
+                
+                if self.ts_enabled:
+                    m[ip, ill] = self._calculate_distance(x,self.ts_covmeans_[p][ll],p)
+                else:
+                    m[ip, ill] = self._calculate_distance(x,self.covmeans_[p][ll],p)
+                #m[ip, ill] = self._calculate_distance(x, self.covmeans_[p][ll], p)
                 # m[ip, ill] = distance(
                 #     x, self.covmeans_[p][ll], metric=self.metric, squared=True)
 
@@ -399,45 +430,78 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
     def _calculate_distance(self,A,B,p,squared=True):
         
-        if self.custom_distance:
-            dist = distance(
-                    A,
-                    B,
-                    metric=self.metric,
-                    squared = squared,
-                )
-        else:
-            metric = None
+        #distance in tangent space
+        if self.ts_enabled and len(A.shape) == 1: #calculate in the final to produce the distances in the TS
             
-            if p == 200:
-                metric = "logeuclid"
-                #print("euclidean distance")
+            dist = np.linalg.norm(A-B)
+        
+        #distance in riemannian manifold
+        elif len(A.shape) == 2:  #calcualte distances for the means in Riemannian space
+        
+            if self.distance_strategy == "adaptive1": #very slow
                 
-            if p == 1:
-                metric = "euclid"
-            
-            if p == -1:
-                metric="harmonic"
-            
-            if p<=0.1 and p>=-0.1:
-                metric = "riemann"
-            
-            if metric is None:
-                #print("p based distance")
-                #this is the case for example: -0.75, -0.5, -0.25, +0.75, +0.5, +0.25
-                dist = distance_custom(A, B, k=p, squared = squared)
-            else:
-                #print("manually selected distance -1,1,200")
+                #                        score       time                     
+                #default_metric_r     0.749978   8.547789
+                #adaptive1            0.702650  14.123192
+                #print("adaptive1")
+                
+                met = None
+                
+                if p == 200:
+                    met = "logeuclid"
+                    #print("euclidean distance")
+                    
+                if p == 1:
+                    met = "euclid"
+                
+                if p == -1:
+                    met= "harmonic"
+                
+                if p<=0.1 and p>=-0.1:
+                    met = "riemann"
+                
+                if met is None:
+                    #print("p based distance")
+                    #this is the case for example: -0.75, -0.5, -0.25, +0.75, +0.5, +0.25
+                    dist = distance_custom(A, B, k=p, squared = squared)
+                    
+                    # if (dist is None):
+                    #     print("Problem with distance custom")
+                else:
+                    #when selected one of the above -1,1, [-0.1..0.1]
+                    dist = distance(
+                            A,
+                            B,
+                            metric=met,
+                            squared = squared,
+                        )
+                
+                #print("adaptive distance", dist)
+               
+            elif self.distance_strategy == "default_metric":
                 dist = distance(
                         A,
                         B,
-                        metric=metric,
+                        metric=self.metric,
                         squared = squared,
                     )
                 
+            elif self.distance_strategy == "custom_distance_function":
+                
+                dist = distance_custom(A, B, k=p, squared = squared)
+                
+            else:
+                raise Exception("Invalid distance strategy")
+                    
+        else:
+            raise Exception("Error size of input")
+            
         return dist
     
     def _calucalte_distances_for_all_means(self,x):
+        
+        if self.ts_enabled and len(x.shape) != 1:
+            raise Exception("Not vectors")
         
         #dist = []
         m = {} #contains a distance to a power mean
@@ -447,7 +511,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 continue
             m[p] = []
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
-                dist_p = self._calculate_distance(x,self.covmeans_[p][ll],p)
+                if self.ts_enabled:
+                    dist_p = self._calculate_distance(x,self.ts_covmeans_[p][ll],p)
+                else:
+                    dist_p = self._calculate_distance(x,self.covmeans_[p][ll],p)
                 m[p].append(dist_p)
                 
         combined = [] #combined for all classes
@@ -463,19 +530,33 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
     def _predict_distances(self, X):
         """Helper to predict the distance. Equivalent to transform."""
-
+        
+        #print("predict distances")
+        
+        if self.ts_enabled:
+            
+            self.ts_covmeans_ = copy.deepcopy(self.covmeans_)
+            
+            for p in self.power_list:
+                for ll in self.classes_:
+                    #print(np.array([self.covmeans_[p][ll]]).shape)
+                    self.ts_covmeans_[p][ll] = self.ts.transform(np.array([self.covmeans_[p][ll]]))
+            
+            X = self.ts.transform(X)
+           
         if (self.n_jobs == 1):
-            dist = []
+            distances = []
             for x in X:
                 distances_per_mean = self._calucalte_distances_for_all_means(x)
-                dist.append(distances_per_mean)
+                distances.append(distances_per_mean)
         else:
-            dist = Parallel(n_jobs=self.n_jobs)(delayed(self._calucalte_distances_for_all_means)(x)
+            distances = Parallel(n_jobs=self.n_jobs)(delayed(self._calucalte_distances_for_all_means)(x)
                  for x in X
                 )
             
-        dist = np.array(dist)
-        return dist
+            distances = np.array(distances)
+        
+        return distances
 
     def transform(self, X,):
         """Get the distance to each means field.

@@ -31,7 +31,13 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         #print("fit csp")
-        if X.shape[1] <= 64: #default < 60
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.nfilter <= self.n_electrodes: #do nothing
+            return self
+        
+        elif self.n_electrodes <= 64: #default < 60
             
             #n_iter_max=200 needs to be set in the code for "ale"
             #good maxiter = 20, n_iter_max = 10
@@ -39,7 +45,8 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
             
             #self.nfilter = 6
             self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 10, n_iter_max = 8) # maxiter = 50, n_iter_max = 100)
-        else:
+        
+        else: #n_electrodes > 64
             # if self.euclid:
             #     self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
             # else:
@@ -51,14 +58,36 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
         return self
     
     def transform(self, X):
-        X_transformed = self.csp.transform(X)
-        return X_transformed
         
-        # if X.shape[1] < 60:
-        #     X_transformed = self.csp.transform(X)
-        #     return X_transformed
-        # else:
-        #     return X
+        if self.nfilter <= self.n_electrodes: #do nothing
+            return X 
+        else:
+            X_transformed = self.csp.transform(X)
+            return X_transformed
+
+class CustomCspTransformer2(BaseEstimator, TransformerMixin):
+    
+    def __init__(self, nfilter = 10): #maxiter_128 = 2, n_iter_max_128=2):
+        #self.euclid = euclid
+        self.nfilter = nfilter
+        #self.maxiter_128 = maxiter_128
+        #self.n_iter_max_128 = n_iter_max_128
+    
+    def fit(self, X, y=None):
+        #print("fit csp")
+        if X.shape[1] >= 60:
+            self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example
+            self.csp.fit(X,y)
+        
+        return self
+    
+    def transform(self, X):
+        
+        if X.shape[1] >= 60:
+            X_transformed = self.csp.transform(X)
+            return X_transformed
+        else:
+            return X
         
 class Diagonalizer(BaseEstimator, TransformerMixin):
     
@@ -160,4 +189,5 @@ class PCA_SPD(TransformerMixin):
             new_dataset[i] = reduced_covariance
             
         return new_dataset 
+
         
