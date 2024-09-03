@@ -27,6 +27,10 @@ The MFM-MF has these options:
 
 Results:
     
+    AD1_csp_th0      0.712142  6.369166
+    DM_csp_th0       0.750696  3.068432
+    TSLR             0.750447  0.287834
+
                
 @author: anton andreev
 """

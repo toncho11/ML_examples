@@ -21,10 +21,10 @@ TSLR             0.750825  0.200429
 
 Outlier removal takes a lot of time.
 Current version of CSP does not contribute much:
-    - it good for somedatasets and not good for others
+    - it is good for somedatasets and not good for others
 
-On the level SMD DM_csp_or_th4 is a  little better than DM_no_csp_no_or,
-(probably due to OR), but the difference in processing time is huge.
+On the level of SMD DM_csp_or_th4 is a little better than DM_no_csp_no_or,
+(probably due to OR), but the difference in processing time is huge due to OR.
 
 @author: anton andreev
 """
