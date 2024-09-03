@@ -479,6 +479,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 #print("adaptive distance", dist)
                
             elif self.distance_strategy == "default_metric":
+                
                 dist = distance(
                         A,
                         B,

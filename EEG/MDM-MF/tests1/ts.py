@@ -28,48 +28,26 @@ The MFM-MF has these options:
 Results:
     
     Evaluation in %:
-                                           score      time
-    pipeline                                           
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3     0.751109  0.440589
-    PM11_ORIG_MDM_MF                       0.657300  2.598817
-    TSLR                                   0.751022  0.264263
+                     score       time
+    pipeline                         
+    DM_no_csp_or  0.780108  14.471919
+    TSLR          0.786338   0.253370
+    ts_no_csp_or  0.775170  12.092462
     
-    TSLR is SMD better than all. 
-    TSLR is SMD one dot better than CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3.
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3 is 3 dots SMD better than ORIG.
+    The Tangent Space TS does not provide better results and it is not faster.
+    SMD: TSLR > DM_no_csp_or > ts_no_csp_or
     
-    Evaluation in %:
-                                           score      time
-    pipeline                                              
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D4  0.754830  0.594823
-    TSLR                                0.752112  0.282282
-    
-                                          score      time
-    pipeline                                            
-    CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50  0.754504  0.564354
-    TSLR                                  0.749598  0.266532
-    
-    cross subject - 20 subjects
-    Evaluation in %:
-                                              score       time
-    pipeline                                                   
-    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.772424  49.407753
-    TSLR  
-    
-    Using all subjects and the new ALE only CSP Adpater:
-    Evaluation in %:
-                                               score      time
-    pipeline                                                  
-    CSP_10_A_E_A_PM12_LDA_CD                0.757549  1.622950
-    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.760145  1.800371
-    TSLR                                    0.754547  0.259044
-    
-    TSLR still better than LDA_CD_RO_2_5_D4_M50, but no star.
-    LDA_CD_RO_2_5_D4_M50 better than LDA_CD, but no star.
-    TSLR better than LDA_CD with star.
                
 @author: anton andreev
 """
+
+import os
+import sys
+import inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
 
 from pyriemann.estimation import XdawnCovariances, ERPCovariances, Covariances
 from sklearn.pipeline import make_pipeline
@@ -101,10 +79,14 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
-from  enchanced_mdm_mf_tools import CustomCspTransformer
+from  enchanced_mdm_mf_tools import CustomCspTransformer, CustomCspTransformer2
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import StackingClassifier
+from pyriemann.tangentspace import FGDA, TangentSpace
 
 #start configuration
-hb_max_n_subjects = -1
+hb_max_n_subjects = 10
 hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -152,16 +134,9 @@ power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 0.75, 1]
 
 power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
-# power_means9 = [-1]
-
-# power_means10 = [1]
-
-# power_means11 = [0]
-
-#best so far
-pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
+pipelines["DM_no_csp_or"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
+    #CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
@@ -172,28 +147,50 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              ts_enabled             = False
+              outliers_method        ="zscore",
+              ts_enabled             = False,
               ),   
 )
 
-pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
+pipelines["ts_no_csp_or"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
+    #CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean         = False, #default = false
               distance_strategy      = "default_metric",
-              remove_outliers        = False,
+              remove_outliers        = True,
               outliers_th            = 2.5,  #default = 2.5
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              ts_enabled             = False
-              ),   
+              outliers_disable_mean = False, #default = false
+              outliers_method="zscore",
+              ts_enabled = True,
+              ),
+    LDA()
 )
+
+pipelines["DM_no_csp_or"] = make_pipeline(
+    Covariances("oas"),
+    #CustomCspTransformer(nfilter = 10),
+    MeanFieldNew(power_list=power_means12,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              distance_strategy      = "default_metric",
+              remove_outliers        = True,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean = False, #default = false
+              outliers_method="zscore",
+              ts_enabled = False,
+              ),
+    LDA()
+)
+
+
 
 
 #can not use both

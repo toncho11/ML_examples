@@ -8,68 +8,33 @@ Classification of P300 and MI datasets from MOABB using MDM-MF
 MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
 Paper: https://hal.science/hal-02315131
 
-Pipelines:
-    - ORIG
-    - L1_CD  (new MDM_MF with Logistic Regression with L1)
-    - LDA_CD (new MDM_MF with LDA)
-
-The MFM-MF has these options:
-    - LE - LogEuclidian mean added in additional to all power means
-    - CD - custom distances 
-        if p == 1:
-            metric = "euclid"
-        
-        if p == -1:
-            metric="harmonic"
-        
-        if p<=0.1 and p>=-0.1:
-            metric = "riemann"
 
 Results:
     
-    Evaluation in %:
-                                           score      time
-    pipeline                                           
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3     0.751109  0.440589
-    PM11_ORIG_MDM_MF                       0.657300  2.598817
-    TSLR                                   0.751022  0.264263
-    
-    TSLR is SMD better than all. 
-    TSLR is SMD one dot better than CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3.
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3 is 3 dots SMD better than ORIG.
-    
-    Evaluation in %:
-                                           score      time
-    pipeline                                              
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D4  0.754830  0.594823
-    TSLR                                0.752112  0.282282
-    
-                                          score      time
-    pipeline                                            
-    CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50  0.754504  0.564354
-    TSLR                                  0.749598  0.266532
-    
-    cross subject - 20 subjects
-    Evaluation in %:
-                                              score       time
-    pipeline                                                   
-    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.772424  49.407753
-    TSLR  
-    
-    Using all subjects and the new ALE only CSP Adpater:
-    Evaluation in %:
-                                               score      time
-    pipeline                                                  
-    CSP_10_A_E_A_PM12_LDA_CD                0.757549  1.622950
-    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.760145  1.800371
-    TSLR                                    0.754547  0.259044
-    
-    TSLR still better than LDA_CD_RO_2_5_D4_M50, but no star.
-    LDA_CD_RO_2_5_D4_M50 better than LDA_CD, but no star.
-    TSLR better than LDA_CD with star.
-               
+                    score      time
+pipeline                           
+DM_csp_no_or     0.752456  2.165792
+DM_csp_or_th4    0.754062  9.441783
+DM_no_csp_no_or  0.750930  1.650767
+DM_no_csp_or     0.753768  9.484119
+TSLR             0.750825  0.200429
+
+Outlier removal takes a lot of time.
+Current version of CSP does not contribute much:
+    - it good for somedatasets and not good for others
+
+On the level SMD DM_csp_or_th4 is a  little better than DM_no_csp_no_or,
+(probably due to OR), but the difference in processing time is huge.
+
 @author: anton andreev
 """
+import os
+import sys
+import inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
 
 from pyriemann.estimation import XdawnCovariances, ERPCovariances, Covariances
 from sklearn.pipeline import make_pipeline
@@ -106,7 +71,7 @@ from  enchanced_mdm_mf_tools import CustomCspTransformer
 #start configuration
 hb_max_n_subjects = -1
 hb_n_jobs = -1
-hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -158,8 +123,8 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-#best so far
-pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
+#with our csp
+pipelines["DM_csp_or_th4"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -172,12 +137,29 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              ts_enabled             = False
+              outliers_method        ="zscore"
               ),   
 )
 
-pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
+#no csp and outlier removal
+pipelines["DM_no_csp_or"] = make_pipeline(
+    Covariances("oas"),
+    MeanFieldNew(power_list=power_means12,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              distance_strategy      = "default_metric",
+              remove_outliers        = True,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False, #default = false
+              outliers_method        ="zscore"
+              ),   
+)
+
+#with csp and no or
+pipelines["DM_csp_no_or"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -190,11 +172,65 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              ts_enabled             = False
+              outliers_method        ="zscore"
               ),   
 )
 
+#with csp and no or
+pipelines["DM_no_csp_no_or"] = make_pipeline(
+    Covariances("oas"),
+    #CustomCspTransformer(nfilter = 10),
+    MeanFieldNew(power_list=power_means12,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              distance_strategy      = "default_metric",
+              remove_outliers        = False,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 4,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False, #default = false
+              outliers_method        ="zscore"
+              ),   
+)
+
+#default csp
+# from pyriemann.spatialfilters import CSP
+# pipelines["DM_def_csp_or_th4"] = make_pipeline(
+#     Covariances("oas"),
+#     CSP(log=False),
+#     MeanFieldNew(power_list=power_means12,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean         = False, #default = false
+#               distance_strategy      = "default_metric",
+#               remove_outliers        = True,
+#               outliers_th            = 2.5,  #default = 2.5
+#               outliers_depth         = 4,    #default = 4
+#               max_outliers_remove_th = 50,   #default = 50
+#               outliers_disable_mean  = False, #default = false
+#               outliers_method        ="zscore"
+#               ),   
+# )
+
+#inf means a bit better than sum means (just a little)
+
+# pipelines["MF_orig_csp_im"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer(nfilter = 10),
+#     MeanField_orig(power_list=power_means,
+#                     method_label="inf_means"
+#               ),
+# )
+
+# pipelines["MF_orig_no_csp_im"] = make_pipeline(
+#     Covariances("oas"),
+#     MeanField_orig(power_list=power_means,
+#                     method_label="inf_means"
+#               ),
+# )
+
+#use riemann distance for the power means and the custom function
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator

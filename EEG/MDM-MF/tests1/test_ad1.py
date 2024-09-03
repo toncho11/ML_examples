@@ -27,49 +27,17 @@ The MFM-MF has these options:
 
 Results:
     
-    Evaluation in %:
-                                           score      time
-    pipeline                                           
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3     0.751109  0.440589
-    PM11_ORIG_MDM_MF                       0.657300  2.598817
-    TSLR                                   0.751022  0.264263
-    
-    TSLR is SMD better than all. 
-    TSLR is SMD one dot better than CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3.
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D3 is 3 dots SMD better than ORIG.
-    
-    Evaluation in %:
-                                           score      time
-    pipeline                                              
-    CSP_10_A_E_A_PM11_LDA_CD_RO_2_5_D4  0.754830  0.594823
-    TSLR                                0.752112  0.282282
-    
-                                          score      time
-    pipeline                                            
-    CSP_10_A_E_A_PM_LDA_CD_RO_2_5_D4_M50  0.754504  0.564354
-    TSLR                                  0.749598  0.266532
-    
-    cross subject - 20 subjects
-    Evaluation in %:
-                                              score       time
-    pipeline                                                   
-    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.772424  49.407753
-    TSLR  
-    
-    Using all subjects and the new ALE only CSP Adpater:
-    Evaluation in %:
-                                               score      time
-    pipeline                                                  
-    CSP_10_A_E_A_PM12_LDA_CD                0.757549  1.622950
-    CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50  0.760145  1.800371
-    TSLR                                    0.754547  0.259044
-    
-    TSLR still better than LDA_CD_RO_2_5_D4_M50, but no star.
-    LDA_CD_RO_2_5_D4_M50 better than LDA_CD, but no star.
-    TSLR better than LDA_CD with star.
                
 @author: anton andreev
 """
+
+import os
+import sys
+import inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir) 
 
 from pyriemann.estimation import XdawnCovariances, ERPCovariances, Covariances
 from sklearn.pipeline import make_pipeline
@@ -102,6 +70,18 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from  enchanced_mdm_mf_tools import CustomCspTransformer
+
+# Results
+
+# This is with outlier removal disabled.
+# Evaluation in %:
+#                 score      time
+# pipeline                       
+# AD1_csp_th0  0.712142  6.369166
+# DM_csp_th0   0.750696  3.068432
+# TSLR         0.750447  0.287834
+
+# SMD: TSLR > DM_csp_th1 > AD1_csp_th1
 
 #start configuration
 hb_max_n_subjects = -1
@@ -158,26 +138,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-#best so far
-pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
-    MeanFieldNew(power_list=power_means12,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              ts_enabled             = False
-              ),   
-)
-
-pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
+pipelines["DM_csp_th1"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -187,14 +148,31 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
               distance_strategy      = "default_metric",
               remove_outliers        = False,
               outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
+              outliers_depth         = 1,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              ts_enabled             = False
+              outliers_method        ="zscore"
               ),   
 )
 
+pipelines["AD1_csp_th1"] = make_pipeline(
+    Covariances("oas"),
+    CustomCspTransformer(nfilter = 10),
+    MeanFieldNew(power_list=power_means12,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              distance_strategy      = "adaptive1",
+              remove_outliers        = False,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 1,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False, #default = false
+              outliers_method        ="zscore"
+              ),   
+)
+
+#use riemann distance for the power means and the custom function
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
