@@ -34,7 +34,7 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
         
         self.n_electrodes = X.shape[1]
         
-        if self.nfilter <= self.n_electrodes: #do nothing
+        if self.n_electrodes <= self.nfilter:  #do nothing
             return self
         
         elif self.n_electrodes <= 64: #default < 60
