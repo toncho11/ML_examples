@@ -19,7 +19,6 @@ from pyriemann.utils.distance import distance
 from pyriemann.tangentspace import FGDA, TangentSpace
 from pyriemann.utils.distance import distance_euclid
 from scipy.stats import zscore
-import scipy
 from sklearn.discriminant_analysis import (
     LinearDiscriminantAnalysis as LDA,
     QuadraticDiscriminantAnalysis as QDA,
@@ -28,54 +27,7 @@ from sklearn.discriminant_analysis import (
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 import copy
-from enchanced_mdm_mf_tools import mean_power_custom
-
-#this is a custom distance that gets an additional parameter
-def distance_custom(A, B, k, squared=False):
-    r"""Harmonic distance between invertible matrices.
-
-    The harmonic distance between two invertible matrices :math:`\mathbf{A}`
-    and :math:`\mathbf{B}` is:
-
-    .. math::
-        d(\mathbf{A},\mathbf{B}) =
-        \Vert \mathbf{A}^{-1} - \mathbf{B}^{-1} \Vert_F
-
-    Parameters
-    ----------
-    A : ndarray, shape (..., n, n)
-        First invertible matrices, at least 2D ndarray.
-    B : ndarray, shape (..., n, n)
-        Second invertible matrices, same dimensions as A.
-    squared : bool, default False
-        Return squared distance.
-
-        .. versionadded:: 0.5
-
-    Returns
-    -------
-    d : float or ndarray, shape (...,)
-        Harmonic distance between A and B.
-
-    See Also
-    --------
-    distance
-    """
-    
-    #return distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
-    A1 = scipy.linalg.fractional_matrix_power(A,k)
-    B1 = scipy.linalg.fractional_matrix_power(B,k)
-    
-    # if (A is None):
-    #     print("A is none in distance_custom")
-        
-    # if (B is None):
-    #     print("B is none in distance_custom")
-    
-    #TODO use another distance e.x. distance_riemann
-    dist = distance_euclid(A1, B1, squared=squared)
-    
-    return dist
+from enchanced_mdm_mf_tools import mean_power_custom, distance_custom
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):

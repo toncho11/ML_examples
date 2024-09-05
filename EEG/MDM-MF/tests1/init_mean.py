@@ -94,7 +94,7 @@ from  enchanced_mdm_mf_tools import CustomCspTransformer
 # SMD: TSLR > DM_csp_th1 > AD1_csp_th1
 
 #start configuration
-hb_max_n_subjects = 5
+hb_max_n_subjects = 3
 hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1

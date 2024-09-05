@@ -14,11 +14,12 @@ from sklearn.preprocessing import normalize
 
 from pyriemann.utils.ajd import ajd_pham
 from pyriemann.utils.base import sqrtm, invsqrtm, logm, expm, powm
-from pyriemann.utils.distance import distance_riemann
+from pyriemann.utils.distance import distance_riemann, distance_euclid
 from pyriemann.utils.geodesic import geodesic_riemann
 from pyriemann.utils.utils import check_weights, check_function
 from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic, _deprecate_covmats
 import warnings
+import scipy
 
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
@@ -197,6 +198,52 @@ class PCA_SPD(TransformerMixin):
             new_dataset[i] = reduced_covariance
             
         return new_dataset 
+
+#this is a custom distance that gets an additional parameter
+def distance_custom(A, B, k, squared=False):
+    r"""Harmonic distance between invertible matrices.
+
+    The harmonic distance between two invertible matrices :math:`\mathbf{A}`
+    and :math:`\mathbf{B}` is:
+
+    .. math::
+        d(\mathbf{A},\mathbf{B}) =
+        \Vert \mathbf{A}^{-1} - \mathbf{B}^{-1} \Vert_F
+
+    Parameters
+    ----------
+    A : ndarray, shape (..., n, n)
+        First invertible matrices, at least 2D ndarray.
+    B : ndarray, shape (..., n, n)
+        Second invertible matrices, same dimensions as A.
+    squared : bool, default False
+        Return squared distance.
+
+        .. versionadded:: 0.5
+
+    Returns
+    -------
+    d : float or ndarray, shape (...,)
+        Harmonic distance between A and B.
+
+    See Also
+    --------
+    distance
+    """
+    
+    #return distance_euclid(scipy.linalg.fractional_matrix_power(A,k), scipy.linalg.fractional_matrix_power(B,k), squared=squared)
+    A1 = scipy.linalg.fractional_matrix_power(A,k)
+    B1 = scipy.linalg.fractional_matrix_power(B,k)
+    
+    # if (A is None):
+    #     print("A is none in distance_custom")
+        
+    # if (B is None):
+    #     print("B is none in distance_custom")
+    
+    dist = distance_euclid(A1, B1, squared=squared)
+    
+    return dist
 
 def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=100,
                covmats=None):
