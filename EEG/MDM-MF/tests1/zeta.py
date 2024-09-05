@@ -31,12 +31,12 @@ Evaluation in %:
              score      time
 pipeline                    
 DM        0.749677  1.854826
-DM_z      0.751468  1.203879 zeta = 1e-05
+DM_z5     0.751468  1.203879 zeta = 1e-05
 DM_z6     0.753408  1.205833 zeta = 1e-06
 TSLR      0.749152  0.187164
 
-DM_z6 performs well SMD is equal with DM, but DM_z6 is faster.
-DM_z and DM_z6 are very close, but DM_z6 is just a little bit better.
+DM_z6 performs well, SMD is equal with DM, but DM_z6 is faster.
+DM_z5 and DM_z6 are very close, but DM_z6 is just a little bit better.
 
 @author: anton andreev
 """
@@ -80,18 +80,6 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from  enchanced_mdm_mf_tools import CustomCspTransformer
-
-# Results
-
-# This is with outlier removal disabled.
-# Evaluation in %:
-#                 score      time
-# pipeline                       
-# AD1_csp_th0  0.712142  6.369166
-# DM_csp_th0   0.750696  3.068432
-# TSLR         0.750447  0.287834
-
-# SMD: TSLR > DM_csp_th1 > AD1_csp_th1
 
 #start configuration
 hb_max_n_subjects = -1
@@ -179,7 +167,8 @@ pipelines["DM_z5"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        = "zscore",
-              zeta                   = 1e-05
+              zeta                   = 1e-05,
+              or_mean_init           = False,
               ),   
 )
 
@@ -197,7 +186,8 @@ pipelines["DM_z6"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        = "zscore",
-              zeta                   = 1e-06
+              zeta                   = 1e-06,
+              or_mean_init           = False,
               ),   
 )
 

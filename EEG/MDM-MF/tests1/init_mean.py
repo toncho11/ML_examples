@@ -94,7 +94,7 @@ from  enchanced_mdm_mf_tools import CustomCspTransformer
 # SMD: TSLR > DM_csp_th1 > AD1_csp_th1
 
 #start configuration
-hb_max_n_subjects = 3
+hb_max_n_subjects = -1
 hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -148,7 +148,28 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-pipelines["DM"] = make_pipeline(
+#original with slow zeta and no init mean
+# pipelines["DM_orig"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer(nfilter = 10),
+#     MeanFieldNew(power_list=power_means12,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean         = False, #default = false
+#               distance_strategy      = "default_metric",
+#               remove_outliers        = True,
+#               outliers_th            = 2.5,  #default = 2.5
+#               outliers_depth         = 2,    #default = 4
+#               max_outliers_remove_th = 50,   #default = 50
+#               outliers_disable_mean  = False, #default = false
+#               outliers_method        = "zscore",
+#               zeta                   = 10e-10, #default slow value
+#               or_mean_init           = False,
+#               ),   
+# )
+
+#fast zeta, no init
+pipelines["DM_no_init"] = make_pipeline(
     Covariances("oas"),
     #CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -167,7 +188,8 @@ pipelines["DM"] = make_pipeline(
               ),   
 )
 
-pipelines["DM_mean_init"] = make_pipeline(
+#fast zeta, with init
+pipelines["DM_with_init"] = make_pipeline(
     Covariances("oas"),
     #CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
