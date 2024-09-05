@@ -28,7 +28,7 @@ from sklearn.discriminant_analysis import (
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 import copy
-#from scipy.spatial import distance
+from enchanced_mdm_mf_tools import mean_power_custom
 
 #this is a custom distance that gets an additional parameter
 def distance_custom(A, B, k, squared=False):
@@ -154,6 +154,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
                  ts_enabled = False,
+                 zeta = 10e-10, #stopping criterion for the mean
+                 or_mean_init = False
                  ):
         """Init."""
         self.power_list = power_list
@@ -169,6 +171,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_disable_mean = outliers_disable_mean
         self.outliers_method = outliers_method
         self.ts_enabled = ts_enabled
+        self.zeta = zeta
+        self.or_mean_init = or_mean_init
         
         if self.method_label == "lda":
             self.lda = LDA()
@@ -176,6 +180,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         if self.ts_enabled:
             self.ts = TangentSpace()
     
+    #updates the  self.covmeans_ for the provided p for both classes
     def _calculate_mean(self,X, y, p, sample_weight):
         
         means_p = {}
@@ -190,14 +195,23 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             self.covmeans_[p] = means_p
         else:
             for ll in self.classes_:
-                means_p[ll] = mean_power(
+                
+                if self.or_mean_init and p in self.covmeans_:
+                    init = self.covmeans_[p][ll] #use previous mean
+                    #print("using init mean")
+                else:
+                    init = None
+                    
+                means_p[ll] = mean_power_custom(
                     X[y == ll],
                     p,
-                    sample_weight=sample_weight[y == ll]
+                    sample_weight=sample_weight[y == ll],
+                    zeta = self.zeta,
+                    init = init
                 )
             self.covmeans_[p] = means_p
             
-        return means_p
+        return means_p #contains means both classes
     
     #removes outliers and calculates the power mean p on the rest
     def _calcualte_mean_remove_outliers(self,X, y, p, sample_weight):
@@ -225,8 +239,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             #print("\nremove outliers iteration: ",i)
             
-            #returns the n means (one for each class)
-            means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
+            #calculate/update the n means (one for each class)
+            self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
             
             #outlier removal is per class
             for ll in self.classes_:
@@ -241,7 +255,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 # Calcualte all the distances only for class ll and power mean p
                 for idx, x in enumerate (X_no_outliers[y_no_outliers==ll]):
                     
-                    dist_p = self._calculate_distance(x, means_p[ll], p, True)
+                    dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p, True)
                     #dist_p = np.log(dist_p)
                     m.append(dist_p)
                 
@@ -302,7 +316,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         if self.outliers_disable_mean and is_disabled:
             pass #no mean generated (disabled)
         else:
-            means_p = self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
+            self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
         
             outliers_removed_for_single_mean_gt = X.shape[0] - X_no_outliers.shape[0]
             
@@ -317,7 +331,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             if (outliers_removed_for_single_mean_gt / X.shape[0]) * 100 > self.max_outliers_remove_th:
                 raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean_gt, " out of ",X.shape[0])
             
-        return means_p, is_disabled
+        return is_disabled
         
     def fit(self, X, y, sample_weight=None):
         """Fit (estimates) the centroids. Calculates the power means.
@@ -355,9 +369,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         for p in self.power_list:
             
             if (self.remove_outliers):
-                self.covmeans_[p], self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
+                self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
             else:
-                self.covmeans_[p] = self._calculate_mean(X, y, p, sample_weight)
+                self._calculate_mean(X, y, p, sample_weight)
 
         if self.ts_enabled:
            
@@ -455,7 +469,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     met = "euclid"
                 
                 if p == -1:
-                    met= "harmonic"
+                    met = "harmonic"
                 
                 if p<=0.1 and p>=-0.1:
                     met = "riemann"

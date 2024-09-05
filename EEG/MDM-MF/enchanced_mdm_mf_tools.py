@@ -12,6 +12,14 @@ import numpy as np
 from numpy.linalg import norm
 from sklearn.preprocessing import normalize
 
+from pyriemann.utils.ajd import ajd_pham
+from pyriemann.utils.base import sqrtm, invsqrtm, logm, expm, powm
+from pyriemann.utils.distance import distance_riemann
+from pyriemann.utils.geodesic import geodesic_riemann
+from pyriemann.utils.utils import check_weights, check_function
+from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic, _deprecate_covmats
+import warnings
+
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
     
@@ -59,7 +67,7 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
     
     def transform(self, X):
         
-        if self.nfilter <= self.n_electrodes: #do nothing
+        if self.n_electrodes <= self.nfilter: #return unprocessed data
             return X 
         else:
             X_transformed = self.csp.transform(X)
@@ -190,4 +198,110 @@ class PCA_SPD(TransformerMixin):
             
         return new_dataset 
 
+def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=100,
+               covmats=None):
+    r"""Power mean of SPD/HPD matrices.
+
+    Power mean of order p is the solution of [1]_ [2]_:
+
+    .. math::
+        \mathbf{M} = \sum_i w_i \ \mathbf{M} \sharp_p \mathbf{X}_i
+
+    where :math:`\mathbf{A} \sharp_p \mathbf{B}` is the geodesic between
+    matrices :math:`\mathbf{A}` and :math:`\mathbf{B}`.
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_matrices, n, n)
+        Set of SPD/HPD matrices.
+    p : float
+        Exponent, in [-1,+1]. For p=0, it returns
+        :func:`pyriemann.utils.mean.mean_riemann`.
+    sample_weight : None | ndarray, shape (n_matrices,), default=None
+        Weights for each matrix. If None, it uses equal weights.
+    zeta : float, default=10e-10
+        Stopping criterion.
+    maxiter : int, default=100
+        The maximum number of iterations.
+
+    Returns
+    -------
+    M : ndarray, shape (n, n)
+        Power mean.
+
+    Notes
+    -----
+    .. versionadded:: 0.3
+
+    See Also
+    --------
+    mean_covariance
+
+    References
+    ----------
+    .. [1] `Matrix Power means and the Karcher mean
+        <https://www.sciencedirect.com/science/article/pii/S0022123611004101>`_
+        Y. Lim and M. Palfia. Journal of Functional Analysis, Volume 262,
+        Issue 4, 15 February 2012, Pages 1498-1514.
+    .. [2] `Fixed Point Algorithms for Estimating Power Means of Positive
+        Definite Matrices
+        <https://hal.archives-ouvertes.fr/hal-01500514>`_
+        M. Congedo, A. Barachant, and R. Bhatia. IEEE Transactions on Signal
+        Processing, Volume 65, Issue 9, pp.2211-2220, May 2017
+    """
+    X = _deprecate_covmats(covmats, X)
+    if p is None:
+        raise ValueError("Input p can not be None")
+    if not isinstance(p, (int, float)):
+        raise ValueError("Power mean only defined for a scalar exponent")
+    if p < -1 or 1 < p:
+        raise ValueError("Exponent must be in [-1,+1]")
+
+    if p == 1:
+        return mean_euclid(X, sample_weight=sample_weight)
+    #elif p == 0:
+    elif p == 0 or (p < 0.01 and p > - 0.01): #Anton1: added: (p < 0.01 and p>-0.01)
+        return mean_riemann(X, sample_weight=sample_weight, init=init, tol=zeta) #Anton2: added init and zeta
+    elif p == -1:
+        return mean_harmonic(X, sample_weight=sample_weight)
+
+    n_matrices, n, _ = X.shape
+    sample_weight = check_weights(sample_weight, n_matrices)
+    phi = 0.375 / np.abs(p)
+
+    #TODO Anton3: add init for the below power mean computation
+    if init is None:
+       G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
+    else:
+       G = init
+    
+    #original
+    #G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
+    
+    if p > 0:
+        K = invsqrtm(G)
+    else:
+        K = sqrtm(G)
+
+    eye_n, sqrt_n = np.eye(n), np.sqrt(n)
+    crit = 10 * zeta
+    for _ in range(maxiter):
+        H = np.einsum(
+            'a,abc->bc',
+            sample_weight,
+            powm(K @ powm(X, np.sign(p)) @ K.conj().T, np.abs(p))
+        )
+        K = powm(H, -phi) @ K
+
+        crit = np.linalg.norm(H - eye_n) / sqrt_n
+        if crit <= zeta:
+            break
+    else:
+        warnings.warn("Convergence not reached")
+
+    M = K.conj().T @ K
+    if p > 0:
+        M = np.linalg.inv(M)
+
+    return M
         

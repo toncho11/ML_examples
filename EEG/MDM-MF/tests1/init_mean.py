@@ -27,11 +27,17 @@ The MFM-MF has these options:
 
 Results:
     
-    AD1_csp_th0      0.712142  6.369166
-    DM_csp_th0       0.750696  3.068432
-    TSLR             0.750447  0.287834
+Evaluation in %:
+             score      time
+pipeline                    
+DM        0.749677  1.854826
+DM_z      0.751468  1.203879 zeta = 1e-05
+DM_z6     0.753408  1.205833 zeta = 1e-06
+TSLR      0.749152  0.187164
 
-               
+DM_z6 performs well SMD is equal with DM, but DM_z6 is faster.
+DM_z and DM_z6 are very close, but DM_z6 is just a little bit better.
+
 @author: anton andreev
 """
 
@@ -75,21 +81,20 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from  enchanced_mdm_mf_tools import CustomCspTransformer
 
-''' Results
+# Results
 
-Evaluation in %:
-             score      time
-pipeline                    
-AD1_th2   0.726962  2.493961
-DM_th2    0.754693  1.275227
-TSLR      0.748386  0.199154
+# This is with outlier removal disabled.
+# Evaluation in %:
+#                 score      time
+# pipeline                       
+# AD1_csp_th0  0.712142  6.369166
+# DM_csp_th0   0.750696  3.068432
+# TSLR         0.750447  0.287834
 
-# SMD: TSLR > DM_csp_th2 > AD1_csp_th2
-
-'''
+# SMD: TSLR > DM_csp_th1 > AD1_csp_th1
 
 #start configuration
-hb_max_n_subjects = -1
+hb_max_n_subjects = 5
 hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -143,9 +148,9 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-pipelines["DM_th2"] = make_pipeline(
+pipelines["DM"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
+    #CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
@@ -156,26 +161,28 @@ pipelines["DM_th2"] = make_pipeline(
               outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore",
-              zeta                   = 1e-06
+              outliers_method        = "zscore",
+              zeta                   = 1e-06,
+              or_mean_init           = False,
               ),   
 )
 
-pipelines["AD1_th2"] = make_pipeline(
+pipelines["DM_mean_init"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
+    #CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean         = False, #default = false
-              distance_strategy      = "adaptive1",
+              distance_strategy      = "default_metric",
               remove_outliers        = True,
               outliers_th            = 2.5,  #default = 2.5
               outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore",
-              zeta                   = 1e-06
+              outliers_method        = "zscore",
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 

@@ -9,22 +9,18 @@ MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
 Paper: https://hal.science/hal-02315131
 
 
-Results:
-    
-                    score      time
-pipeline                           
-DM_csp_no_or     0.752456  2.165792
-DM_csp_or_th4    0.754062  9.441783
-DM_no_csp_no_or  0.750930  1.650767
-DM_no_csp_or     0.753768  9.484119
-TSLR             0.750825  0.200429
+Evaluation in %:
+                     score      time
+pipeline                            
+DM_csp_no_or      0.752105  0.868781
+DM_csp_or_th2     0.756961  0.887397
+DM_no_csp_no_or   0.753737  1.196952
+DM_no_csp_or_th2  0.752441  3.260696
+TSLR              0.748475  0.168591
 
-Outlier removal takes a lot of time.
-Current version of CSP does not contribute much:
-    - it is good for somedatasets and not good for others
-
-On the level of SMD DM_csp_or_th4 is a little better than DM_no_csp_no_or,
-(probably due to OR), but the difference in processing time is huge due to OR.
+CSP and OR both help a bit with performance.
+CSP enabled helps with speed.
+OR with CSP enabled is faster than without CSP.
 
 @author: anton andreev
 """
@@ -71,7 +67,7 @@ from  enchanced_mdm_mf_tools import CustomCspTransformer
 #start configuration
 hb_max_n_subjects = -1
 hb_n_jobs = -1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -124,7 +120,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 # power_means11 = [0]
 
 #with our csp
-pipelines["DM_csp_or_th4"] = make_pipeline(
+pipelines["DM_csp_or_th2"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -134,15 +130,16 @@ pipelines["DM_csp_or_th4"] = make_pipeline(
               distance_strategy      = "default_metric",
               remove_outliers        = True,
               outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
+              outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06
               ),   
 )
 
 #no csp and outlier removal
-pipelines["DM_no_csp_or"] = make_pipeline(
+pipelines["DM_no_csp_or_th2"] = make_pipeline(
     Covariances("oas"),
     MeanFieldNew(power_list=power_means12,
               method_label="lda",
@@ -151,10 +148,11 @@ pipelines["DM_no_csp_or"] = make_pipeline(
               distance_strategy      = "default_metric",
               remove_outliers        = True,
               outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
+              outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06
               ),   
 )
 
@@ -172,7 +170,8 @@ pipelines["DM_csp_no_or"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06
               ),   
 )
 
@@ -190,7 +189,8 @@ pipelines["DM_no_csp_no_or"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06
               ),   
 )
 
