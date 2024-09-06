@@ -5,7 +5,7 @@
 Classification of P300 and MI datasets from MOABB using MDM-MF
 ====================================================================
 
-
+Not with all subjects:
 Results:
     
                   score      time

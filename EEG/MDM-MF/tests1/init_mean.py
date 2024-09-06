@@ -83,7 +83,7 @@ from  enchanced_mdm_mf_tools import CustomCspTransformer
 #start configuration
 hb_max_n_subjects = -1
 hb_n_jobs = -1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration

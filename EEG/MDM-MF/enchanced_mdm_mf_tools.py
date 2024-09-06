@@ -322,18 +322,14 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     phi = 0.375 / np.abs(p)
 
     #Anton4: added init, there was no support of init before for the below calculation
-    #original G before init
-    #G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
-    #new code for G
     if init is None:
        G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
+       if p > 0:
+          K = invsqrtm(G)
+       else:
+          K = sqrtm(G)
     else:
-       G = init
-    
-    if p > 0:
-        K = invsqrtm(G)
-    else:
-        K = sqrtm(G)
+        K = init
 
     eye_n, sqrt_n = np.eye(n), np.sqrt(n)
     crit = 10 * zeta
