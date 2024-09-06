@@ -146,10 +146,13 @@ pipelines["DM_csp_or_th4"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
+#this is currently best in terms of speed and performance
 pipelines["DM_csp_or_th2"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
@@ -163,7 +166,9 @@ pipelines["DM_csp_or_th2"] = make_pipeline(
               outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
@@ -180,7 +185,9 @@ pipelines["DM_csp_or_th3"] = make_pipeline(
               outliers_depth         = 3,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
@@ -197,7 +204,9 @@ pipelines["DM_csp_no_or"] = make_pipeline(
               outliers_depth         = 4,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore"
+              outliers_method        ="zscore",
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 

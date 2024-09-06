@@ -27,16 +27,15 @@ The MFM-MF has these options:
 
 Results:
     
-Evaluation in %:
-             score      time
-pipeline                    
-DM        0.749677  1.854826
-DM_z      0.751468  1.203879 zeta = 1e-05
-DM_z6     0.753408  1.205833 zeta = 1e-06
-TSLR      0.749152  0.187164
+                 score      time
+pipeline                
+DM_orig       0.744850  4.513769  zeta = 10e-10     
+DM_no_init    0.755402  5.690713  zeta = 1e-06
+DM_with_init  0.753599  3.166290  zeta = 1e-06
+TSLR          0.747931  0.259798
 
-DM_z6 performs well SMD is equal with DM, but DM_z6 is faster.
-DM_z and DM_z6 are very close, but DM_z6 is just a little bit better.
+SMD: DM_orig ~ DM_no_init DM_with_init
+Conclusion: DM_with_init should be used.
 
 @author: anton andreev
 """
@@ -80,18 +79,6 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from  enchanced_mdm_mf_tools import CustomCspTransformer
-
-# Results
-
-# This is with outlier removal disabled.
-# Evaluation in %:
-#                 score      time
-# pipeline                       
-# AD1_csp_th0  0.712142  6.369166
-# DM_csp_th0   0.750696  3.068432
-# TSLR         0.750447  0.287834
-
-# SMD: TSLR > DM_csp_th1 > AD1_csp_th1
 
 #start configuration
 hb_max_n_subjects = -1

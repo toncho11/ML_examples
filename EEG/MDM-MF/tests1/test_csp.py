@@ -120,7 +120,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 # power_means11 = [0]
 
 #with our csp
-pipelines["DM_csp_or_th2"] = make_pipeline(
+pipelines["DM_csp_or_th2_i"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -134,7 +134,7 @@ pipelines["DM_csp_or_th2"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        ="zscore",
-              zeta                   = 1e-06
+              zeta                   = 1e-06,
               ),   
 )
 

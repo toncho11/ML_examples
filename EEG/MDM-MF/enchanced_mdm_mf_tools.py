@@ -307,8 +307,13 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     if p == 1:
         return mean_euclid(X, sample_weight=sample_weight)
     #elif p == 0:
-    elif p == 0 or (p < 0.01 and p > - 0.01): #Anton1: added (p < 0.01 and p>-0.01) for when p=0.001 instead of 0
-        return mean_riemann(X, sample_weight=sample_weight, init=init, tol=zeta) #Anton2: added init and zeta
+    elif p == 0 or (p < 0.01 and p > -0.01): #Anton1: added (p < 0.01 and p>-0.01) for when p=0.001 instead of 0
+        return mean_riemann(X, 
+                            sample_weight = sample_weight, 
+                            init          = init,  #Anton2: added init and zeta
+                            tol           = zeta,  #zeta here decreases the number significant digits
+                            maxiter       = maxiter #increased from default 50 to 100
+                            )
     elif p == -1:
         return mean_harmonic(X, sample_weight=sample_weight)
 
@@ -316,9 +321,10 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     sample_weight = check_weights(sample_weight, n_matrices)
     phi = 0.375 / np.abs(p)
 
-    #Anton3: added init, there was no support of init before for the below calculation
+    #Anton4: added init, there was no support of init before for the below calculation
     #original G before init
     #G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
+    #new code for G
     if init is None:
        G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
     else:
@@ -343,7 +349,7 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
         if crit <= zeta:
             break
     else:
-        warnings.warn("Convergence not reached")
+        warnings.warn("Power mean convergence not reached")
 
     M = K.conj().T @ K
     if p > 0:

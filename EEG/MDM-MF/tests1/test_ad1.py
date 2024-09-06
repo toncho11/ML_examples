@@ -26,11 +26,16 @@ The MFM-MF has these options:
             metric = "riemann"
 
 Results:
+    Averaging the session performance:
+                   score      time
+    pipeline                      
+    AD1_th2_mi  0.807628  3.018102
+    DM_th2_mi   0.821641  1.393415
+    TSLR        0.826349  0.332466
     
-    AD1_csp_th0      0.712142  6.369166
-    DM_csp_th0       0.750696  3.068432
-    TSLR             0.750447  0.287834
-
+With reduced number of datasets it shows that:
+SMD: TSLR > DM_th2_mi > AD1_th2_mi
+So the adaptive1 is never better than only riemann distance.    
                
 @author: anton andreev
 """
@@ -143,7 +148,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-pipelines["DM_th2"] = make_pipeline(
+pipelines["DM_th2_mi"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -157,11 +162,12 @@ pipelines["DM_th2"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        ="zscore",
-              zeta                   = 1e-06
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
-pipelines["AD1_th2"] = make_pipeline(
+pipelines["AD1_th2_mi"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -175,7 +181,8 @@ pipelines["AD1_th2"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        ="zscore",
-              zeta                   = 1e-06
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
