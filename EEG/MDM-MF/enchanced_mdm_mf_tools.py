@@ -310,8 +310,8 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     elif p == 0 or (p < 0.01 and p > -0.01): #Anton1: added (p < 0.01 and p>-0.01) for when p=0.001 instead of 0
         return mean_riemann(X, 
                             sample_weight = sample_weight, 
-                            init          = init,  #Anton2: added init and zeta
-                            tol           = zeta,  #zeta here decreases the number significant digits
+                            init          = init,   #Anton2: added init
+                            tol           = zeta,   #Anton3: added zeta here decreases the number significant digits
                             maxiter       = maxiter #increased from default 50 to 100
                             )
     elif p == -1:
