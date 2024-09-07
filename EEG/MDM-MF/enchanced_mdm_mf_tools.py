@@ -245,7 +245,7 @@ def distance_custom(A, B, k, squared=False):
     
     return dist
 
-def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=100,
+def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=150, #default = 100
                covmats=None):
     r"""Power mean of SPD/HPD matrices.
 
@@ -321,15 +321,16 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     sample_weight = check_weights(sample_weight, n_matrices)
     phi = 0.375 / np.abs(p)
 
-    #Anton4: added init, there was no support of init before for the below calculation
+    #Anton4: added init, there was no support for init before for the below calculation        
     if init is None:
-       G = np.einsum('a,abc->bc', sample_weight, powm(X, p))
-       if p > 0:
-          K = invsqrtm(G)
-       else:
-          K = sqrtm(G)
+        G = powm(np.einsum("a,abc->bc", sample_weight, powm(X, p)), 1/p) #with bug fix
     else:
-        K = init
+        G = init
+        
+    if p > 0:
+      K = invsqrtm(G)
+    else:
+      K = sqrtm(G)
 
     eye_n, sqrt_n = np.eye(n), np.sqrt(n)
     crit = 10 * zeta

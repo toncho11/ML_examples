@@ -26,16 +26,20 @@ The MFM-MF has these options:
             metric = "riemann"
 
 Results:
-    
-                 score      time
-pipeline                
-DM_orig       0.744850  4.513769  zeta = 10e-10     
-DM_no_init    0.755402  5.690713  zeta = 1e-06
-DM_with_init  0.753599  3.166290  zeta = 1e-06
-TSLR          0.747931  0.259798
 
-SMD: DM_orig ~ DM_no_init DM_with_init
-Conclusion: DM_with_init should be used.
+    Evaluation in %:
+                     score      time
+    pipeline                        
+    DM_no_init    0.754445  2.623431 zeta = 10e-10     
+    DM_orig       0.751977  3.878716 zeta = 1e-06
+    DM_with_init  0.752719  2.059556 zeta = 1e-06
+    TSLR          0.750191  0.177783
+                 score      time
+
+Has the bug fix in the init of mean_power().
+SMD: DM_orig ~ DM_no_init ~ DM_with_init
+Conclusion: DM_with_init should be used because it
+is faster.
 
 @author: anton andreev
 """
