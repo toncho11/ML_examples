@@ -12,15 +12,11 @@ Paper: https://hal.science/hal-02315131
 Evaluation in %:
                      score      time
 pipeline                            
-DM_csp_no_or      0.752105  0.868781
-DM_csp_or_th2     0.756961  0.887397
-DM_no_csp_no_or   0.753737  1.196952
-DM_no_csp_or_th2  0.752441  3.260696
-TSLR              0.748475  0.168591
+DM_csp_or_th2     0.751579  0.854697
+DM_no_csp_or_th2  0.756808  1.971264
+TSLR              0.748151  0.170189
 
-CSP and OR both help a bit with performance.
 CSP enabled helps with speed.
-OR with CSP enabled is faster than without CSP.
 
 @author: anton andreev
 """
@@ -119,8 +115,8 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-#with our csp
-pipelines["DM_csp_or_th2_i"] = make_pipeline(
+#with our csp and outlier removal
+pipelines["DM_csp_or_th2"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -135,6 +131,7 @@ pipelines["DM_csp_or_th2_i"] = make_pipeline(
               outliers_disable_mean  = False, #default = false
               outliers_method        ="zscore",
               zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
@@ -152,47 +149,50 @@ pipelines["DM_no_csp_or_th2"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        ="zscore",
-              zeta                   = 1e-06
+              zeta                   = 1e-06,
+              or_mean_init           = True,
               ),   
 )
 
 #with csp and no or
-pipelines["DM_csp_no_or"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
-    MeanFieldNew(power_list=power_means12,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = False,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore",
-              zeta                   = 1e-06
-              ),   
-)
+# pipelines["DM_csp_no_or"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer(nfilter = 10),
+#     MeanFieldNew(power_list=power_means12,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean         = False, #default = false
+#               distance_strategy      = "default_metric",
+#               remove_outliers        = False,
+#               outliers_th            = 2.5,  #default = 2.5
+#               outliers_depth         = 4,    #default = 4
+#               max_outliers_remove_th = 50,   #default = 50
+#               outliers_disable_mean  = False, #default = false
+#               outliers_method        ="zscore",
+#               zeta                   = 1e-06,
+#               or_mean_init           = True,
+#               ),   
+# )
 
-#with csp and no or
-pipelines["DM_no_csp_no_or"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer(nfilter = 10),
-    MeanFieldNew(power_list=power_means12,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = False,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        ="zscore",
-              zeta                   = 1e-06
-              ),   
-)
+#no csp and no or
+# pipelines["DM_no_csp_no_or"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer(nfilter = 10),
+#     MeanFieldNew(power_list=power_means12,
+#               method_label="lda",
+#               n_jobs=mdm_mf_jobs,
+#               euclidean_mean         = False, #default = false
+#               distance_strategy      = "default_metric",
+#               remove_outliers        = False,
+#               outliers_th            = 2.5,  #default = 2.5
+#               outliers_depth         = 4,    #default = 4
+#               max_outliers_remove_th = 50,   #default = 50
+#               outliers_disable_mean  = False, #default = false
+#               outliers_method        ="zscore",
+#               zeta                   = 1e-06,
+#               or_mean_init           = True,
+#               ),   
+# )
 
 #default csp
 # from pyriemann.spatialfilters import CSP
@@ -209,7 +209,9 @@ pipelines["DM_no_csp_no_or"] = make_pipeline(
 #               outliers_depth         = 4,    #default = 4
 #               max_outliers_remove_th = 50,   #default = 50
 #               outliers_disable_mean  = False, #default = false
-#               outliers_method        ="zscore"
+#               outliers_method        ="zscore",
+#               zeta                   = 1e-06,
+#               or_mean_init           = True,
 #               ),   
 # )
 

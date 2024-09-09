@@ -158,8 +158,16 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-#best so far
-pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
+#old best
+#CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50
+
+#-but has the fixed initalization (bug fix)
+#-but has riemmanian distance on p=0.001
+#-it has the outliers removal code updated to stop early
+#-the iterations are increased
+
+#so it is not exactly the old one
+pipelines["old_best"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
     MeanFieldNew(power_list=power_means12,
@@ -173,25 +181,27 @@ pipelines["CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50"] = make_pipeline(
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        = "zscore",
-              ts_enabled             = False
+              or_mean_init           = False,
               ),   
 )
 
-pipelines["CSP_10_A_E_A_PM12_LDA_CD"] = make_pipeline(
+#new best
+pipelines["new_best"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(nfilter = 10),
-    MeanFieldNew(power_list=power_means12,
+    MeanFieldNew(power_list=power_means11,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
               euclidean_mean         = False, #default = false
               distance_strategy      = "default_metric",
-              remove_outliers        = False,
+              remove_outliers        = True,
               outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
+              outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
               outliers_disable_mean  = False, #default = false
               outliers_method        = "zscore",
-              ts_enabled             = False
+              zeta                   = 1e-07,
+              or_mean_init           = True,
               ),   
 )
 

@@ -105,9 +105,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  max_outliers_remove_th = 30,
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
-                 ts_enabled = False,
                  zeta = 10e-10, #stopping criterion for the mean
-                 or_mean_init = False
+                 or_mean_init = True
                  ):
         """Init."""
         self.power_list = power_list
@@ -122,15 +121,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.max_outliers_remove_th = max_outliers_remove_th
         self.outliers_disable_mean = outliers_disable_mean
         self.outliers_method = outliers_method
-        self.ts_enabled = ts_enabled
         self.zeta = zeta
         self.or_mean_init = or_mean_init
         
         if self.method_label == "lda":
             self.lda = LDA()
-        
-        if self.ts_enabled:
-            self.ts = TangentSpace()
     
     #updates the  self.covmeans_ for the provided p for both classes
     def _calculate_mean(self,X, y, p, sample_weight):
@@ -193,6 +188,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             #calculate/update the n means (one for each class)
             self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
+            
+            ouliers_per_iteration_count = {}
             
             #outlier removal is per class
             for ll in self.classes_:
@@ -262,20 +259,25 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         break
                     else:
                         print("WARNING: Skipped full outliers removal because too many samples were about to be removed.")
-                    
+                
+                ouliers_per_iteration_count[ll] = outliers_count
+            
+            #early stop: if no outliers were removed for both classes then we stop early
+            if sum(ouliers_per_iteration_count.values()) == 0:
+                break
         
-        #generate the final power mean (after outliers removal)
+        total_outliers_removed = total_outliers_removed_per_class.sum()
+            
         if self.outliers_disable_mean and is_disabled:
             pass #no mean generated (disabled)
-        else:
+            
+        elif total_outliers_removed > 0:
+           
+            #generate the final power mean (after outliers removal)
             self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
         
             outliers_removed_for_single_mean_gt = X.shape[0] - X_no_outliers.shape[0]
             
-            total_outliers_removed = 0
-            for ll in self.classes_:
-                total_outliers_removed = total_outliers_removed + total_outliers_removed_per_class[ll]
-                
             if (total_outliers_removed != outliers_removed_for_single_mean_gt):
                 raise Exception("Error outliers removal count!")
             #print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
@@ -313,22 +315,14 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
         self.covmeans_ = {}
         
-        if self.ts_enabled:
-            self.ts_covmeans_ = {}
-        
         self.covmeans_disabled = {} #new
         
         for p in self.power_list:
-            
             if (self.remove_outliers):
                 self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
             else:
                 self._calculate_mean(X, y, p, sample_weight)
-
-        if self.ts_enabled:
            
-            self.ts.fit(X) #experimetal np.vstack((X, self.covmeans_))
-                    
         if self.method_label == "lda":
             dists = self._predict_distances(X)
             self.lda.fit(dists,y)
@@ -341,14 +335,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         for ip, p in enumerate(self.power_list):
             for ill, ll in enumerate(labs_unique):
-                
-                if self.ts_enabled:
-                    m[ip, ill] = self._calculate_distance(x,self.ts_covmeans_[p][ll],p)
-                else:
-                    m[ip, ill] = self._calculate_distance(x,self.covmeans_[p][ll],p)
-                #m[ip, ill] = self._calculate_distance(x, self.covmeans_[p][ll], p)
-                # m[ip, ill] = distance(
-                #     x, self.covmeans_[p][ll], metric=self.metric, squared=True)
+                 m[ip, ill] = self._calculate_distance(x,self.covmeans_[p][ll],p)
 
         if self.method_label == 'sum_means':
             ipmin = np.argmin(np.sum(m, axis=1))
@@ -374,10 +361,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             Predictions for each matrix according to the closest means field.
         """
         
+        #print("In predict")
         if self.method_label == "lda":
-            
-            print("In predict")
-            
+
             dists = self._predict_distances(X)
             
             pred  = self.lda.predict(dists)
@@ -395,14 +381,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             return np.array(pred)
 
     def _calculate_distance(self,A,B,p,squared=True):
-        
-        #distance in tangent space
-        if self.ts_enabled and len(A.shape) == 1: #calculate in the final to produce the distances in the TS
-            
-            dist = np.linalg.norm(A-B)
-        
-        #distance in riemannian manifold
-        elif len(A.shape) == 2:  #calcualte distances for the means in Riemannian space
+
+        if len(A.shape) == 2:
         
             if self.distance_strategy == "adaptive1": #very slow
                 
@@ -443,6 +423,30 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         )
                 
                 #print("adaptive distance", dist)
+            
+            elif self.distance_strategy == "adaptive2": #very slow
+                
+                #adaptive only for -1,1 and 200
+                met = self.metric
+                
+                if p == 200:
+                    met = "logeuclid"
+                    #print("euclidean distance")
+                    
+                elif p == 1:
+                    met = "euclid"
+                
+                elif p == -1:
+                    met = "harmonic"
+            
+                dist = distance(
+                        A,
+                        B,
+                        metric=met,
+                        squared = squared,
+                    )
+                
+                #print("adaptive distance", dist)
                
             elif self.distance_strategy == "default_metric":
                 
@@ -461,16 +465,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 raise Exception("Invalid distance strategy")
                     
         else:
-            raise Exception("Error size of input")
+            raise Exception("Error size of input, not matrices?")
             
         return dist
     
     def _calucalte_distances_for_all_means(self,x):
         
-        if self.ts_enabled and len(x.shape) != 1:
-            raise Exception("Not vectors")
-        
-        #dist = []
         m = {} #contains a distance to a power mean
         
         for p in self.power_list:
@@ -478,10 +478,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 continue
             m[p] = []
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
-                if self.ts_enabled:
-                    dist_p = self._calculate_distance(x,self.ts_covmeans_[p][ll],p)
-                else:
-                    dist_p = self._calculate_distance(x,self.covmeans_[p][ll],p)
+                # if self.ts_enabled:
+                #     dist_p = self._calculate_distance(x,self.ts_covmeans_[p][ll],p)
+                # else:
+                dist_p = self._calculate_distance(x,self.covmeans_[p][ll],p)
                 m[p].append(dist_p)
                 
         combined = [] #combined for all classes
@@ -490,9 +490,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         combined = np.array(combined)
         
-        #print("Combined: ", len(self.power_list) , len(self.classes_), combined.shape)
-        #dist.append(combined)
-        
         return combined
         
     def _predict_distances(self, X):
@@ -500,16 +497,16 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         #print("predict distances")
         
-        if self.ts_enabled:
+        # if self.ts_enabled:
             
-            self.ts_covmeans_ = copy.deepcopy(self.covmeans_)
+        #     self.ts_covmeans_ = copy.deepcopy(self.covmeans_)
             
-            for p in self.power_list:
-                for ll in self.classes_:
-                    #print(np.array([self.covmeans_[p][ll]]).shape)
-                    self.ts_covmeans_[p][ll] = self.ts.transform(np.array([self.covmeans_[p][ll]]))
+        #     for p in self.power_list:
+        #         for ll in self.classes_:
+        #             #print(np.array([self.covmeans_[p][ll]]).shape)
+        #             self.ts_covmeans_[p][ll] = self.ts.transform(np.array([self.covmeans_[p][ll]]))
             
-            X = self.ts.transform(X)
+        #     X = self.ts.transform(X)
            
         if (self.n_jobs == 1):
             distances = []
