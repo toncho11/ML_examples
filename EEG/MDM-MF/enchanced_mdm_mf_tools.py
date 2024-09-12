@@ -20,6 +20,7 @@ from pyriemann.utils.utils import check_weights, check_function
 from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic, _deprecate_covmats
 import warnings
 import scipy
+from sklearn import decomposition
 
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
@@ -76,6 +77,14 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 
 class CustomCspTransformer2(BaseEstimator, TransformerMixin):
     
+    #for 128 electrodes ale is better than euclid but slower
+    # Averaging the session performance:
+    #                       score       time
+    # pipeline                              
+    # CSP_A_PM12_LDA_CD  0.853723  16.892366
+    # CSP_E_PM12_LDA_CD  0.823720   1.168123
+    # TSLR               0.875154   2.505664
+    # Difference is with 1 star confidence in favor of ALE
     def __init__(self, nfilter = 10): #maxiter_128 = 2, n_iter_max_128=2):
         #self.euclid = euclid
         self.nfilter = nfilter
@@ -84,20 +93,246 @@ class CustomCspTransformer2(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         #print("fit csp")
-        if X.shape[1] >= 60:
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            
+            self.csp = CSP(nfilter = self.nfilter,log=False)
+        
+        elif self.n_electrodes <= 64: #default < 60
+            
+            #n_iter_max=200 needs to be set in the code for "ale"
+            #good maxiter = 20, n_iter_max = 10
+            #5 5 ok
+            
+            #self.nfilter = 6
+            self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 10, n_iter_max = 8) # maxiter = 50, n_iter_max = 100)
+        
+        else: #n_electrodes > 64
+            # if self.euclid:
+            #     self.csp = CSP(metric = "euclid", nfilter=self.nfilter, log=False) #pca par example
+            # else:
+            #self.nfilter = 10
             self.csp = CSP(metric = "ale", nfilter=self.nfilter, log=False, maxiter = 2 , n_iter_max = 2) #pca par example
-            self.csp.fit(X,y)
+            
+        self.csp.fit(X,y)
         
         return self
     
     def transform(self, X):
         
-        if X.shape[1] >= 60:
+        # if self.n_electrodes <= self.nfilter: #return unprocessed data
+        #     return X 
+        # else:
             X_transformed = self.csp.transform(X)
             return X_transformed
-        else:
-            return X
+
+class CustomCspTransformer3(BaseEstimator, TransformerMixin):
+    
+    def __init__(self):
         
+        self.nfilter = 10
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            self.csp = CSP(metric="euclid", log=False)
+            self.csp.fit(X,y)
+            return self
+        
+        elif self.n_electrodes > 32:
+            
+            self.csp1 = CSP(nfilter = 32, metric="euclid", log=False)
+            self.csp2 = CSP(metric = "ale", nfilter = self.nfilter, log=False, maxiter = 2, n_iter_max = 2) # maxiter = 50, n_iter_max = 100)
+            
+        else: #<=32
+            
+            self.csp1 = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
+            self.csp2 = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = 2, n_iter_max = 2) # maxiter = 50, n_iter_max = 100)
+            
+        self.csp1.fit(X,y)
+        X1 = self.csp1.transform(X)
+        self.csp2.fit(X1,y)
+        
+        return self
+
+class CustomCspTransformer4(BaseEstimator, TransformerMixin):
+    
+    def __init__(self):
+        
+        self.nfilter = 10
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            self.csp = CSP(metric="euclid", log=False)
+            self.csp.fit(X,y)
+            return self
+        
+        elif self.n_electrodes > 32:
+            
+            self.csp1 = CSP(nfilter = 32, metric="euclid", log=False)
+            self.csp2 = CSP(metric = "ale", nfilter = self.nfilter, log=False, maxiter = 30, n_iter_max = 30) # maxiter = 50, n_iter_max = 100)
+            
+        else: #<=32
+            
+            self.csp1 = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
+            self.csp2 = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = 30, n_iter_max = 30) # maxiter = 50, n_iter_max = 100)
+            
+        self.csp1.fit(X,y)
+        X1 = self.csp1.transform(X)
+        self.csp2.fit(X1,y)
+        
+        return self
+    
+    def transform(self, X):
+        
+        if self.n_electrodes <= self.nfilter:
+            
+            X_transformed = self.csp.transform(X)
+            return X_transformed
+        
+        else:
+            
+            X_transformed1 = self.csp1.transform(X)
+            X_transformed2 = self.csp2.transform(X_transformed1)
+            return X_transformed2
+
+class CustomCspTransformer5(BaseEstimator, TransformerMixin):
+    
+    def __init__(self):
+        
+        self.nfilter = 10
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            self.csp = CSP(metric="euclid", log=False)
+            self.csp.fit(X,y)
+            return self
+        
+        elif self.n_electrodes > 32:
+            
+            self.csp1 = CSP(nfilter = 32, metric="euclid", log=False)
+            self.csp2 = CSP(metric = "ale", nfilter = self.nfilter, log=False, maxiter = 50, n_iter_max = 100) # maxiter = 50, n_iter_max = 100)
+            
+        else: #<=32
+            
+            self.csp1 = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
+            self.csp2 = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = 50, n_iter_max = 100) # maxiter = 50, n_iter_max = 100)
+            
+        self.csp1.fit(X,y)
+        X1 = self.csp1.transform(X)
+        self.csp2.fit(X1,y)
+        
+        return self
+    
+    def transform(self, X):
+        
+        if self.n_electrodes <= self.nfilter:
+            
+            X_transformed = self.csp.transform(X)
+            return X_transformed
+        
+        else:
+            
+            X_transformed1 = self.csp1.transform(X)
+            X_transformed2 = self.csp2.transform(X_transformed1)
+            return X_transformed2
+
+class CustomCspTransformer6(BaseEstimator, TransformerMixin):
+    
+    def __init__(self):
+        
+        self.nfilter = 10
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            self.csp = CSP(metric="euclid", log=False)
+            self.csp.fit(X,y)
+            return self
+        
+        else:
+            
+            self.csp1 = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
+            #self.csp2 = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = 50, n_iter_max = 100) # maxiter = 50, n_iter_max = 100)
+            
+        self.csp1.fit(X,y)
+        #X1 = self.csp1.transform(X)
+        #self.csp2.fit(X1,y)
+        
+        return self
+    
+    def transform(self, X):
+        
+        if self.n_electrodes <= self.nfilter:
+            
+            X_transformed = self.csp.transform(X)
+            return X_transformed
+        
+        else:
+            
+            #X_transformed1 = self.csp1.transform(X)
+            X_transformed2 = self.csp1.transform(X)
+            return X_transformed2
+
+class CustomCspTransformer7(BaseEstimator, TransformerMixin):
+    
+    def __init__(self):
+        
+        self.nfilter = 10
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            self.csp = CSP(metric="euclid", log=False)
+            self.csp.fit(X,y)
+            return self
+        
+        elif self.n_electrodes > 32:
+            
+            self.csp1 = CSP(nfilter = 32, metric="euclid", log=False)
+            self.csp2 = CSP(metric = "ale", nfilter = self.nfilter, log=False, maxiter = 50, n_iter_max = 100) # maxiter = 50, n_iter_max = 100)
+            
+            self.csp1.fit(X,y)
+            X1 = self.csp1.transform(X)
+            self.csp2.fit(X1,y)
+            
+            return self
+        
+        else: #<=32
+            
+            #self.csp = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
+            self.csp = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = 50, n_iter_max = 100) # maxiter = 50, n_iter_max = 100)
+            self.csp.fit(X,y)
+            return self
+        
+    
+    def transform(self, X):
+        
+        if self.n_electrodes <= self.nfilter or self.n_electrodes <=32:
+            
+            X_transformed = self.csp.transform(X)
+            return X_transformed
+        
+        else:
+            
+            X_transformed1 = self.csp1.transform(X)
+            X_transformed2 = self.csp2.transform(X_transformed1)
+            return X_transformed2
+
 class Diagonalizer(BaseEstimator, TransformerMixin):
     
     def __init__(self, diag_method="rjd", norm_method="L2", n_iter_max = 200):
