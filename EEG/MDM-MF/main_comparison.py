@@ -47,7 +47,7 @@ from enchanced_mdm_mf_tools import CustomCspTransformer
 from pyriemann.spatialfilters import CSP
 
 #start configuration
-hb_max_n_subjects = 2
+hb_max_n_subjects = -1
 hb_n_jobs = -1
 hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
@@ -101,35 +101,15 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-#old best
-#CSP_10_A_E_A_PM12_LDA_CD_RO_2_5_D4_M50
 
-#-but has the fixed initalization (bug fix)
-#-but has riemmanian distance on p=0.001
-#-it has the outliers removal code updated to stop early
-#-the iterations are increased
+pipelines["MF_orig"] = make_pipeline(
+    Covariances("oas"),
+    MeanField_orig(power_list=power_means,
+              method_label="inf_means",
+              ),
+)
 
-
-# pipelines["new_best_or"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer(mode),
-#     MeanFieldNew(power_list=power_means11,
-#               method_label="lda",
-#               n_jobs=mdm_mf_jobs,
-#               euclidean_mean         = False, #default = false
-#               distance_strategy      = "default_metric",
-#               remove_outliers        = True,
-#               outliers_th            = 2.5,  #default = 2.5
-#               outliers_depth         = 2,    #default = 4
-#               max_outliers_remove_th = 50,   #default = 50
-#               outliers_disable_mean  = False, #default = false
-#               outliers_method        = "zscore",
-#               zeta                   = 1e-07,
-#               or_mean_init           = True,
-#               ),   
-# )
-
-pipelines["csp0"] = make_pipeline(
+pipelines["new_best"] = make_pipeline(
     Covariances("oas"),
     CustomCspTransformer(mode=0),
     MeanFieldNew(power_list=power_means11,
@@ -148,62 +128,12 @@ pipelines["csp0"] = make_pipeline(
               ),   
 )
 
-pipelines["csp1"] = make_pipeline(
+pipelines["MDM"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(mode=1),
-    MeanFieldNew(power_list=power_means11,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 2,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              zeta                   = 1e-07,
-              or_mean_init           = True,
-              ),   
+    MDM(),
 )
 
-pipelines["csp2"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(mode=2),
-    MeanFieldNew(power_list=power_means11,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 2,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              zeta                   = 1e-07,
-              or_mean_init           = True,
-              ),   
-)
-
-pipelines["csp3"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(mode=3),
-    MeanFieldNew(power_list=power_means11,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 2,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              zeta                   = 1e-07,
-              or_mean_init           = True,
-              ),   
-)
+ 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
 AUG_Tang_SVM_grid_search    = False #Zhou2016 subject 4 can fail because of cov covariance estimator

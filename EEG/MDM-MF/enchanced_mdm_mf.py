@@ -424,7 +424,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 
                 #print("adaptive distance", dist)
             
-            elif self.distance_strategy == "adaptive2": #very slow
+            elif self.distance_strategy == "adaptive2":
                 
                 #adaptive only for -1,1 and 200
                 met = self.metric
