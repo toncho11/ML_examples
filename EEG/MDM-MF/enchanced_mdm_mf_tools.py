@@ -21,6 +21,7 @@ from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic, _depr
 import warnings
 import scipy
 from sklearn import decomposition
+from pyriemann.utils.distance import _recursive, _check_inputs
 
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
@@ -92,6 +93,147 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
             X_transformed1 = self.csp1.transform(X)
             X_transformed2 = self.csp2.transform(X_transformed1)
             return X_transformed2
+
+class CustomCspTransformer2(BaseEstimator, TransformerMixin):
+    
+    def __init__(self, mode = "fast_dimensionality_reduction"):
+        
+        self.mode = mode
+        self.nfilter = 10
+        
+        speed = 3 
+        
+        if speed == 0:
+            self.maxiter = 5
+            self.n_iter_max = 5
+        elif speed == 1:
+            self.maxiter = 30
+            self.n_iter_max = 30
+        elif speed == 2:
+            self.maxiter = 50
+            self.n_iter_max = 100
+        elif speed == 3:
+            self.maxiter = 50
+            self.n_iter_max = 100
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            return self
+        
+        if self.mode == "fast_dimensionality_reduction":
+            
+            if self.n_electrodes > 28:
+                self.csp = CSP(nfilter = 28, metric="euclid", log=False)
+            else:
+                return self
+            
+        elif self.mode == "slow_riemannian":
+            
+            if self.n_electrodes > 28:
+                raise Exception("Number of electrodes too high. CSP will be slow. Use 'pre-rocessing' mode instead.")
+            else: # <28 electrodes 
+                self.csp = CSP(nfilter = self.nfilter, metric = "riemann", log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+        else:
+            raise Exception("Invalid mode")
+             
+        self.csp.fit(X,y)
+        
+        return self
+    
+    def transform(self, X):
+        
+        if self.n_electrodes <= self.nfilter:
+            return X
+        
+        if self.mode == "fast_dimensionality_reduction":
+            
+            if self.n_electrodes > 28:
+                return self.csp.transform(X)
+            else: 
+                return X
+            
+        elif self.mode == "slow_riemannian":
+            
+            if self.n_electrodes > 28:
+                raise Exception("Number of electrodes too high. CSP will be slow. Use in 'pre-rocessing' mode first.")
+            
+            else:
+                return self.csp.transform(X)
+        else:
+             raise Exception("Invalid mode")
+             
+class CustomCspTransformer3(BaseEstimator, TransformerMixin):
+    
+    def __init__(self, mode = "fast_dimensionality_reduction", speed = 3):
+        
+        self.mode = mode
+        self.nfilter = 10
+        self.speed = speed
+        
+        if speed == 0:
+            self.maxiter = 5
+            self.n_iter_max = 5
+        elif speed == 1:
+            self.maxiter = 30
+            self.n_iter_max = 30
+        elif speed == 2:
+            self.maxiter = 50
+            self.n_iter_max = 100
+        elif speed == 3:
+            self.maxiter = 50
+            self.n_iter_max = 100
+    
+    def fit(self, X, y=None):
+        
+        self.n_electrodes = X.shape[1]
+        
+        if self.n_electrodes <= self.nfilter:
+            return self
+        
+        if self.mode == "fast_dimensionality_reduction":
+            
+            if self.n_electrodes > 28:
+                self.csp = CSP(nfilter = 28, metric="euclid", log=False)
+            else:
+                return self
+            
+        elif self.mode == "slow_ale":
+            
+            if self.n_electrodes > 28:
+                raise Exception("Number of electrodes too high. CSP will be slow. Use 'pre-rocessing' mode instead.")
+            else: # <28 electrodes 
+                self.csp = CSP(nfilter = self.nfilter, metric = "ale", log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+        else:
+            raise Exception("Invalid mode")
+             
+        self.csp.fit(X,y)
+        
+        return self
+    
+    def transform(self, X):
+        
+        if self.n_electrodes <= self.nfilter:
+            return X
+        
+        if self.mode == "fast_dimensionality_reduction":
+            
+            if self.n_electrodes > 28:
+                return self.csp.transform(X)
+            else: 
+                return X
+            
+        elif self.mode == "slow_ale":
+            
+            if self.n_electrodes > 28:
+                raise Exception("Number of electrodes too high. CSP will be slow. Use in 'pre-rocessing' mode first.")
+            
+            else:
+                return self.csp.transform(X)
+        else:
+             raise Exception("Invalid mode")
 
 class Diagonalizer(BaseEstimator, TransformerMixin):
     
@@ -239,6 +381,22 @@ def distance_custom(A, B, k, squared=False):
     dist = distance_euclid(A1, B1, squared=squared)
     
     return dist
+
+def power_distance(trial, power_mean_inv, squared=False):
+    
+    # _check_inputs(A, B)
+    #d2 = (np.log(_recursive(eigvalsh, A, B))**2).sum(axis=-1)
+    
+    # return d2 if squared else np.sqrt(d2)
+    _check_inputs(power_mean_inv, trial)
+    #scipy.linalg.eigvals (general, non symetric)
+    #np.linalg.eigvals    (general, non symetric)
+    #but power_mean_inv @ trial is not synetric, scipy.linalg.eigvals is more correct
+    d2 = (np.log( np.linalg.eigvals (power_mean_inv @ trial)) **2 ).sum(axis=-1)
+    #d2 = (np.log( scipy.linalg.eigvals (power_mean_inv @ trial, check_finite = False)) **2 ).sum(axis=-1)
+    return d2 if squared else np.sqrt(d2)
+    
+    
 
 def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=150, #default = 100
                covmats=None):

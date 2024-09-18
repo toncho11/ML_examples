@@ -26,20 +26,7 @@ The MFM-MF has these options:
             metric = "riemann"
 
 Results:
-    
-    For all P300 subjects Within-session:
-    Evaluation in %:
-                                      score      time
-    pipeline                                         
-    MDM                            0.884434  0.217034
-    ORIG_MDM_MF                    0.891912  1.257742
-    xdawn_PM11_LDA_CD_RO_2_5_P300  0.891276  7.806434
-    xdawn_TS_SVM                   0.896075  0.230076
-    
-    xdawn_PM11_LDA_CD_RO_2_5_P300 is SMD better than ORIG_MDM_MF and MDM
-    xdawn_TS_SVM is SMD better than all
-    xdawn_TS_SVM is SMD 3* better than xdawn_PM11_LDA_CD_RO_2_5_P300
-    MDM is a bit better than ORIG_MDM_MF
+
             
 @author: anton andreev
 """
@@ -76,11 +63,14 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.base import BaseEstimator, TransformerMixin
 from pyriemann.spatialfilters import CSP
+from enchanced_mdm_mf_tools import CustomCspTransformer
+from pyriemann.tangentspace import TangentSpace
+from sklearn.svm import SVC
 
 #start configuration
-hb_max_n_subjects = -1
+hb_max_n_subjects = 2
 hb_n_jobs = -1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -123,7 +113,7 @@ power_means9 = [-1, -0.75, 0.5, 0.001, 0.5, 0.75, 1]
 
 power_means10 = [-1, -0.75, -0.5, -0.3, 0.001, 0.3, 0.5, 0.75, 1]
 
-power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1] 
+power_means11 = [-1, -0.75, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 0.75, 1] 
 
 power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
@@ -133,15 +123,15 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 
 # power_means11 = [0]
 
-pipelines["ORIG_MDM_MF"] = make_pipeline(
-    # applies XDawn and calculates the covariance matrix, output it matrices
-    XdawnCovariances(),
-    #sum_means does not make a difference with 10 power means comapred to 3
-    MeanField_orig(power_list=power_means,
-              method_label="inf_means",
-              n_jobs=12,
-              ),
-)
+# pipelines["ORIG_MDM_MF"] = make_pipeline(
+#     # applies XDawn and calculates the covariance matrix, output it matrices
+#     XdawnCovariances(),
+#     #sum_means does not make a difference with 10 power means comapred to 3
+#     MeanField_orig(power_list=power_means,
+#               method_label="inf_means",
+#               n_jobs=12,
+#               ),
+# )
 
 #old means
 # pipelines["xdawn_PM8_LDA_CD_RO_2_5"] = make_pipeline(
@@ -182,19 +172,41 @@ pipelines["ORIG_MDM_MF"] = make_pipeline(
 #               ),   
 # )
 
-pipelines["xdawn_PM12_LDA_CD_RO_2_5_P300"] = make_pipeline(
+pipelines["new_best_lda"] = make_pipeline(
     XdawnCovariances(),
-    MeanFieldNew(power_list=power_means12,
+    MeanFieldNew(power_list=power_means11,
               method_label="lda",
               n_jobs=mdm_mf_jobs,
-              euclidean_mean  = False,
-              custom_distance = True,
+              euclidean_mean         = False, #default = false
+              distance_strategy      = "default_metric",
               remove_outliers        = True,
               outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
+              outliers_depth         = 2,    #default = 4
               max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False #default = false
+              outliers_disable_mean  = False, #default = false
+              outliers_method        = "zscore",
+              zeta                   = 1e-07,
+              or_mean_init           = True,
               ),   
+)
+
+pipelines["new_best_svm"] = make_pipeline(
+    XdawnCovariances(),
+    MeanFieldNew(power_list=power_means11,
+              method_label="lda",
+              n_jobs=mdm_mf_jobs,
+              euclidean_mean         = False, #default = false
+              distance_strategy      = "default_metric",
+              remove_outliers        = True,
+              outliers_th            = 2.5,  #default = 2.5
+              outliers_depth         = 2,    #default = 4
+              max_outliers_remove_th = 50,   #default = 50
+              outliers_disable_mean  = False, #default = false
+              outliers_method        = "zscore",
+              zeta                   = 1e-07,
+              or_mean_init           = True,
+              ), 
+    SVC()
 )
 
 pipelines["MDM"] = make_pipeline(
@@ -202,8 +214,7 @@ pipelines["MDM"] = make_pipeline(
     MDM(),
 )
 
-from pyriemann.tangentspace import TangentSpace
-from sklearn.svm import SVC
+
 pipelines["xdawn_TS_SVM"] = make_pipeline(
     XdawnCovariances(),
     TangentSpace(),

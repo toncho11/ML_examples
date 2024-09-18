@@ -27,7 +27,7 @@ from sklearn.discriminant_analysis import (
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 import copy
-from enchanced_mdm_mf_tools import mean_power_custom, distance_custom
+from enchanced_mdm_mf_tools import mean_power_custom, distance_custom, power_distance
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):
@@ -158,6 +158,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 )
             self.covmeans_[p] = means_p
             
+        if self.distance_strategy == "power_distance":
+            self.calculate_inv_mean(p)
+            
         return means_p #contains means both classes
     
     #removes outliers and calculates the power mean p on the rest
@@ -204,7 +207,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 # Calcualte all the distances only for class ll and power mean p
                 for idx, x in enumerate (X_no_outliers[y_no_outliers==ll]):
                     
-                    dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p, True)
+                    if self.distance_strategy == "power_distance":
+                        dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p, True)
+                    else:
+                        dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p, True)
                     #dist_p = np.log(dist_p)
                     m.append(dist_p)
                 
@@ -316,8 +322,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.covmeans_ = {}
         
         self.covmeans_disabled = {} #new
+        self.covmeans_inv_ = {}
         
         for p in self.power_list:
+            
             if (self.remove_outliers):
                 self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
             else:
@@ -328,6 +336,15 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             self.lda.fit(dists,y)
 
         return self
+    
+    def calculate_inv_mean(self,p):
+              
+        means_p = {}
+        for ll in self.classes_:
+            means_p[ll] = np.linalg.inv(self.covmeans_[p][ll])
+        
+        self.covmeans_inv_[p] = means_p
+            
 
     def _get_label(self, x, labs_unique):
         
@@ -457,6 +474,14 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         squared = squared,
                     )
                 
+            elif self.distance_strategy == "power_distance":
+                
+                dist = power_distance(
+                        A, #trial
+                        B, #mean inverted
+                        squared = squared,
+                    )
+                
             elif self.distance_strategy == "custom_distance_function":
                 
                 dist = distance_custom(A, B, k=p, squared = squared)
@@ -478,10 +503,21 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 continue
             m[p] = []
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
-                # if self.ts_enabled:
-                #     dist_p = self._calculate_distance(x,self.ts_covmeans_[p][ll],p)
-                # else:
-                dist_p = self._calculate_distance(x,self.covmeans_[p][ll],p)
+                if self.distance_strategy == "power_distance":
+                    
+                    dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
+                    
+                    #test code (to be removed)
+                    # self.distance_strategy = "default_metric"
+                    # dist_old = self._calculate_distance(x, self.covmeans_[p][ll], p)
+                    # self.distance_strategy = "power_distance"
+                    # print(dist_p, dist_old, round(dist_p - dist_old,4))
+                    # if abs(dist_p - dist_old > 0.001):
+                    #     raise Exception("Error distance")
+                    #end test code
+
+                else:
+                    dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
                 m[p].append(dist_p)
                 
         combined = [] #combined for all classes
