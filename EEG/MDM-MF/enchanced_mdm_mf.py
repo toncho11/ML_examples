@@ -28,6 +28,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 import copy
 from enchanced_mdm_mf_tools import mean_power_custom, distance_custom, power_distance
+from time import perf_counter_ns
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):
@@ -505,12 +506,22 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
                 if self.distance_strategy == "power_distance":
                     
+                    #time_start = perf_counter_ns()
                     dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
+                    # time_end = perf_counter_ns()
+                    # time_duration = time_end - time_start
+                    # # report the duration
+                    # print(f'Took {time_duration} seconds inverse distance')
                     
-                    #test code (to be removed)
+                    # #test code (to be removed)
                     # self.distance_strategy = "default_metric"
+                    # time_start = perf_counter_ns()
                     # dist_old = self._calculate_distance(x, self.covmeans_[p][ll], p)
+                    # time_end = perf_counter_ns()
                     # self.distance_strategy = "power_distance"
+                    # time_duration = time_end - time_start
+                    # # report the duration
+                    # print(f'Took {time_duration} seconds normal distance')
                     # print(dist_p, dist_old, round(dist_p - dist_old,4))
                     # if abs(dist_p - dist_old > 0.001):
                     #     raise Exception("Error distance")
