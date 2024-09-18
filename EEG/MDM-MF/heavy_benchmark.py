@@ -380,11 +380,13 @@ def _AdjustDF(df, removeP300  = False, removeMI = False):
                     'Shin2017A', 
                     'Weibo2014', 
                     'Zhou2016',
-                    'Lee2019_MI', #new
+                    'Lee2019-MI', #new
                     'Schirrmeister2017' #new
                   ]
     for ind in df.index:
-        dataset_classified = False
+        
+        dataset_classified = False #classified as P300 or MI
+        
         if (df['dataset'][ind] in datasets_P300):
             df['dataset'][ind] = df['dataset'][ind] + "_P"
             dataset_classified = True
@@ -393,7 +395,7 @@ def _AdjustDF(df, removeP300  = False, removeMI = False):
              df['dataset'][ind] = df['dataset'][ind] + "_M"
              dataset_classified = True
         if dataset_classified == False:
-            print("This dataset was not classified:", df['dataset'][ind])
+            print("This dataset was not classified:", df['dataset'][ind], "as neither P300 or motor imagery dataset.")
     
     if (removeP300):
         df = df.drop(df[df['dataset'].str.endswith('_P', na=None)].index)

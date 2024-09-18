@@ -97,7 +97,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
 
     def __init__(self, power_list=[-1, 0, 1], 
                  method_label='sum_means',
-                 metric="riemann", n_jobs=1, 
+                 metric="riemann",
+                 distance_squared = True,
+                 n_jobs=1, 
                  euclidean_mean  = False,
                  distance_strategy = "default_metric",
                  remove_outliers = False,
@@ -124,6 +126,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_method = outliers_method
         self.zeta = zeta
         self.or_mean_init = or_mean_init
+        self.distance_squared = distance_squared
+        
+        if distance_strategy not in ["default_metric", "adaptive1", "adaptive2", "power_distance", "custom_distance_function"]:
+            raise Exception()("Invalid distance stategy!")
         
         if self.method_label == "lda":
             self.lda = LDA()
@@ -209,9 +215,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 for idx, x in enumerate (X_no_outliers[y_no_outliers==ll]):
                     
                     if self.distance_strategy == "power_distance":
-                        dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p, True)
+                        dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
                     else:
-                        dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p, True)
+                        dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
                     #dist_p = np.log(dist_p)
                     m.append(dist_p)
                 
@@ -398,8 +404,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             return np.array(pred)
 
-    def _calculate_distance(self,A,B,p,squared=True):
+    def _calculate_distance(self,A,B,p):
 
+        squared = self.distance_squared
+        
         if len(A.shape) == 2:
         
             if self.distance_strategy == "adaptive1": #very slow
