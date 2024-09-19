@@ -21,7 +21,8 @@ from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic, _depr
 import warnings
 import scipy
 from sklearn import decomposition
-from pyriemann.utils.distance import _recursive, _check_inputs
+from pyriemann.utils.distance import _check_inputs
+import math
 
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
@@ -96,48 +97,43 @@ class CustomCspTransformer(BaseEstimator, TransformerMixin):
 
 class CustomCspTransformer2(BaseEstimator, TransformerMixin):
     
-    def __init__(self, mode = "fast_dimensionality_reduction"):
+    def __init__(self, mode, nfilter = None):
         
-        self.mode = mode
-        self.nfilter = 10
-        
-        speed = 3 
-        
-        if speed == 0:
-            self.maxiter = 5
-            self.n_iter_max = 5
-        elif speed == 1:
-            self.maxiter = 30
-            self.n_iter_max = 30
-        elif speed == 2:
-            self.maxiter = 50
-            self.n_iter_max = 100
-        elif speed == 3:
-            self.maxiter = 50
-            self.n_iter_max = 100
+        self.mode    = mode
+        self.nfilter = nfilter #default 10
+        self.nfilter_dimensionality_reduction = 28 #threshold between the two modes
     
     def fit(self, X, y=None):
-        
+          
         self.n_electrodes = X.shape[1]
         
-        if self.n_electrodes <= self.nfilter:
-            return self
+        if self.nfilter is None:
+            #self.nfilter = max( int(math.sqrt(self.n_electrodes)) * 2, 4)
+            #self.nfilter = int(math.sqrt(self.n_electrodes)) * 2
+            self.nfilter = 10 #default value
         
-        if self.mode == "fast_dimensionality_reduction":
+        #print("nfilter: ",self.nfilter)
+        
+        if self.n_electrodes <= self.nfilter:
+            #print("not processed")
+            #return self
+            self.nfilter = self.n_electrodes
+        
+        if self.mode == "high_electrodes_count":
             
-            if self.n_electrodes > 28:
-                self.csp = CSP(nfilter = 28, metric="euclid", log=False)
+            if self.n_electrodes > self.nfilter_dimensionality_reduction:
+                self.csp = CSP(nfilter = self.nfilter_dimensionality_reduction, metric="euclid", log=False)
             else:
                 return self
             
-        elif self.mode == "slow_riemannian":
+        elif self.mode == "low_electrodes_count":
             
-            if self.n_electrodes > 28:
+            if self.n_electrodes > self.nfilter_dimensionality_reduction:
                 raise Exception("Number of electrodes too high. CSP will be slow. Use 'pre-rocessing' mode instead.")
             else: # <28 electrodes 
-                self.csp = CSP(nfilter = self.nfilter, metric = "riemann", log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+                self.csp = CSP(nfilter = self.nfilter, metric = "riemann", log=False)
         else:
-            raise Exception("Invalid mode")
+            raise Exception("Invalid CSP mode")
              
         self.csp.fit(X,y)
         
@@ -148,22 +144,22 @@ class CustomCspTransformer2(BaseEstimator, TransformerMixin):
         if self.n_electrodes <= self.nfilter:
             return X
         
-        if self.mode == "fast_dimensionality_reduction":
+        if self.mode == "high_electrodes_count":
             
-            if self.n_electrodes > 28:
+            if self.n_electrodes > self.nfilter_dimensionality_reduction:
                 return self.csp.transform(X)
             else: 
                 return X
             
-        elif self.mode == "slow_riemannian":
+        elif self.mode == "low_electrodes_count":
             
-            if self.n_electrodes > 28:
+            if self.n_electrodes > self.nfilter_dimensionality_reduction:
                 raise Exception("Number of electrodes too high. CSP will be slow. Use in 'pre-rocessing' mode first.")
             
             else:
                 return self.csp.transform(X)
         else:
-             raise Exception("Invalid mode")
+             raise Exception("Invalid CSP mode")
              
 class CustomCspTransformer3(BaseEstimator, TransformerMixin):
     

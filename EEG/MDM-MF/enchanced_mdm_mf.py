@@ -96,9 +96,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
     """
 
     def __init__(self, power_list=[-1, 0, 1], 
-                 method_label='sum_means',
+                 method_label='lda',
                  metric="riemann",
-                 distance_squared = True,
+                 distance_squared = True, #squared is better
                  n_jobs=1, 
                  euclidean_mean  = False,
                  distance_strategy = "default_metric",
