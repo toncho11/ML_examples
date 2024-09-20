@@ -389,7 +389,7 @@ def power_distance(trial, power_mean_inv, squared=False):
     #np.linalg.eigvals    (general, non symetric)
     #but power_mean_inv @ trial is not synetric, scipy.linalg.eigvals is more correct
     d2 = (np.log( np.linalg.eigvals (power_mean_inv @ trial)) **2 ).sum(axis=-1)
-    #d2 = (np.log( scipy.linalg.eigvals (power_mean_inv @ trial, check_finite = False)) **2 ).sum(axis=-1)
+    #d2 = (np.log( np.real(  scipy.linalg.eigvals (power_mean_inv @ trial, check_finite = False) ) ) **2 ).sum(axis=-1)
     return d2 if squared else np.sqrt(d2)
     
     
