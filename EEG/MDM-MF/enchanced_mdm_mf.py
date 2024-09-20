@@ -98,18 +98,18 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
     def __init__(self, power_list=[-1, 0, 1], 
                  method_label='lda',
                  metric="riemann",
+                 power_mean_zeta = 1e-07, #stopping criterion for the mean (10e-10)
                  distance_squared = True, #squared is better
                  n_jobs=1, 
                  euclidean_mean  = False,
-                 distance_strategy = "default_metric",
-                 remove_outliers = False,
+                 distance_strategy = "power_distance",
+                 remove_outliers = True,
                  outliers_th = 2.5,
                  outliers_depth = 4, #how many times to run the outliers detection on the same data
-                 max_outliers_remove_th = 30,
+                 outliers_max_remove_th = 30,
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
-                 zeta = 10e-10, #stopping criterion for the mean
-                 or_mean_init = True
+                 outliers_mean_init = True
                  ):
         """Init."""
         self.power_list = power_list
@@ -121,11 +121,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.remove_outliers = remove_outliers
         self.outliers_th = outliers_th
         self.outliers_depth = outliers_depth
-        self.max_outliers_remove_th = max_outliers_remove_th
+        self.outliers_max_remove_th = outliers_max_remove_th
         self.outliers_disable_mean = outliers_disable_mean
         self.outliers_method = outliers_method
-        self.zeta = zeta
-        self.or_mean_init = or_mean_init
+        self.power_mean_zeta = power_mean_zeta
+        self.outliers_mean_init = outliers_mean_init
         self.distance_squared = distance_squared
         
         if distance_strategy not in ["default_metric", "adaptive1", "adaptive2", "power_distance", "custom_distance_function"]:
@@ -150,7 +150,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         else:
             for ll in self.classes_:
                 
-                if self.or_mean_init and p in self.covmeans_:
+                if self.outliers_mean_init and p in self.covmeans_:
                     init = self.covmeans_[p][ll] #use previous mean
                     #print("using init mean")
                 else:
@@ -160,7 +160,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     X[y == ll],
                     p,
                     sample_weight=sample_weight[y == ll],
-                    zeta = self.zeta,
+                    zeta = self.power_mean_zeta,
                     init = init
                 )
             self.covmeans_[p] = means_p
@@ -253,7 +253,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 
                 #check if too many samples are about to be removed
                 #case 1 less than self.max_outliers_remove_th are to be removed
-                if ((total_outliers_removed_per_class[ll] + outliers_count) / total_samples_per_class[ll]) * 100 < self.max_outliers_remove_th:
+                if ((total_outliers_removed_per_class[ll] + outliers_count) / total_samples_per_class[ll]) * 100 < self.outliers_max_remove_th:
                     #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
             
                     X_no_outliers = X_no_outliers[~outliers]
@@ -295,7 +295,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 raise Exception("Error outliers removal count!")
             #print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
             
-            if (outliers_removed_for_single_mean_gt / X.shape[0]) * 100 > self.max_outliers_remove_th:
+            if (outliers_removed_for_single_mean_gt / X.shape[0]) * 100 > self.outliers_max_remove_th:
                 raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean_gt, " out of ",X.shape[0])
             
         return is_disabled
