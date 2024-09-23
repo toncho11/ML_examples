@@ -516,12 +516,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     
                     #time_start = perf_counter_ns()
                     dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
-                    # time_end = perf_counter_ns()
-                    # time_duration = time_end - time_start
-                    # # report the duration
-                    # print(f'Took {time_duration} seconds inverse distance')
+                    #time_end = perf_counter_ns()
+                    #time_duration = time_end - time_start
+                    # report the duration
+                    #print(f'Took {time_duration} seconds inverse distance')
                     
-                    # #test code (to be removed)
+                    #test code (to be removed)
                     # self.distance_strategy = "default_metric"
                     # time_start = perf_counter_ns()
                     # dist_old = self._calculate_distance(x, self.covmeans_[p][ll], p)
