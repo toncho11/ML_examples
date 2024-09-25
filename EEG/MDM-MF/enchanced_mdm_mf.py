@@ -95,7 +95,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         Brain-Computer Interface Conference, Sep 2019, Graz, Austria.
     """
 
-    def __init__(self, power_list=[-1, 0, 1], 
+    def __init__(self, power_list=[-1, -0.75, -0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5, 0.75, 1], 
                  method_label='lda',
                  metric="riemann",
                  power_mean_zeta = 1e-07, #stopping criterion for the mean (10e-10)
