@@ -41,7 +41,7 @@ class VariationalAutoencoderDense(BaseVariationalAutoencoder):
 
 
     def _get_decoder(self):
-        decoder_inputs = Input(shape=(self.latent_dim), name='decoder_input')
+        decoder_inputs = Input(shape=(self.latent_dim,), name='decoder_input')
 
         x = decoder_inputs
         for i, M_out in enumerate(reversed(self.hidden_layer_sizes)):
