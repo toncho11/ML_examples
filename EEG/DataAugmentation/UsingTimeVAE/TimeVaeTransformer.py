@@ -29,20 +29,70 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
 
-    def __init__(self,
+    def __init__(self, 
+                 encoder_output = 2,
+                 use_augmented_data = True,
+                 vae_iterations = 50
+                 #onlyP300 = False
                  ):
         """Init."""
-        pass
         
+        #There are 3 outputs of the VAE Encoder
+        #encoder = [z_mean, z_log_var, encoder_output]
+        #z_mean, z_log_var, z = self.encoder(data)
+        #There are 3 outputs. We can use one of them as feature vector or all of them together.
+        ##hich output from the encoder to give to the transform method()
+        #3 means all
+        self.encoder_output = encoder_output
+        self.use_augmented_data = use_augmented_data
+        self.vae_iterations = vae_iterations
+        #self.onlyP300 = onlyP300
+    
+    def _generateInterpolated(self, X, y , selected_class, shift = 0, every_ith_sample = 10): #shift the starting point in the epoch
+        
+        print ("Generating interpolated samples...")
+        
+        Xint = X.copy()
+        epoch_length = X.shape[2]
+        channels     = X.shape[1]
+        indicesSelectedClass = []
+        
+        for i in range(0, len(y)):
+            if y[i] == selected_class:
+                for j in range(shift, epoch_length, every_ith_sample):
+                    if j - 1 > 0 and j + 1 < epoch_length:
+                        for m in range(0,channels):
+                            #modify it
+                            Xint[i,m,j] = (X[i,m,j-1] + X[i,m,j+1]) / 2
+                indicesSelectedClass.append(i)
+        
+        print("Interpolated samples generated:", len(indicesSelectedClass))
+        
+        return Xint[indicesSelectedClass,:,:], np.repeat(selected_class,len(indicesSelectedClass))
+
     def fit(self, X, y):
         
         #print("In TrainVAE fit")
         
-        selected_class = 1 #TODO check if used and how
-        iterations = 500
+        if self.use_augmented_data:
+        
+            for shift in [0,5,8]:
+                for every_ith_sample in [10,17]:
+                    X_interpolated1, y_interpolated1 = self._generateInterpolated(X, y, 1, shift, every_ith_sample)
+                    
+                    X_interpolated2, y_interpolated2 = self._generateInterpolated(X, y, 0, shift, every_ith_sample)
+                    
+                    X = np.concatenate((X, X_interpolated1), axis=0)
+                    y = np.concatenate((y, y_interpolated1), axis=0)
+                    
+                    X = np.concatenate((X, X_interpolated2), axis=0)
+                    y = np.concatenate((y, y_interpolated2), axis=0)
+            
+        selected_class = 1 #the class number in y to be used
+        iterations = self.vae_iterations #default 500
         hidden_layer_low = 500 
         latent_dim = 8
-        onlyP300 = False
+        onlyP300 = False #works with selected_class
         
         if onlyP300 == True:
         
@@ -88,10 +138,10 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
             epochs=iterations, #default 500
             shuffle = True,
             #callbacks=[early_stop_callback, reduceLR],
-            verbose = 0
+            verbose = 0,
         )
         
-        self.modelVAE = vae
+        self.modelVAE  = vae
         self.scalerVAE = scaler
 
         return self
@@ -100,13 +150,6 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         print("Encode VAE")
         #timeVAE, scaler, X_train, X_test, y_train, y_test
-        
-        #There are 3 outputs of the VAE Encoder
-        #encoder = [z_mean, z_log_var, encoder_output]
-        #z_mean, z_log_var, z = self.encoder(data)
-        
-        #There are 3 outputs. We can use one of them as feature vector or all of them together.
-        self.output = 2
         
         #Use the auto encoder to produce feature vectors
         
@@ -125,18 +168,18 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         X_c_fv = self.modelVAE.encoder.predict(X_c_scaled)
         
-        #X_train_fv_np = np.array(X_train_fv)[ output ]    
-        #version that use all 3 outputs from the encoder
         X_c_fv_all = []
-        # for i in range(0, len(y_train)):
-        #     X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
         
-        for i in range(0, X.shape[0]):
-            X_c_fv_all.append(X_c_fv[self.output][i])
+        if self.encoder_output == 3: #version that use all 3 outputs from the encoder
+            for i in range(0, X.shape[0]):
+                X_c_fv_all.append(np.concatenate((X_c_fv[0][i], X_c_fv[1][i], X_c_fv[2][i])))
+        else:
+            for i in range(0, X.shape[0]):
+                X_c_fv_all.append(X_c_fv[self.encoder_output][i])
         
         X_c_fv_all = np.array(X_c_fv_all)  
         
-        return X_c_fv_all #returns encoded data using the trained TimeVAE 
+        return X_c_fv_all #returns encoded X using the trained TimeVAE 
 
     def transform(self, X,):
         

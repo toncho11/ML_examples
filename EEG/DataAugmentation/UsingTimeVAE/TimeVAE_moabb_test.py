@@ -37,6 +37,7 @@ from time import perf_counter
 from TimeVaeTransformer import TimeVaeTransformer
 
 import sys
+#unclude benchmark
 sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/EEG/MDM-MF')
 from heavy_benchmark import benchmark_alpha, plot_stat
 #from enchanced_mdm_mf_tools import CustomCspTransformer,CustomCspTransformer2, CustomCspTransformer3
@@ -47,7 +48,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 #start configuration
 hb_max_n_subjects = 10
-hb_n_jobs = -1
+hb_n_jobs = 1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to set to True
 is_on_grid = False
 #end configuration
@@ -67,21 +68,23 @@ else:
 pipelines = {}
 params_grid = None
 
-pipelines["TimeVAE+SVC"] = make_pipeline(
+pipelines["TimeVAE+SVC_3"] = make_pipeline(
     Covariances("oas"),
     #CustomCspTransformer2(mode="high_electrodes_count"),
     #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(),
+    TimeVaeTransformer(encoder_output=3, vae_iterations = 50),
     svm.SVC()
 )
 
-pipelines["TimeVAE+LDA"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(),
-    LDA()
-)
+# pipelines["TimeVAE+LDA_3"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer2(mode="high_electrodes_count"),
+#     #CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output=3),
+#     LDA()
+# )
+
+#different classifiers, different encoder_outputs, with/without data augmentation
 
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
@@ -115,8 +118,8 @@ if TSLR:
 t1_start = perf_counter() 
 results = benchmark_alpha(pipelines, 
                           params_grid = params_grid, 
-                          #evaluation_type="withinsession",
-                          evaluation_type="crosssubject", 
+                          evaluation_type="withinsession",
+                          #evaluation_type="crosssubject", 
                           max_n_subjects = hb_max_n_subjects, 
                           n_jobs=hb_n_jobs, 
                           overwrite = hb_overwrite,
@@ -140,18 +143,3 @@ results.to_csv(save_path, index=True)
 
 print("Building statistic plots")
 plot_stat(results)
-
-#plot_stat(results, removeMI = True)
-
-total_time = results.groupby('pipeline').agg({
-    'score': 'mean',
-    'time': 'sum'
-})
-
-results.groupby('pipeline').agg({
-    'score': 'mean',
-    'time' : 'mean'
-})
-
-print("Total time")
-print(total_time)
