@@ -36,7 +36,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
     def fit(self, X, y):
         
-        print("In TrainVAE fit")
+        #print("In TrainVAE fit")
         
         selected_class = 1 #TODO check if used and how
         iterations = 500
@@ -56,11 +56,11 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8)
         N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
-        print(N, T, D)
+        #print(N, T, D)
         # X = X.reshape(N,D,T)
         X = X.transpose(0,2,1)
         N, T, D = X.shape
-        print(N, T, D)
+        #print(N, T, D)
         
         # min max scale the data    
         scaler = utils.MinMaxScaler()        
@@ -69,7 +69,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         #vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
         vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[hidden_layer_low * 2, hidden_layer_low], )
-        
+ 
         vae.compile(optimizer=Adam())
         # vae.summary()
 
@@ -91,13 +91,14 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
             verbose = 0
         )
         
-        self.vae = vae
-        self.scaler = scaler
+        self.modelVAE = vae
+        self.scalerVAE = scaler
 
         return self
     
     def _encode(self,X):
         
+        print("Encode VAE")
         #timeVAE, scaler, X_train, X_test, y_train, y_test
         
         #There are 3 outputs of the VAE Encoder
@@ -110,31 +111,32 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         #Use the auto encoder to produce feature vectors
         
         # Process X_train
-        X_trained_c = X.copy()
+        X_c = X.copy()
         
         # convert to correct format expected by timeVAE
-        N, T, D = X_trained_c.shape #N = number of samples, T = time steps, D = feature dimensions
-        print(N, T, D)
-        X_trained_c = X_trained_c.transpose(0,2,1)
+        N, T, D = X_c.shape #N = number of samples, T = time steps, D = feature dimensions
+        #print(N, T, D)
+        X_trained_c = X_c.transpose(0,2,1)
         N, T, D = X_trained_c.shape
-        print(N, T, D)
+        #print(N, T, D)
         
-        X_train_scaled = self.scaler.fit_transform(X_trained_c)
+        #X_train_scaled = self.scalerVAE.fit_transform(X_trained_c)
+        X_c_scaled = self.scalerVAE.transform(X_c)
         
-        X_train_fv = self.timeVAE.encoder.predict(X_train_scaled)
+        X_c_fv = self.modelVAE.encoder.predict(X_c_scaled)
         
         #X_train_fv_np = np.array(X_train_fv)[ output ]    
         #version that use all 3 outputs from the encoder
-        X_train_fv_all = []
+        X_c_fv_all = []
         # for i in range(0, len(y_train)):
         #     X_train_fv_all.append(np.concatenate((X_train_fv[0][i], X_train_fv[1][i], X_train_fv[2][i])))
         
-        for i in range(0, X.shape[0]): # len(y_train)
-            X_train_fv_all.append(X_train_fv[self.output][i])
+        for i in range(0, X.shape[0]):
+            X_c_fv_all.append(X_c_fv[self.output][i])
         
-        X_train_fv_np = np.array(X_train_fv_all)  
+        X_c_fv_all = np.array(X_c_fv_all)  
         
-        return X_train_fv_np    #returns encoded data using the trained TimeVAE 
+        return X_c_fv_all #returns encoded data using the trained TimeVAE 
 
     def transform(self, X,):
         
