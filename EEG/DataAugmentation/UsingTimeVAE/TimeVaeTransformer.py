@@ -30,9 +30,11 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
 
     def __init__(self, 
-                 encoder_output = 2,
-                 use_augmented_data = True,
-                 vae_iterations = 50
+                 encoder_output = 3,
+                 use_augmented_data = False,
+                 vae_iterations = 5,
+                 use_pretrained_scaler = True,
+                 vae_latent_dim = 8
                  #onlyP300 = False
                  ):
         """Init."""
@@ -46,11 +48,13 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.encoder_output = encoder_output
         self.use_augmented_data = use_augmented_data
         self.vae_iterations = vae_iterations
+        self.use_pretrained_scaler = use_pretrained_scaler
+        self.vae_latent_dim = vae_latent_dim
         #self.onlyP300 = onlyP300
     
     def _generateInterpolated(self, X, y , selected_class, shift = 0, every_ith_sample = 10): #shift the starting point in the epoch
         
-        print ("Generating interpolated samples...")
+        #print ("Generating interpolated samples...")
         
         Xint = X.copy()
         epoch_length = X.shape[2]
@@ -66,7 +70,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
                             Xint[i,m,j] = (X[i,m,j-1] + X[i,m,j+1]) / 2
                 indicesSelectedClass.append(i)
         
-        print("Interpolated samples generated:", len(indicesSelectedClass))
+        #print("Interpolated samples generated:", len(indicesSelectedClass))
         
         return Xint[indicesSelectedClass,:,:], np.repeat(selected_class,len(indicesSelectedClass))
 
@@ -75,9 +79,14 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         #print("In TrainVAE fit")
         
         if self.use_augmented_data:
-        
-            for shift in [0,5,8]:
-                for every_ith_sample in [10,17]:
+            
+            #check data
+            classe_labels  = sorted(set(y))
+            if classe_labels != [0,1]:
+                raise Exception("Classe labels are not as expected 0 and 1!")
+            
+            for shift in [0]: #[0,5,8]
+                for every_ith_sample in [10]: #[10,17]
                     X_interpolated1, y_interpolated1 = self._generateInterpolated(X, y, 1, shift, every_ith_sample)
                     
                     X_interpolated2, y_interpolated2 = self._generateInterpolated(X, y, 0, shift, every_ith_sample)
@@ -88,21 +97,21 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
                     X = np.concatenate((X, X_interpolated2), axis=0)
                     y = np.concatenate((y, y_interpolated2), axis=0)
             
-        selected_class = 1 #the class number in y to be used
+        #selected_class = 1 #the class number in y to be used
         iterations = self.vae_iterations #default 500
         hidden_layer_low = 500 
-        latent_dim = 8
-        onlyP300 = False #works with selected_class
+        latent_dim = self.vae_latent_dim
+        #onlyP300 = False #works with selected_class
         
-        if onlyP300 == True:
+        # if onlyP300 == True:
         
-            selected_class_indices = np.where(y == selected_class)
+        #     selected_class_indices = np.where(y == selected_class)
             
-            X = X[selected_class_indices,:,:]
+        #     X = X[selected_class_indices,:,:]
         
-            X = X[-1,:,:,:] #remove the first exta dimension
+        #     X = X[-1,:,:,:] #remove the first exta dimension
         
-        print("Samples count used by the VAE train: ", X.shape)
+        #print("Samples count used by the VAE train: ", X.shape)
         
         #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8)
         N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
@@ -112,7 +121,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         N, T, D = X.shape
         #print(N, T, D)
         
-        # min max scale the data    
+        # min max scale the data  
         scaler = utils.MinMaxScaler()        
        
         scaled_data = scaler.fit_transform(X)
@@ -163,10 +172,12 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         N, T, D = X_trained_c.shape
         #print(N, T, D)
         
-        #X_train_scaled = self.scalerVAE.fit_transform(X_trained_c)
-        X_c_scaled = self.scalerVAE.transform(X_c)
+        if self.use_pretrained_scaler:
+            X_c_scaled = self.scalerVAE.transform(X_c)
+        else:
+            X_c_scaled = utils.MinMaxScaler().fit_transform(X_c)
         
-        X_c_fv = self.modelVAE.encoder.predict(X_c_scaled)
+        X_c_fv = self.modelVAE.encoder.predict(X_c_scaled,)
         
         X_c_fv_all = []
         

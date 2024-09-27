@@ -67,6 +67,7 @@ from pyriemann.estimation import Covariances
 from pyriemann.tangentspace import TangentSpace
 
 class Handler():
+    
     def __init__(self, array) -> None:
         
         self.array = np.array(array)
@@ -76,6 +77,9 @@ class Handler():
         
         if(not self.supports_np_asanyarray()):
             self.inject_handler_asanyarray()
+            
+        if(not self.supports_np_reshape()):
+            self.inject_handler_reshape()
     
     def inject_handler_asarray(self):
         
@@ -94,15 +98,6 @@ class Handler():
         #np.asarray = lambda y, **params: self.asarray0(y.array, **params) if type(y) is Handler else self.asarray0(y, **params)
         np.asarray = as_array_func
 
-    def restore_np_as_array(self):
-        if hasattr(self, 'asarray0'):
-            np.asarray = self.asarray0
-
-    def supports_np_asarray(self):
-        test = np.asarray(self)
-        shape = np.shape(test)
-        return not len(shape) == 0
-    
     def inject_handler_asanyarray(self):
         
         def as_anyarray_func(y, dtype=None, order=None, *, like=None):
@@ -119,10 +114,38 @@ class Handler():
         #np.asanyarray = lambda y, **params: y.array if type(y) is Handler else self.asanyarray0(y, **params)
         #np.asanyarray = lambda y, **params: self.asanyarray0(y.array, **params) if type(y) is Handler else self.asanyarray0(y, **params)
         np.asanyarray = as_anyarray_func
+        
+    def inject_handler_reshape(self):
+        
+        def reshape_func(y, newshape, order='C'):
+            
+            if type(y) is Handler:
+                print("1rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
+                y.array = self.reshape0(y.array, newshape, order='C')
+                return y
+            else:
+                print("2rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
+                return self.reshape0(y, newshape, order='C')
+                
+        self.reshape0 = np.reshape #save old one reshape
+        np.reshape = reshape_func #set new reshape
 
+    def restore_np_as_array(self):
+        if hasattr(self, 'asarray0'):
+            np.asarray = self.asarray0
+            
     def restore_np_as_anyarray(self):
         if hasattr(self, 'asanyarray0'):
             np.asanyarray = self.asanyarray0
+            
+    def restore_np_reshape(self):
+        if hasattr(self, 'reshape0'):
+            np.reshape = self.reshape0
+
+    def supports_np_asarray(self):
+        test = np.asarray(self)
+        shape = np.shape(test)
+        return not len(shape) == 0
 
     def supports_np_asanyarray(self):
         #test = np.asanyarray(self) ###############changed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -130,8 +153,15 @@ class Handler():
         shape = np.shape(test)
         return not len(shape) == 0
     
+    def supports_np_reshape(self):
+        #test = np.asanyarray(self) ###############changed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # test = np.reshape(self.array)
+        # shape = np.shape(test)
+        # return not len(shape) == 0
+        return False #not actual check !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
     #add flatten????????????????????????????????????????????
-
+    
     @property
     def shape(self):
         return self.array.shape
@@ -141,7 +171,8 @@ class Handler():
     
     def __getitem__(self, a):
         print("ccccccccccccccccccccccccccccccccc")
-        return self.array.__getitem__(a) #put here Handler ?????????????????????????????????????????????????
+        return Handler(self.array.__getitem__(a)) 
+        #return self.array.__getitem__(a) 
 
     def __setitem__(self, a, b):
         return self.array.__setitem__(a, b)
@@ -149,7 +180,13 @@ class Handler():
     def __del__(self): #restore functions
         print("=======================Handler destructor======================================")
         self.restore_np_as_array()
-        self.restore_np_as_anyarray()        
+        self.restore_np_as_anyarray()
+        self.restore_np_reshape()
+        
+     
+    @property
+    def dtype(self):
+        return self.array.dtype
     
 class P300Enchanced(P300):
     
@@ -157,6 +194,7 @@ class P300Enchanced(P300):
 
         X, y, metadata = super().get_data(dataset, subjects, return_epochs)
         
+        print("gggggggggggggggggggggggggggggggggggggggggggggggggggggggg")
         return X, Handler(y) , metadata
 
 class DataAugment(BaseEstimator, TransformerMixin):
@@ -223,7 +261,7 @@ class DataAugment(BaseEstimator, TransformerMixin):
         # inverse-transform scaling 
         new_samples = scaler.inverse_transform(new_samples)
         
-        y_new=np.empty(100); y_new.fill(1)
+        #y_new=np.empty(100); y_new.fill(1)
         
         #y.array = np.append(y.array, 1) #label sample 1
         #y.array = np.append(y.array, 1)
