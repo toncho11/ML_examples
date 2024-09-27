@@ -10,6 +10,7 @@ any classfier. Currently LDA is used.
 On GPU:
     - with current code it works every second time. The first time it crashes
     when clearing the memory with numba, so it must be executed again
+    - many adjustments are required to fit into 4GB of GPU
 
 Results:
 Evaluation in % per database:
