@@ -78,6 +78,9 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         #print("In TrainVAE fit")
         
+        X_c = X.copy()
+        y_c = y.copy()
+        
         if self.use_augmented_data:
             
             #check data
@@ -87,19 +90,19 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             for shift in [0]: #[0,5,8]
                 for every_ith_sample in [10]: #[10,17]
-                    X_interpolated1, y_interpolated1 = self._generateInterpolated(X, y, 1, shift, every_ith_sample)
+                    X_interpolated1, y_interpolated1 = self._generateInterpolated(X_c, y_c, 1, shift, every_ith_sample)
                     
-                    X_interpolated2, y_interpolated2 = self._generateInterpolated(X, y, 0, shift, every_ith_sample)
+                    X_interpolated2, y_interpolated2 = self._generateInterpolated(X_c, y_c, 0, shift, every_ith_sample)
                     
-                    X = np.concatenate((X, X_interpolated1), axis=0)
-                    y = np.concatenate((y, y_interpolated1), axis=0)
+                    X_c = np.concatenate((X_c, X_interpolated1), axis=0)
+                    y_c = np.concatenate((y_c, y_interpolated1), axis=0)
                     
-                    X = np.concatenate((X, X_interpolated2), axis=0)
-                    y = np.concatenate((y, y_interpolated2), axis=0)
+                    X_c = np.concatenate((X_c, X_interpolated2), axis=0)
+                    y_c = np.concatenate((y_c, y_interpolated2), axis=0)
             
         #selected_class = 1 #the class number in y to be used
         iterations = self.vae_iterations #default 500
-        hidden_layer_low = 500 
+        hidden_layer_low = 100 #default 500 on CPU, 50 on GPU
         latent_dim = self.vae_latent_dim
         #onlyP300 = False #works with selected_class
         
@@ -114,17 +117,19 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         #print("Samples count used by the VAE train: ", X.shape)
         
         #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8)
-        N, T, D = X.shape #N = number of samples, T = time steps, D = feature dimensions
-        #print(N, T, D)
+        N, T, D = X_c.shape #N = number of samples, T = time steps, D = feature dimensions
+        if T == D:
+            print("WARNING: Your signal is a square matrix. Very, very unlikely unless you insist on using cov matrices instead of signal epochs.")
+        print(N, T, D)
         # X = X.reshape(N,D,T)
-        X = X.transpose(0,2,1)
-        N, T, D = X.shape
-        #print(N, T, D)
+        X_c = X_c.transpose(0,2,1)
+        N, T, D = X_c.shape
+        print(N, T, D)
         
         # min max scale the data  
         scaler = utils.MinMaxScaler()        
        
-        scaled_data = scaler.fit_transform(X)
+        scaled_data = scaler.fit_transform(X_c)
         
         #vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[200,100], )
         vae = VAE_Dense( seq_len=T,  feat_dim = D, latent_dim = latent_dim, hidden_layer_sizes=[hidden_layer_low * 2, hidden_layer_low], )
@@ -143,7 +148,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         print("Fit VAE")
         vae.fit(
             scaled_data, 
-            batch_size = 32, #default 32
+            batch_size = 4, #default 32
             epochs=iterations, #default 500
             shuffle = True,
             #callbacks=[early_stop_callback, reduceLR],
@@ -167,9 +172,11 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         # convert to correct format expected by timeVAE
         N, T, D = X_c.shape #N = number of samples, T = time steps, D = feature dimensions
+        if T == D:
+            print("WARNING: Your signal is a square matrix. Very, very unlikely unless you insist on using cov matrices instead of signal epochs.")
         #print(N, T, D)
-        X_trained_c = X_c.transpose(0,2,1)
-        N, T, D = X_trained_c.shape
+        X_c = X_c.transpose(0,2,1)
+        N, T, D = X_c.shape
         #print(N, T, D)
         
         if self.use_pretrained_scaler:
@@ -189,6 +196,8 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
                 X_c_fv_all.append(X_c_fv[self.encoder_output][i])
         
         X_c_fv_all = np.array(X_c_fv_all)  
+        
+        print("Are there are NaNs in the feature vector: ", np.isnan(X_c_fv_all).any())
         
         return X_c_fv_all #returns encoded X using the trained TimeVAE 
 

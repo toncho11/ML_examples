@@ -4,19 +4,29 @@ Created on Thu Sep 26 14:39:07 2024
 
 @author: antona
 
+Testing the generation of feaure vectors with TimeVAE and then using 
+any classfier. Currently LDA is used.
+
+On GPU:
+    - with current code it works every second time. The first time it crashes
+    when clearing the memory with numba, so it must be executed again
+
 Results:
-                                               score      time
-    dataset        pipeline                                   
-    BNCI2014-001_M TSLR                      0.874048  0.118572
-                   TimeVAE+LDA_35F_PSF       0.676266  1.742716
-                   TimeVAE+LDA_35F_PST       0.708760  1.682656
-                   TimeVAE+LDA_35F_PST_CSP   0.655026  1.580568
-                   TimeVAE+LDA_35F_PST_LD12  0.715994  1.676706
-    Zhou2016_M     TSLR                      0.946686  0.056751
-                   TimeVAE+LDA_35F_PSF       0.749553  1.514838
-                   TimeVAE+LDA_35F_PST       0.765359  1.518037
-                   TimeVAE+LDA_35F_PST_CSP   0.656526  1.647291
-                   TimeVAE+LDA_35F_PST_LD12  0.756906  1.560706
+Evaluation in % per database:
+                                             score      time
+dataset        pipeline                                     
+BNCI2014-001_M TSLR                       0.870877  0.115462
+               TimeVAE+LDA_310F_PST_LD20  0.707105  1.906495
+               TimeVAE+LDA_33F_PST_LD16   0.720257  1.582550
+               TimeVAE+LDA_35F_PST_LD12   0.715994  1.676706
+               TimeVAE+LDA_35F_PST_LD16   0.720438  1.640270
+               TimeVAE+LDA_35F_PST_LD20   0.710763  1.928256
+Zhou2016_M     TSLR                       0.941540  0.053449
+               TimeVAE+LDA_310F_PST_LD20  0.689492  1.806020
+               TimeVAE+LDA_33F_PST_LD16   0.716749  1.420254
+               TimeVAE+LDA_35F_PST_LD12   0.756906  1.560706
+               TimeVAE+LDA_35F_PST_LD16   0.723705  1.556885
+               TimeVAE+LDA_35F_PST_LD20   0.683640  1.574510
 """
 
 from pyriemann.estimation import XdawnCovariances, ERPCovariances, Covariances
@@ -56,6 +66,14 @@ sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/EEG/MDM-MF')
 from heavy_benchmark import benchmark_alpha, plot_stat
 from enchanced_mdm_mf_tools import CustomCspTransformer,CustomCspTransformer2, CustomCspTransformer3
 
+#start configure for GPU
+from numba import cuda 
+device = cuda.get_current_device()
+device.reset()
+
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+#end configure for GPU
+
 #filter messages form tensorflow
 #Warning: can hide important messages!!!
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
@@ -63,7 +81,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 #start configuration
 hb_max_n_subjects = 10
 hb_n_jobs = 1
-hb_overwrite = False #if you change the MDM_MF algorithm you need to set to True
+hb_overwrite = True #if you change the MDM_MF algorithm you need to set to True
 is_on_grid = False
 #end configuration
 
@@ -82,189 +100,70 @@ else:
 pipelines = {}
 params_grid = None
 
-# pipelines["TimeVAE+SVC_3"] = make_pipeline(
-#     Covariances("oas"),
+
+pipelines["1"] = make_pipeline(
+    #Covariances("oas"),
+    #CustomCspTransformer2(mode="high_electrodes_count"),
+    #CustomCspTransformer2(mode="low_electrodes_count"),
+    TimeVaeTransformer(encoder_output = 3, 
+                       vae_iterations = 200, 
+                       use_augmented_data = True, 
+                       ),
+    LDA()
+)
+
+# pipelines["TimeVAE+LDA_110F_PST_LD8"] = make_pipeline(
+#     #Covariances("oas"),
 #     #CustomCspTransformer2(mode="high_electrodes_count"),
 #     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, vae_iterations = 50),
-#     svm.SVC()
+#     TimeVaeTransformer(encoder_output = 1, 
+#                        vae_iterations = 10, 
+#                        use_augmented_data = False, 
+#                        use_pretrained_scaler = True,
+#                        vae_latent_dim = 8,
+#                        ),
+#     LDA()
 # )
 
-# pipelines["TimeVAE+LDA_35F_PSF"] = make_pipeline(
-#     Covariances("oas"),
+# pipelines["TimeVAE+LDA_360T_PST_LD8"] = make_pipeline(
+#     #Covariances("oas"),
 #     #CustomCspTransformer2(mode="high_electrodes_count"),
 #     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, 
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 60, 
+#                        use_augmented_data = True, 
+#                        use_pretrained_scaler = True,
+#                        vae_latent_dim = 8,
+#                        ),
+#     LDA()
+# )
+
+# pipelines["TimeVAE+LDA_35F_PST_LD8"] = make_pipeline(
+#     #Covariances("oas"),
+#     #CustomCspTransformer2(mode="high_electrodes_count"),
+#     #CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output = 3, 
 #                        vae_iterations = 5, 
 #                        use_augmented_data = False, 
-#                        use_pretrained_scaler = False),
+#                        use_pretrained_scaler = True,
+#                        vae_latent_dim = 8,
+#                        ),
 #     LDA()
 # )
 
-#best
-# pipelines["TimeVAE+LDA_35F_PST"] = make_pipeline(
-#     Covariances("oas"),
+# pipelines["TimeVAE+LDA_3800F_PST_LD8"] = make_pipeline(
+#     #Covariances("oas"),
 #     #CustomCspTransformer2(mode="high_electrodes_count"),
 #     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, 
-#                        vae_iterations = 5, 
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 800, 
 #                        use_augmented_data = False, 
-#                        use_pretrained_scaler = True),
+#                        use_pretrained_scaler = True,
+#                        vae_latent_dim = 8,
+#                        ),
 #     LDA()
 # )
 
-# pipelines["TimeVAE+LDA_35F_PST_CSP"] = make_pipeline(
-#     Covariances("oas"),
-#     CustomCspTransformer2(mode="high_electrodes_count"),
-#     CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, 
-#                        vae_iterations = 5, 
-#                        use_augmented_data = False, 
-#                        use_pretrained_scaler = True),
-#     LDA()
-# )
-
-pipelines["TimeVAE+LDA_35F_PST_LD12"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(encoder_output = 3, 
-                       vae_iterations = 5, 
-                       use_augmented_data = False, 
-                       use_pretrained_scaler = True,
-                       vae_latent_dim = 12,
-                       ),
-    LDA()
-)
-
-pipelines["TimeVAE+LDA_35F_PST_LD16"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(encoder_output = 3, 
-                       vae_iterations = 5, 
-                       use_augmented_data = False, 
-                       use_pretrained_scaler = True,
-                       vae_latent_dim = 16,
-                       ),
-    LDA()
-)
-
-pipelines["TimeVAE+LDA_33F_PST_LD16"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(encoder_output = 3, 
-                       vae_iterations = 3, 
-                       use_augmented_data = False, 
-                       use_pretrained_scaler = True,
-                       vae_latent_dim = 16,
-                       ),
-    LDA()
-)
-
-pipelines["TimeVAE+LDA_310F_PST_LD20"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(encoder_output = 3, 
-                       vae_iterations = 10, 
-                       use_augmented_data = False, 
-                       use_pretrained_scaler = True,
-                       vae_latent_dim = 20,
-                       ),
-    LDA()
-)
-
-pipelines["TimeVAE+LDA_35F_PST_LD20"] = make_pipeline(
-    Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
-    TimeVaeTransformer(encoder_output = 3, 
-                       vae_iterations = 5, 
-                       use_augmented_data = False, 
-                       use_pretrained_scaler = True,
-                       vae_latent_dim = 20,
-                       ),
-    LDA()
-)
-
-# pipelines["TimeVAE+LDA_35T"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, vae_iterations = 5, use_augmented_data = True),
-#     LDA()
-# )
-
-#good also
-# pipelines["TimeVAE+LDA_310F"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, vae_iterations = 10, use_augmented_data = False),
-#     LDA()
-# )
-
-# pipelines["TimeVAE+LDA_310T"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=3, vae_iterations = 10, use_augmented_data = True),
-#     LDA()
-# )
-#=========================================================================
-
-#bad
-# pipelines["TimeVAE+LDA_210F"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=2, vae_iterations = 10, use_augmented_data = False),
-#     LDA()
-# )
-
-# pipelines["TimeVAE+LDA_210T"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=2, vae_iterations = 10, use_augmented_data = True),
-#     LDA()
-# )
-#=================================================================
-# pipelines["TimeVAE+LDA_110F"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=1, vae_iterations = 10, use_augmented_data = False),
-#     LDA()
-# )
-
-#best so far
-# pipelines["TimeVAE+LDA_010F"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=0, vae_iterations = 10, use_augmented_data = False),
-#     LDA()
-# )
-
-#good in some respects
-# pipelines["TimeVAE+LDA_010T"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=0, vae_iterations = 10, use_augmented_data = True),
-#     LDA()
-# )
-
-# pipelines["TimeVAE+LDA_020T"] = make_pipeline(
-#     Covariances("oas"),
-#     #CustomCspTransformer2(mode="high_electrodes_count"),
-#     #CustomCspTransformer2(mode="low_electrodes_count"),
-#     TimeVaeTransformer(encoder_output=0, vae_iterations = 20, use_augmented_data = True),
-#     LDA()
-# )
 
 #different classifiers, different encoder_outputs, with/without data augmentation
 
