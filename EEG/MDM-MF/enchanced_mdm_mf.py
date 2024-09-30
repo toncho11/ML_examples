@@ -109,7 +109,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_max_remove_th = 30,
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
-                 outliers_mean_init = True
+                 outliers_mean_init = True,
+                 reuse_previous_mean = True
                  ):
         """Init."""
         self.power_list = power_list
@@ -127,6 +128,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.power_mean_zeta = power_mean_zeta
         self.outliers_mean_init = outliers_mean_init
         self.distance_squared = distance_squared
+        self.reuse_previous_mean = reuse_previous_mean
         
         if distance_strategy not in ["default_metric", "adaptive1", "adaptive2", "power_distance", "custom_distance_function"]:
             raise Exception()("Invalid distance stategy!")
@@ -150,11 +152,18 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         else:
             for ll in self.classes_:
                 
+                init = None
+                
                 if self.outliers_mean_init and p in self.covmeans_:
                     init = self.covmeans_[p][ll] #use previous mean
                     #print("using init mean")
-                else:
-                    init = None
+                elif self.reuse_previous_mean:
+                    pos = self.power_list.index(p)
+                    if pos>0:
+                        prev_p = self.power_list[pos-1]
+                        init = self.covmeans_[prev_p][ll]
+                        #print(prev_p)
+                        #print("using prev mean from the power list")
                     
                 means_p[ll] = mean_power_custom(
                     X[y == ll],

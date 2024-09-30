@@ -101,7 +101,7 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
-from  enchanced_mdm_mf_tools import CustomCspTransformer
+from  enchanced_mdm_mf_tools import CustomCspTransformer2
 
 #start configuration
 hb_max_n_subjects = -1
@@ -166,43 +166,27 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 #-it has the outliers removal code updated to stop early
 #-the iterations are increased
 
-#so it is not exactly the old one
-pipelines["old_best"] = make_pipeline(
-    Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
-    MeanFieldNew(power_list=power_means12,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 4,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              or_mean_init           = False,
-              ),   
-)
-
 #new best
 pipelines["new_best"] = make_pipeline(
     Covariances("oas"),
-    CustomCspTransformer(nfilter = 10),
+    CustomCspTransformer2(mode="high_electrodes_count"),
+    CustomCspTransformer2(mode="low_electrodes_count"),
     MeanFieldNew(power_list=power_means11,
-              method_label="lda",
-              n_jobs=mdm_mf_jobs,
-              euclidean_mean         = False, #default = false
-              distance_strategy      = "default_metric",
-              remove_outliers        = True,
-              outliers_th            = 2.5,  #default = 2.5
-              outliers_depth         = 2,    #default = 4
-              max_outliers_remove_th = 50,   #default = 50
-              outliers_disable_mean  = False, #default = false
-              outliers_method        = "zscore",
-              zeta                   = 1e-07,
-              or_mean_init           = True,
+              # method_label="lda",
+              # n_jobs=mdm_mf_jobs,
+              # euclidean_mean         = False, #default = false
+              # distance_strategy      = "power_distance",
+              # remove_outliers        = True,
+              # outliers_th            = 2.5,  #default = 2.5
+              # outliers_depth         = 2,    #default = 4
+              # outliers_max_remove_th = 50,   #default = 50
+              # outliers_disable_mean  = False, #default = false
+              # outliers_method        = "zscore",
+              # power_mean_zeta        = 1e-07,
+              # outliers_mean_init     = True,
+              # distance_squared       = True
               ),   
+   
 )
 
 
