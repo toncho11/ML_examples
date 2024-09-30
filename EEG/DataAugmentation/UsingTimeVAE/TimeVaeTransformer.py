@@ -34,8 +34,9 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
                  use_augmented_data = False,
                  vae_iterations = 5,
                  use_pretrained_scaler = True,
-                 vae_latent_dim = 8
-                 #onlyP300 = False
+                 vae_latent_dim = 8,
+                 #onlyP300 = False,
+                 vae_train_only_class_label = None,
                  ):
         """Init."""
         
@@ -50,6 +51,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.vae_iterations = vae_iterations
         self.use_pretrained_scaler = use_pretrained_scaler
         self.vae_latent_dim = vae_latent_dim
+        self.vae_train_only_class_label = vae_train_only_class_label
         #self.onlyP300 = onlyP300
     
     def _generateInterpolated(self, X, y , selected_class, shift = 0, every_ith_sample = 10): #shift the starting point in the epoch
@@ -77,22 +79,30 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
     def fit(self, X, y):
         
         #print("In TrainVAE fit")
+        #selected_class = 1 #the class number in y to be used
+        iterations = self.vae_iterations #default 500
+        hidden_layer_low = 200 #default 500 on CPU, 50 on GPU
+        latent_dim = self.vae_latent_dim
+        #onlyP300 = False #works with selected_class
         
         X_c = X.copy()
         y_c = y.copy()
         
-        if self.use_augmented_data:
-            
+        if self.use_augmented_data or self.vae_train_only_class_label != None:
             #check data
             classe_labels  = sorted(set(y))
+            if len(classe_labels) < 2:
+                raise Exception("Min 2 classes required!")
             if classe_labels != [0,1]:
                 raise Exception("Classe labels are not as expected 0 and 1!")
+        
+        if self.use_augmented_data:
             
-            for shift in [0]: #[0,5,8]
-                for every_ith_sample in [10]: #[10,17]
-                    X_interpolated1, y_interpolated1 = self._generateInterpolated(X_c, y_c, 1, shift, every_ith_sample)
+            for shift in [0,5,8]: #[0,5,8]
+                for every_ith_sample in [10,14]: #[10,17]
+                    X_interpolated1, y_interpolated1 = self._generateInterpolated(X, y, 1, shift, every_ith_sample)
                     
-                    X_interpolated2, y_interpolated2 = self._generateInterpolated(X_c, y_c, 0, shift, every_ith_sample)
+                    X_interpolated2, y_interpolated2 = self._generateInterpolated(X, y, 0, shift, every_ith_sample)
                     
                     X_c = np.concatenate((X_c, X_interpolated1), axis=0)
                     y_c = np.concatenate((y_c, y_interpolated1), axis=0)
@@ -100,27 +110,21 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
                     X_c = np.concatenate((X_c, X_interpolated2), axis=0)
                     y_c = np.concatenate((y_c, y_interpolated2), axis=0)
             
-        #selected_class = 1 #the class number in y to be used
-        iterations = self.vae_iterations #default 500
-        hidden_layer_low = 100 #default 500 on CPU, 50 on GPU
-        latent_dim = self.vae_latent_dim
-        #onlyP300 = False #works with selected_class
+        if self.vae_train_only_class_label != None:
         
-        # if onlyP300 == True:
-        
-        #     selected_class_indices = np.where(y == selected_class)
+            selected_class_indices = np.where(y == self.vae_train_only_class_label)
             
-        #     X = X[selected_class_indices,:,:]
+            X = X[selected_class_indices,:,:]
         
-        #     X = X[-1,:,:,:] #remove the first exta dimension
+            X = X[-1,:,:,:] #remove the first exta dimension
         
         #print("Samples count used by the VAE train: ", X.shape)
         
         #FIX: not the correct format (3360, 8, 257) but should be (3360, 257, 8)
         N, T, D = X_c.shape #N = number of samples, T = time steps, D = feature dimensions
-        if T == D:
-            print("WARNING: Your signal is a square matrix. Very, very unlikely unless you insist on using cov matrices instead of signal epochs.")
-        print(N, T, D)
+        # if T == D:
+        #     print("WARNING: Your signal is a square matrix. Very, very unlikely unless you insist on using cov matrices instead of signal epochs.")
+        #print(N, T, D)
         # X = X.reshape(N,D,T)
         X_c = X_c.transpose(0,2,1)
         N, T, D = X_c.shape
@@ -145,10 +149,10 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         early_stop_callback = EarlyStopping(monitor=early_stop_loss, min_delta = 1e-1, patience=10) 
         reduceLR = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=10)  #From TensorFLow: if no improvement is seen for a 'patience' number of epochs, the learning rate is reduced
 
-        print("Fit VAE")
+        #print("Fit VAE")
         vae.fit(
             scaled_data, 
-            batch_size = 4, #default 32
+            batch_size = 8, #default 32
             epochs=iterations, #default 500
             shuffle = True,
             #callbacks=[early_stop_callback, reduceLR],
@@ -172,8 +176,8 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         # convert to correct format expected by timeVAE
         N, T, D = X_c.shape #N = number of samples, T = time steps, D = feature dimensions
-        if T == D:
-            print("WARNING: Your signal is a square matrix. Very, very unlikely unless you insist on using cov matrices instead of signal epochs.")
+        # if T == D:
+        #     print("WARNING: Your signal is a square matrix. Very, very unlikely unless you insist on using cov matrices instead of signal epochs.")
         #print(N, T, D)
         X_c = X_c.transpose(0,2,1)
         N, T, D = X_c.shape
@@ -197,7 +201,7 @@ class TimeVaeTransformer(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         X_c_fv_all = np.array(X_c_fv_all)  
         
-        print("Are there are NaNs in the feature vector: ", np.isnan(X_c_fv_all).any())
+        #print("Are there are NaNs in the feature vector: ", np.isnan(X_c_fv_all).any())
         
         return X_c_fv_all #returns encoded X using the trained TimeVAE 
 

@@ -62,8 +62,8 @@ from time import perf_counter
 from TimeVaeTransformer import TimeVaeTransformer
 
 import sys
-#unclude benchmark
-sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/EEG/MDM-MF')
+#include benchmark
+#sys.path.insert(1, 'C:/Work/PythonCode/ML_examples/EEG/MDM-MF')
 from heavy_benchmark import benchmark_alpha, plot_stat
 from enchanced_mdm_mf_tools import CustomCspTransformer,CustomCspTransformer2, CustomCspTransformer3
 
@@ -80,7 +80,7 @@ os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 #start configuration
-hb_max_n_subjects = 10
+hb_max_n_subjects = 2
 hb_n_jobs = 1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to set to True
 is_on_grid = False
@@ -101,17 +101,109 @@ else:
 pipelines = {}
 params_grid = None
 
+# pipelines["1"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer2(mode="high_electrodes_count"),
+#     #CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 5, 
+#                        use_augmented_data = False, 
+#                        ),
+#     LDA()
+# )
 
-pipelines["1"] = make_pipeline(
-    #Covariances("oas"),
-    #CustomCspTransformer2(mode="high_electrodes_count"),
-    #CustomCspTransformer2(mode="low_electrodes_count"),
+# pipelines["2"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer2(mode="high_electrodes_count"),
+#     #CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 5, 
+#                        use_augmented_data = False, 
+#                        vae_latent_dim = 16,
+#                        ),
+#     LDA()
+#)
+
+# pipelines["3"] = make_pipeline(
+#     Covariances("oas"),
+#     #CustomCspTransformer2(mode="high_electrodes_count"), #requires cov oas
+#     CustomCspTransformer2(mode="low_electrodes_count"),   #requires cov oas
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 5, 
+#                        use_augmented_data = False, #disable in case of cov oas!
+#                        vae_latent_dim = 8,
+#                        vae_train_only_class_label = 1
+#                        ),
+#     LDA()
+# )
+
+pipelines["VAE_P300"] = make_pipeline(
+    XdawnCovariances(),
+    #CustomCspTransformer2(mode="high_electrodes_count"), #requires cov oas
+    #CustomCspTransformer2(mode="low_electrodes_count"),   #requires cov oas
     TimeVaeTransformer(encoder_output = 3, 
-                       vae_iterations = 200, 
-                       use_augmented_data = True, 
+                       vae_iterations = 50, 
+                       use_augmented_data = False, #disable in case of cov oas!
+                       vae_latent_dim = 8,
+                       vae_train_only_class_label = None
                        ),
     LDA()
 )
+
+pipelines["MDM"] = make_pipeline(
+    XdawnCovariances(),
+    MDM(),
+)
+
+
+# pipelines["4"] = make_pipeline(
+#     #Covariances("oas"),
+#     #CustomCspTransformer2(mode="high_electrodes_count"),  #requires oas
+#     #CustomCspTransformer2(mode="low_electrodes_count"),   #requires oas
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 50, 
+#                        use_augmented_data = False, 
+#                        vae_latent_dim = 8,
+#                        vae_train_only_class_label = 0
+#                        ),
+#     LDA()
+# )
+
+# pipelines["2"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer2(mode="high_electrodes_count"),
+#     CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 200, 
+#                        use_augmented_data = False, #no augdeata on cov matrices!
+#                        vae_latent_dim = 8,
+#                        ),
+#     LDA()
+# )
+
+# pipelines["3"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer2(mode="high_electrodes_count"),
+#     CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output = 3, 
+#                        vae_iterations = 200, 
+#                        use_augmented_data = False, #no augdeata on cov matrices!
+#                        vae_latent_dim = 16,
+#                        ),
+#     LDA()
+# )
+
+# pipelines["4"] = make_pipeline(
+#     Covariances("oas"),
+#     CustomCspTransformer2(mode="high_electrodes_count"),
+#     CustomCspTransformer2(mode="low_electrodes_count"),
+#     TimeVaeTransformer(encoder_output = 0, 
+#                        vae_iterations = 200, 
+#                        use_augmented_data = False, #no augdeata on cov matrices!
+#                        vae_latent_dim = 16,
+#                        ),
+#     LDA()
+# )
 
 # pipelines["TimeVAE+LDA_110F_PST_LD8"] = make_pipeline(
 #     #Covariances("oas"),
@@ -171,7 +263,7 @@ pipelines["1"] = make_pipeline(
 #can not use both
 AUG_Tang_SVM_standard       = False #Zhou2016 subject 4 can fail because of cov covariance estimator
 AUG_Tang_SVM_grid_search    = False #Zhou2016 subject 4 can fail because of cov covariance estimator
-TSLR = True
+TSLR = False
 
 from moabb.pipelines.utils import parse_pipelines_from_directory, generate_param_grid
 pipeline_configs = parse_pipelines_from_directory(pipeline_folder)
@@ -205,8 +297,8 @@ results = benchmark_alpha(pipelines,
                           max_n_subjects = hb_max_n_subjects, 
                           n_jobs=hb_n_jobs, 
                           overwrite = hb_overwrite,
-                          skip_P300 = True,
-                          skip_MI   = False,
+                          skip_P300 = False,
+                          skip_MI   = True,
                           replace_x_dawn_cov_par_cov_for_MI=True
                           )
 t1_stop = perf_counter()
