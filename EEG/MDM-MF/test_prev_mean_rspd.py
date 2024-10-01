@@ -42,6 +42,7 @@ def calculate_mean(X, y, p, sample_weight, reuse_previous_mean, covmeans):
     means_p = {}
     
     pos = power_list.index(p)
+    itr_all = 0
     
     for ll in [0,1]:
         
@@ -56,20 +57,21 @@ def calculate_mean(X, y, p, sample_weight, reuse_previous_mean, covmeans):
                 #print(prev_p)
                 #print("using prev mean from the power list")
             
-        means_p[ll] = mean_power_custom(
+        means_p[ll], itr = mean_power_custom(
             X[y == ll],
             p,
             sample_weight=sample_weight[y == ll],
             zeta = 1e-07,
             init = init
         )
+        itr_all = itr_all + itr
         
     covmeans[pos] = means_p
         
-    return means_p
+    return means_p,itr
         
 #############################################################################
-n = 500
+n = 2000
 
 X = np.array([generate_random_spd_matrix(10) for i in range(0,n)])
 
@@ -81,20 +83,29 @@ sample_weight = np.ones(X.shape[0])
 covmeans = {}
 
 time_start = perf_counter()
+itr_total1 = 0
 for p in power_list:
-    mean = calculate_mean(X, y, p, sample_weight, True , covmeans)
+    mean,itr = calculate_mean(X, y, p, sample_weight, True , covmeans)
+    print(itr)
+    itr_total1 = itr_total1 + itr
 time_end = perf_counter()
 time_duration1 = time_end - time_start
 print("Duration 1:", time_duration1 * 1000)
+print("Total iterations 1:", itr_total1)
 
 #Test 2 - do not reuse previous mean
 covmeans = {}
 
 time_start = perf_counter()
+itr_total2 = 0
 for p in power_list:
-    mean = calculate_mean(X, y, p, sample_weight, False , covmeans)
+    mean,itr = calculate_mean(X, y, p, sample_weight, False , covmeans)
+    print(itr)
+    itr_total2 = itr_total2 + itr
 time_end = perf_counter()
 time_duration2 = time_end - time_start
 print("Duration 2:", time_duration2 * 1000)
+print("Total iterations 2:", itr_total2)
 
-print("Performance difference in %:", round(100 - time_duration2/time_duration1 * 100,2),"%")
+print("Time difference in %:", round(100 - time_duration2/time_duration1 * 100,2),"%")
+print("Iteration difference in %:", round(100 - itr_total2/itr_total1 * 100,2),"%")
