@@ -28,7 +28,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 import copy
 from enchanced_mdm_mf_tools import mean_power_custom, distance_custom, power_distance
-from time import perf_counter_ns
+from time import perf_counter_ns,perf_counter
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):
@@ -110,7 +110,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
                  outliers_mean_init = True,
-                 reuse_previous_mean = True
+                 reuse_previous_mean = False
                  ):
         """Init."""
         self.power_list = power_list
@@ -154,9 +154,13 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 
                 init = None
                 
+                #use previous mean for this p
+                #usually when calculating the new mean after outliers removal
                 if self.outliers_mean_init and p in self.covmeans_:
                     init = self.covmeans_[p][ll] #use previous mean
                     #print("using init mean")
+                
+                #use the mean from the previous position in the power list
                 elif self.reuse_previous_mean:
                     pos = self.power_list.index(p)
                     if pos>0:
@@ -308,7 +312,16 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean_gt, " out of ",X.shape[0])
             
         return is_disabled
+    
+    def _calculate_all_means(self,X,y,sample_weight):
         
+        for p in self.power_list:
+            
+            if (self.remove_outliers):
+                self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
+            else:
+                self._calculate_mean(X, y, p, sample_weight)
+                
     def fit(self, X, y, sample_weight=None):
         """Fit (estimates) the centroids. Calculates the power means.
 
@@ -336,17 +349,60 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             sample_weight = np.ones(X.shape[0])
 
         self.covmeans_ = {}
-        
-        self.covmeans_disabled = {} #new
+        self.covmeans_disabled = {}
         self.covmeans_inv_ = {}
         
-        for p in self.power_list:
-            
-            if (self.remove_outliers):
-                self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
-            else:
-                self._calculate_mean(X, y, p, sample_weight)
-           
+        self._calculate_all_means(X,y,sample_weight)
+        
+        #start test outliers  init
+        # self.remove_outliers = True
+        # self.reuse_previous_mean = False
+        
+        # self.outliers_mean_init = True
+        # time_start = perf_counter()
+        # self._calculate_all_means(X,y,sample_weight)
+        # time_end = perf_counter()
+        # time_duration1 = time_end - time_start
+        # print("Duration 1:", time_duration1 * 1000)
+        
+        # self.covmeans_ = {}
+        # self.covmeans_disabled = {}
+        # self.covmeans_inv_ = {}
+        
+        # self.outliers_mean_init = False
+        # time_start = perf_counter()
+        # self._calculate_all_means(X,y,sample_weight)
+        # time_end = perf_counter()
+        # time_duration2 = time_end - time_start
+        # print("Duration 2:", time_duration2 * 1000)
+        
+        # # report the duration
+        # print('Time difference for outliers_mean_init in ms:',(time_duration2 - time_duration1) * 1000)
+        #end test
+        
+        #start test init previous mean
+        # self.reuse_previous_mean = True
+        # time_start = perf_counter()
+        # self._calculate_all_means(X,y,sample_weight)
+        # time_end = perf_counter()
+        # time_duration1 = time_end - time_start
+        # print("Duration 1:", time_duration1 * 1000)
+        
+        # self.covmeans_ = {}
+        # self.covmeans_disabled = {}
+        # self.covmeans_inv_ = {}
+        
+        # self.reuse_previous_mean = False
+        # time_start = perf_counter()
+        # self._calculate_all_means(X,y,sample_weight)
+        # time_end = perf_counter()
+        # time_duration2 = time_end - time_start
+        # print("Duration 2:", time_duration2 * 1000)
+        #end test
+        
+        # report the duration
+        #print('Time difference for reuse_previous_mean in ms:',(time_duration2 - time_duration1) * 1000)
+        
         if self.method_label == "lda":
             dists = self._predict_distances(X)
             self.lda.fit(dists,y)
