@@ -3,6 +3,36 @@
 Created on Tue Oct  1 14:58:24 2024
 
 @author: antona
+
+Result:
+    0
+    11
+    11
+    11
+    10
+    10
+    10
+    10
+    11
+    11
+    0
+    Duration 1: 3196.9507000176236
+    Total iterations 1: 95
+    0
+    6
+    6
+    7
+    7
+    11
+    7
+    7
+    6
+    6
+    0
+    Duration 2: 2343.031099997461
+    Total iterations 2: 63
+    Time difference in %: 26.71 %
+    Iteration difference in %: 33.68 %
 """
 
 from pyriemann.datasets import generate_random_spd_matrix
