@@ -16,7 +16,7 @@ Result:
     11
     11
     0
-    Duration 1: 3196.9507000176236
+    Duration 1: 3090.9477999666706
     Total iterations 1: 95
     0
     6
@@ -29,9 +29,9 @@ Result:
     6
     6
     0
-    Duration 2: 2343.031099997461
+    Duration 2: 2272.8909999132156
     Total iterations 2: 63
-    Time difference in %: 26.71 %
+    Time difference in %: 26.47 %
     Iteration difference in %: 33.68 %
 """
 
