@@ -110,7 +110,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
                  outliers_mean_init = True,
-                 reuse_previous_mean = False
+                 reuse_previous_mean = False #it is not faster
                  ):
         """Init."""
         self.power_list = power_list
@@ -130,6 +130,14 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.distance_squared = distance_squared
         self.reuse_previous_mean = reuse_previous_mean
         
+        '''
+        most used: default_metric and power_distance
+        "default_metric" - it uses "metric" (usually Riemann) for all distances 
+        "power_mean"     - uses a modified power_distance function based riemann distance, which has an optimization that first calcualtes the inverse of the power mean
+        "adaptive1"      - it uses p=-1 harmonic distance and for p=1 euclidean, riemann for the p=0
+                         - for the rest it uses custom_distance that uses p to calculate the distance
+        "adaptive2"      - it uses p=-1 harmonic distance and for p=1 euclidean, for the rest it uses "metric" (usually Riemann)
+        '''
         if distance_strategy not in ["default_metric", "adaptive1", "adaptive2", "power_distance", "custom_distance_function"]:
             raise Exception()("Invalid distance stategy!")
         

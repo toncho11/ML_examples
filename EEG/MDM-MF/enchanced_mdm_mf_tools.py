@@ -456,7 +456,7 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
         raise ValueError("Exponent must be in [-1,+1]")
 
     if p == 1:
-        return mean_euclid(X, sample_weight=sample_weight)
+        return mean_euclid(X, sample_weight=sample_weight)#,0)
     #elif p == 0:
     elif p == 0 or (p < 0.01 and p > -0.01): #Anton1: added (p < 0.01 and p>-0.01) for when p=0.001 instead of 0
         return mean_riemann(X, 
@@ -466,7 +466,7 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
                             maxiter       = maxiter #increased from default 50 to 100
                             )
     elif p == -1:
-        return mean_harmonic(X, sample_weight=sample_weight)
+        return mean_harmonic(X, sample_weight=sample_weight)#,0)
 
     n_matrices, n, _ = X.shape
     sample_weight = check_weights(sample_weight, n_matrices)
@@ -485,6 +485,9 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
 
     eye_n, sqrt_n = np.eye(n), np.sqrt(n)
     crit = 10 * zeta
+    
+    #itr = 0
+    
     for _ in range(maxiter):
         H = np.einsum(
             'a,abc->bc',
@@ -496,6 +499,8 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
         crit = np.linalg.norm(H - eye_n) / sqrt_n
         if crit <= zeta:
             break
+        
+        #itr = itr + 1
     else:
         warnings.warn("Power mean convergence not reached")
 
@@ -503,5 +508,5 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     if p > 0:
         M = np.linalg.inv(M)
 
-    return M
+    return M#, itr
         

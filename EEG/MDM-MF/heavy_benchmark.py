@@ -151,14 +151,15 @@ def benchmark_alpha(pipelines, params_grid = None,
     #BI2014b(),                              38
       
     datasets_P300 = [
-        BI2013a(),
-        BNCI2014_008(),
-        BNCI2014_009(),
-        BNCI2015_003(),
-        BI2015a(),     
-        BI2015b(),
-        BI2014a(),
-        BI2014b(),
+        #BI2013a(), #TLEEGB
+        #BNCI2014_008(), #TLEEGB #fails! with Singular Matrix
+        BNCI2014_009(), #TLEEGB
+        BNCI2015_003(), #TLEEGB
+        BI2015a(), #TLEEGB  
+        BI2015b(), #TLEEGB
+        BI2014a(), #TLEEGB
+        BI2014b(), #TLEEGB
+        #+7 online
     ]
 
     datasets_MI = [  #BNCI2015_004(), #gives very low scores like 0.2 for most users
