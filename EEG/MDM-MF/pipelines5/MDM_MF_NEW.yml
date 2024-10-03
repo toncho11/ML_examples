@@ -1,0 +1,18 @@
+name: XDAWN+RMF_OR
+
+paradigms:
+  - P300
+
+pipeline:
+  - name: XdawnCovariances
+    from: pyriemann.estimation
+    parameters:
+      nfilter: 4
+      estimator: "oas"
+
+  - name: MeanField
+    from: enchanced_mdm_mf
+    parameters:
+      remove_outliers: True
+      
+      
