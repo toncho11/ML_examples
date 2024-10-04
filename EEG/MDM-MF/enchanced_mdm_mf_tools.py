@@ -116,11 +116,12 @@ class CustomCspTransformer2(BaseEstimator, TransformerMixin):
         
         if self.n_electrodes <= self.nfilter:
             #print("not processed")
-            #return self
-            self.nfilter = self.n_electrodes
-        
-        if self.mode == "high_electrodes_count":
-            
+            return self
+            # self.nfilter = self.n_electrodes
+            # print("self.n_electrodes <= self.nfilter")
+            # self.csp = CSP(nfilter = self.n_electrodes)
+                           
+        elif self.mode == "high_electrodes_count":
             if self.n_electrodes > self.nfilter_dimensionality_reduction:
                 self.csp = CSP(nfilter = self.nfilter_dimensionality_reduction, metric="euclid", log=False)
             else:
@@ -142,6 +143,7 @@ class CustomCspTransformer2(BaseEstimator, TransformerMixin):
     def transform(self, X):
         
         if self.n_electrodes <= self.nfilter:
+            #P = self.csp.transform(X)
             return X
         
         if self.mode == "high_electrodes_count":
