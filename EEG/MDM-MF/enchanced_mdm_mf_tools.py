@@ -23,6 +23,7 @@ import scipy
 from sklearn import decomposition
 from pyriemann.utils.distance import _check_inputs
 import math
+from scipy.stats import zscore
 
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
 class CustomCspTransformer(BaseEstimator, TransformerMixin):
@@ -396,8 +397,6 @@ def power_distance(trial, power_mean_inv, squared=False):
     #d2 = (np.log( np.real(  scipy.linalg.eigvals (power_mean_inv @ trial, check_finite = False) ) ) **2 ).sum(axis=-1)
     return d2 if squared else np.sqrt(d2)
     
-    
-
 def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=150, #default = 100
                covmats=None):
     r"""Power mean of SPD/HPD matrices.
@@ -511,4 +510,139 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
         M = np.linalg.inv(M)
 
     return M#, itr
+
+# def mean_remove_outliers(self,X, y, 
+#                          sample_weight, 
+#                          mean_func, 
+#                          dist_func, 
+#                          method="zscore",
+#                          outliers_th = 2.5,
+#                          outliers_depth = 4, #how many times to run the outliers detection on the same data
+#                          outliers_max_remove_th = 30,
+#                          **kwargs
+#                          ):
+    
+#     classes = np.unique(y)
+
+#     if sample_weight is None:
+#         sample_weight = np.ones(X.shape[0])
         
+#     X_no_outliers = X.copy() #so that every power mean p start from the same data
+#     y_no_outliers = y.copy()
+    
+#     total_outliers_removed_per_class = np.zeros(len(classes))
+#     total_samples_per_class          = np.zeros(len(classes))
+    
+#     for ll in classes:
+#         total_samples_per_class[ll] = len(y_no_outliers[y_no_outliers==ll])
+    
+#     for i in range(outliers_depth):
+        
+#         #print("\nremove outliers iteration: ",i)
+        
+#         #calculate/update the n means (one for each class)
+#         current_mean = mean_func(X_no_outliers, y_no_outliers, kwargs) #p, sample_weight
+        
+#         ouliers_per_iteration_count = {}
+        
+#         #outlier removal is per class
+#         for ll in classes:
+            
+#             samples_before = X_no_outliers.shape[0]
+            
+#             m = [] #each entry contains a distance to the power mean p for class ll
+            
+#             #length includes all classes, not only the ll
+#             z_scores = np.zeros(len(y_no_outliers),dtype=float)
+        
+#             # Calculate all the distances only for class ll and power mean p
+#             for idx, x in enumerate (X_no_outliers[y_no_outliers==ll]):
+                
+#                 dist_p = dist_func(x, current_mean, kwargs)
+                
+#                 # if self.distance_strategy == "power_distance":
+#                 #     dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
+#                 # else:
+#                 #     dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
+#                 m.append(dist_p)
+            
+#             m = np.array(m, dtype=float)
+            
+#             if method == "zscore":
+                
+#                 m = np.log(m)
+#                 # Calculate Z-scores for each data point for the current ll class
+#                 # For the non ll the zscore stays 0, so they won't be removed
+#                 z_scores[y_no_outliers==ll] = zscore(m)
+            
+#                 outliers = (z_scores > outliers_th) | (z_scores < -outliers_th)
+                
+#             # elif self.outliers_method == "iforest":
+                
+#             #     m1 = [[k] for k in m]
+#             #     z_scores[y_no_outliers==ll] = iso.fit_predict(m1)
+#             #     #outliers is designed to be the size with all classes
+#             #     outliers = z_scores == -1
+                
+#             # elif self.outliers_method == "lof":
+                
+#             #     m1 = [[k] for k in m]
+#             #     z_scores[y_no_outliers==ll] = lof.fit_predict(m1)
+#             #     #outliers is designed to be the size with all classes
+#             #     outliers = z_scores == -1
+                
+#             else:   
+#                 raise Exception("Invalid Outlier Removal Method")
+
+#             outliers_count = len(outliers[outliers==True])
+            
+#             #check if too many samples are about to be removed
+#             #case 1 less than self.max_outliers_remove_th are to be removed
+#             if ((total_outliers_removed_per_class[ll] + outliers_count) / total_samples_per_class[ll]) * 100 < outliers_max_remove_th:
+#                 #print ("Removed for class ", ll ," ",  len(outliers[outliers==True]), " samples out of ", X_no_outliers.shape[0])
+        
+#                 X_no_outliers = X_no_outliers[~outliers]
+#                 y_no_outliers = y_no_outliers[~outliers]
+#                 sample_weight = sample_weight[~outliers]
+            
+#                 if X_no_outliers.shape[0] != (samples_before - outliers_count):
+#                     raise Exception("Error while removing outliers!")
+                
+#                 total_outliers_removed_per_class[ll] = total_outliers_removed_per_class[ll] + outliers_count
+            
+#             else: #case 2 more than self.max_outliers_remove_th are to be removed
+#                 # if self.outliers_disable_mean:
+#                 #     is_disabled = True
+#                 #     print("WARNING: Power Mean disabled because too many samples were about to be removed for its calculation.")
+#                 #     break
+#                 # else:
+#                 print("WARNING: Skipped full outliers removal because too many samples were about to be removed.")
+            
+#             ouliers_per_iteration_count[ll] = outliers_count
+        
+#         #early stop: if no outliers were removed for both classes then we stop early
+#         if sum(ouliers_per_iteration_count.values()) == 0:
+#             break
+    
+#     total_outliers_removed = total_outliers_removed_per_class.sum()
+        
+#     # if outliers_disable_mean and is_disabled:
+#     #     pass #no mean generated (disabled)
+        
+#     #elif total_outliers_removed > 0:
+#     if total_outliers_removed > 0:
+       
+#         #generate the final power mean (after outliers removal)
+#         current_mean = mean_func(X_no_outliers, y_no_outliers, kwargs)
+    
+#         outliers_removed_for_single_mean_gt = X.shape[0] - X_no_outliers.shape[0]
+        
+#         if (total_outliers_removed != outliers_removed_for_single_mean_gt):
+#             raise Exception("Error outliers removal count!")
+#         #print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
+        
+#         if (outliers_removed_for_single_mean_gt / X.shape[0]) * 100 > outliers_max_remove_th:
+#             raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean_gt, " out of ",X.shape[0])
+            
+#     return current_mean
+    
