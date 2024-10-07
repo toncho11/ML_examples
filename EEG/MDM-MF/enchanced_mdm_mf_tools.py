@@ -26,75 +26,75 @@ import math
 from scipy.stats import zscore
 
 #requires a version of pyRiemann where CSP accepts maxiter and n_iter_max
-class CustomCspTransformer(BaseEstimator, TransformerMixin):
+# class CustomCspTransformer(BaseEstimator, TransformerMixin):
     
-    def __init__(self,mode = 0):
+#     def __init__(self,mode = 0):
         
-        '''
-        0 fastest
-        1 slower, better performance
-        2 slow, better performance
-        3 slowest
-        '''
+#         '''
+#         0 fastest
+#         1 slower, better performance
+#         2 slow, better performance
+#         3 slowest
+#         '''
         
-        self.mode = mode
-        self.nfilter = 10
+#         self.mode = mode
+#         self.nfilter = 10
         
-        if mode == 0:
-            self.maxiter = 5
-            self.n_iter_max = 5
-        elif mode == 1:
-            self.maxiter = 30
-            self.n_iter_max = 30
-        elif mode == 2:
-            self.maxiter = 50
-            self.n_iter_max = 100
-        elif mode == 3:
-            self.maxiter = 50
-            self.n_iter_max = 100
+#         if mode == 0:
+#             self.maxiter = 5
+#             self.n_iter_max = 5
+#         elif mode == 1:
+#             self.maxiter = 30
+#             self.n_iter_max = 30
+#         elif mode == 2:
+#             self.maxiter = 50
+#             self.n_iter_max = 100
+#         elif mode == 3:
+#             self.maxiter = 50
+#             self.n_iter_max = 100
     
-    def fit(self, X, y=None):
+#     def fit(self, X, y=None):
         
-        self.n_electrodes = X.shape[1]
+#         self.n_electrodes = X.shape[1]
         
-        if self.n_electrodes <= self.nfilter:
-            self.csp = CSP(metric="euclid", log=False)
-            self.csp.fit(X,y)
-            return self
+#         if self.n_electrodes <= self.nfilter:
+#             self.csp = CSP(metric="euclid", log=False)
+#             self.csp.fit(X,y)
+#             return self
         
-        elif self.n_electrodes > 32:
+#         elif self.n_electrodes > 32:
             
-            self.csp1 = CSP(nfilter = 32, metric="euclid", log=False)
-            self.csp2 = CSP(metric = "ale", nfilter = self.nfilter, log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+#             self.csp1 = CSP(nfilter = 32, metric="euclid", log=False)
+#             self.csp2 = CSP(metric = "ale", nfilter = self.nfilter, log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
             
-        else: #<=32
+#         else: #<=32
             
-            if self.mode == 3:
-                self.csp = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
-                self.csp.fit(X,y)
-                return self
-            else:
-                self.csp1 = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
-                self.csp2 = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+#             if self.mode == 3:
+#                 self.csp = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+#                 self.csp.fit(X,y)
+#                 return self
+#             else:
+#                 self.csp1 = CSP(nfilter = self.nfilter, metric ="euclid", log=False)
+#                 self.csp2 = CSP(nfilter = self.nfilter, metric = "ale"  , log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
             
-        self.csp1.fit(X,y)
-        X1 = self.csp1.transform(X)
-        self.csp2.fit(X1,y)
+#         self.csp1.fit(X,y)
+#         X1 = self.csp1.transform(X)
+#         self.csp2.fit(X1,y)
         
-        return self
+#         return self
     
-    def transform(self, X):
+#     def transform(self, X):
         
-        if self.n_electrodes <= self.nfilter or (self.mode == 3 and self.n_electrodes <= 32):
+#         if self.n_electrodes <= self.nfilter or (self.mode == 3 and self.n_electrodes <= 32):
             
-            X_transformed = self.csp.transform(X)
-            return X_transformed
+#             X_transformed = self.csp.transform(X)
+#             return X_transformed
         
-        else:
+#         else:
             
-            X_transformed1 = self.csp1.transform(X)
-            X_transformed2 = self.csp2.transform(X_transformed1)
-            return X_transformed2
+#             X_transformed1 = self.csp1.transform(X)
+#             X_transformed2 = self.csp2.transform(X_transformed1)
+#             return X_transformed2
 
 class CustomCspTransformer2(BaseEstimator, TransformerMixin):
     
@@ -164,75 +164,75 @@ class CustomCspTransformer2(BaseEstimator, TransformerMixin):
         else:
              raise Exception("Invalid CSP mode")
              
-class CustomCspTransformer3(BaseEstimator, TransformerMixin):
+# class CustomCspTransformer3(BaseEstimator, TransformerMixin):
     
-    def __init__(self, mode = "fast_dimensionality_reduction", speed = 3):
+#     def __init__(self, mode = "fast_dimensionality_reduction", speed = 3):
         
-        self.mode = mode
-        self.nfilter = 10
-        self.speed = speed
+#         self.mode = mode
+#         self.nfilter = 10
+#         self.speed = speed
         
-        if speed == 0:
-            self.maxiter = 5
-            self.n_iter_max = 5
-        elif speed == 1:
-            self.maxiter = 30
-            self.n_iter_max = 30
-        elif speed == 2:
-            self.maxiter = 50
-            self.n_iter_max = 100
-        elif speed == 3:
-            self.maxiter = 50
-            self.n_iter_max = 100
+#         if speed == 0:
+#             self.maxiter = 5
+#             self.n_iter_max = 5
+#         elif speed == 1:
+#             self.maxiter = 30
+#             self.n_iter_max = 30
+#         elif speed == 2:
+#             self.maxiter = 50
+#             self.n_iter_max = 100
+#         elif speed == 3:
+#             self.maxiter = 50
+#             self.n_iter_max = 100
     
-    def fit(self, X, y=None):
+#     def fit(self, X, y=None):
         
-        self.n_electrodes = X.shape[1]
+#         self.n_electrodes = X.shape[1]
         
-        if self.n_electrodes <= self.nfilter:
-            return self
+#         if self.n_electrodes <= self.nfilter:
+#             return self
         
-        if self.mode == "fast_dimensionality_reduction":
+#         if self.mode == "fast_dimensionality_reduction":
             
-            if self.n_electrodes > 28:
-                self.csp = CSP(nfilter = 28, metric="euclid", log=False)
-            else:
-                return self
+#             if self.n_electrodes > 28:
+#                 self.csp = CSP(nfilter = 28, metric="euclid", log=False)
+#             else:
+#                 return self
             
-        elif self.mode == "slow_ale":
+#         elif self.mode == "slow_ale":
             
-            if self.n_electrodes > 28:
-                raise Exception("Number of electrodes too high. CSP will be slow. Use 'pre-rocessing' mode instead.")
-            else: # <28 electrodes 
-                self.csp = CSP(nfilter = self.nfilter, metric = "ale", log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
-        else:
-            raise Exception("Invalid mode")
+#             if self.n_electrodes > 28:
+#                 raise Exception("Number of electrodes too high. CSP will be slow. Use 'pre-rocessing' mode instead.")
+#             else: # <28 electrodes 
+#                 self.csp = CSP(nfilter = self.nfilter, metric = "ale", log=False, maxiter = self.maxiter, n_iter_max = self.n_iter_max) # maxiter = 50, n_iter_max = 100)
+#         else:
+#             raise Exception("Invalid mode")
              
-        self.csp.fit(X,y)
+#         self.csp.fit(X,y)
         
-        return self
+#         return self
     
-    def transform(self, X):
+#     def transform(self, X):
         
-        if self.n_electrodes <= self.nfilter:
-            return X
+#         if self.n_electrodes <= self.nfilter:
+#             return X
         
-        if self.mode == "fast_dimensionality_reduction":
+#         if self.mode == "fast_dimensionality_reduction":
             
-            if self.n_electrodes > 28:
-                return self.csp.transform(X)
-            else: 
-                return X
+#             if self.n_electrodes > 28:
+#                 return self.csp.transform(X)
+#             else: 
+#                 return X
             
-        elif self.mode == "slow_ale":
+#         elif self.mode == "slow_ale":
             
-            if self.n_electrodes > 28:
-                raise Exception("Number of electrodes too high. CSP will be slow. Use in 'pre-rocessing' mode first.")
+#             if self.n_electrodes > 28:
+#                 raise Exception("Number of electrodes too high. CSP will be slow. Use in 'pre-rocessing' mode first.")
             
-            else:
-                return self.csp.transform(X)
-        else:
-             raise Exception("Invalid mode")
+#             else:
+#                 return self.csp.transform(X)
+#         else:
+#              raise Exception("Invalid mode")
 
 class Diagonalizer(BaseEstimator, TransformerMixin):
     
