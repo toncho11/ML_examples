@@ -17,7 +17,7 @@ from pyriemann.utils.base import sqrtm, invsqrtm, logm, expm, powm
 from pyriemann.utils.distance import distance_riemann, distance_euclid
 from pyriemann.utils.geodesic import geodesic_riemann
 from pyriemann.utils.utils import check_weights, check_function
-from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic, _deprecate_covmats
+from pyriemann.utils.mean import mean_euclid, mean_riemann, mean_harmonic #_deprecate_covmats
 import warnings
 import scipy
 from sklearn import decomposition
@@ -448,7 +448,7 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
         M. Congedo, A. Barachant, and R. Bhatia. IEEE Transactions on Signal
         Processing, Volume 65, Issue 9, pp.2211-2220, May 2017
     """
-    X = _deprecate_covmats(covmats, X)
+    #X = _deprecate_covmats(covmats, X)
     if p is None:
         raise ValueError("Input p can not be None")
     if not isinstance(p, (int, float)):

@@ -151,8 +151,8 @@ def benchmark_alpha(pipelines, params_grid = None,
     #BI2014b(),                              38
       
     datasets_P300 = [
-        #BI2013a(), #TLEEGB
-        #BNCI2014_008(), #TLEEGB #fails! with Singular Matrix
+        BI2013a(), #TLEEGB
+        BNCI2014_008(), #TLEEGB #fails! with Singular Matrix
         BNCI2014_009(), #TLEEGB
         BNCI2015_003(), #TLEEGB
         BI2015a(), #TLEEGB  
@@ -363,10 +363,17 @@ def _AdjustDF(df, removeP300  = False, removeMI = False):
                      'BNCI2015-003', 
                      'BrainInvaders2015a', 
                      'BrainInvaders2015b', 
-                     #'Sosulski2019', 
+                     'Sosulski2019', 
                      'BrainInvaders2014a', 
                      'BrainInvaders2014b', 
-                      #'EPFLP300'
+                     'EPFLP300',
+                     'BrainInvaders2012',
+                     'Cattan2019-VR',
+                     'DemonsP300',
+                     "FakeVirtualRealityDataset",
+                     "Huebner2017",
+                     "Huebner2018",
+                     "Lee2019_ERP"
                      ]
     datasets_MI = [ 'BNCI2015-004',  #5 classes, 
                     'BNCI2015-001',  #2 classes
@@ -468,17 +475,17 @@ def plot_stat(results, removeP300  = False, removeMI = False):
                 stats, pipelines_sorted[i], pipelines_sorted[j]
             )
             plt.show()
-
-    # Summary Plot - provides a significance matrix to compare pipelines.
-    # Visualizes the significances as a heatmap with green/grey/red for significantly higher/significantly lower.
-    moabb_plt.summary_plot(P, T)
-    plt.show()
     
     print("Evaluation in %:")
     print(results.groupby("pipeline").mean("score")[["score", "time"]])
     
     print("Evaluation in % per database:")
-    print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]])
+    print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]].to_string())
     #print(results.groupby(["dataset","pipeline"]).describe())
+    
+    # Summary Plot - provides a significance matrix to compare pipelines.
+    # Visualizes the significances as a heatmap with green/grey/red for significantly higher/significantly lower.
+    moabb_plt.summary_plot(P, T)
+    plt.show()
     
     
