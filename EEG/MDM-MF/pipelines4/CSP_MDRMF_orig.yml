@@ -1,0 +1,29 @@
+name: CSP+RMForig
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: oas
+
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "high_electrodes_count"
+      
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "low_electrodes_count"
+
+  - name: MeanField
+    from: pyriemann.classification
+    parameters:
+      power_list: [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
+      method_label: "inf_means"
+      
+      

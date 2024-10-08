@@ -1,0 +1,23 @@
+name: CSP_d+RMF_or
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: oas
+
+  - name: CSP
+    from: pyriemann.spatialfilters
+    parameters:
+      log: False
+
+  - name: MeanField
+    from: enchanced_mdm_mf
+    parameters:
+      remove_outliers: True
+      
+      
