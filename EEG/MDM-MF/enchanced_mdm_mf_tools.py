@@ -511,16 +511,17 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
 
     return M#, itr
 
-# def mean_remove_outliers(self,X, y, 
-#                          sample_weight, 
-#                          mean_func, 
-#                          dist_func, 
-#                          method="zscore",
-#                          outliers_th = 2.5,
-#                          outliers_depth = 4, #how many times to run the outliers detection on the same data
-#                          outliers_max_remove_th = 30,
-#                          **kwargs
-#                          ):
+# def mean_remove_outliers(X, 
+#                           y, 
+#                           sample_weight, 
+#                           mean_func, 
+#                           dist_func, 
+#                           method="zscore",
+#                           outliers_th = 2.5,
+#                           outliers_depth = 4, #how many times to run the outliers detection on the same data
+#                           outliers_max_remove_th = 30,
+#                           **kwargs
+#                           ):
     
 #     classes = np.unique(y)
 
