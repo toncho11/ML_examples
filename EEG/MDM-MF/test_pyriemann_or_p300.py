@@ -2,11 +2,8 @@
 """
 
 ====================================================================
-Classification of P300 and MI datasets from MOABB using MDM-MF
+Testing the outlier removal integrated in pyRiemann
 ====================================================================
-
-MDM-MF is the Riemammian Mimimum Distance to Means Field Classifier
-Paper: https://hal.science/hal-02315131
 
 Results:
     
