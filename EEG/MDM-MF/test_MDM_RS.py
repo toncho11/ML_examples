@@ -43,7 +43,7 @@ from time import perf_counter
 from mdm_rsc import MDM_RS
 
 #start configuration
-hb_max_n_subjects = 50
+hb_max_n_subjects = 3
 hb_n_jobs = -1
 hb_overwrite = True #if you change the MDM_MF algorithm you need to set to True
 mdm_mf_jobs = 1
@@ -72,7 +72,7 @@ pipelines["XDAWNCov+MDM"] = make_pipeline(
 
 pipelines["XDAWNCov+MDM_RS"] = make_pipeline(
     XdawnCovariances(),
-    MDM_RS(n=50,k=6),
+    MDM_RS(n=100,k=6), #n=100,k=11
 )
 
 #can not use both
