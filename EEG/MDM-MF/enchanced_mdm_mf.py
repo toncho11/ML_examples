@@ -29,6 +29,7 @@ from sklearn.neighbors import LocalOutlierFactor
 import copy
 from enchanced_mdm_mf_tools import mean_power_custom, distance_custom, power_distance
 from time import perf_counter_ns,perf_counter
+from pyriemann.clustering import Potato
 
 def _check_metric(metric): #in utils in newer versions
     if isinstance(metric, str):
@@ -110,7 +111,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_disable_mean = False,
                  outliers_method = "zscore",
                  outliers_mean_init = True,
-                 reuse_previous_mean = False #it is not faster
+                 reuse_previous_mean = False, #it is not faster
+                 potato_mean = False,
+                 potato_mean_th = 1.5, #default 3, current test with 1.5
+                 potato_mean_iter = 100 #default 100
                  ):
         """Init."""
         self.power_list = power_list
@@ -129,6 +133,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_mean_init = outliers_mean_init
         self.distance_squared = distance_squared
         self.reuse_previous_mean = reuse_previous_mean
+        self.potato_mean = potato_mean
+        self.potato_mean_th = potato_mean_th
+        self.potato_mean_iter = potato_mean_iter
         
         '''
         most used: default_metric and power_distance
@@ -157,6 +164,25 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     sample_weight=sample_weight[y == ll]
                 )
             self.covmeans_[p] = means_p
+        
+        if p == 300: #potato mean
+            
+            for ll in self.classes_:    
+                means_p[ll] = Potato(metric="riemann", 
+                                      threshold=self.potato_mean_th, 
+                                      n_iter_max=self.potato_mean_iter
+                                      ).fit(X[y == ll]).covmean_
+                
+                # means_p[ll] = mean_covariance(X = X[y == ll],
+                #                               metric="riemann_or",
+                #                               sample_weight=None, 
+                #                               covmats=None,
+                #                               outliers_th = self.potato_mean_th, 
+                #                               outliers_depth = self.potato_mean_iter, 
+                #                               outliers_max_remove_th = 90)
+                
+            self.covmeans_[p] = means_p
+            
         else:
             for ll in self.classes_:
                 
@@ -210,9 +236,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         elif self.outliers_method == "lof":
             lof = LocalOutlierFactor(contamination='auto', n_neighbors=2) #default = 2
         
+        early_stop = False
+        
         for i in range(self.outliers_depth):
             
-            if is_disabled and self.outliers_disable_mean:
+            if early_stop:
+                print("Early stop")
                 break
             
             #print("\nremove outliers iteration: ",i)
@@ -287,6 +316,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     total_outliers_removed_per_class[ll] = total_outliers_removed_per_class[ll] + outliers_count
                 
                 else: #case 2 more than self.max_outliers_remove_th are to be removed
+                
+                    outliers_count = 0 #0 set outliers removed to 0
+                    
                     if self.outliers_disable_mean:
                         is_disabled = True
                         print("WARNING: Power Mean disabled because too many samples were about to be removed for its calculation.")
@@ -298,7 +330,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             #early stop: if no outliers were removed for both classes then we stop early
             if sum(ouliers_per_iteration_count.values()) == 0:
-                break
+                early_stop = True
+                
+            if (is_disabled and self.outliers_disable_mean):
+                early_stop = True
         
         total_outliers_removed = total_outliers_removed_per_class.sum()
             
@@ -314,10 +349,12 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             if (total_outliers_removed != outliers_removed_for_single_mean_gt):
                 raise Exception("Error outliers removal count!")
-            #print("Outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
+            #print("Total outliers removed for mean p=",p," is: ",outliers_removed_for_single_mean, " out of ", X.shape[0])
             
             if (outliers_removed_for_single_mean_gt / X.shape[0]) * 100 > self.outliers_max_remove_th:
                 raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean_gt, " out of ",X.shape[0])
+        else: 
+            print("No outliers removed")
             
         return is_disabled
     
@@ -326,7 +363,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         for p in self.power_list:
             
             if (self.remove_outliers):
-                self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
+                
+                if self.potato_mean and p == 300: #do not apply or the potato mean
+                    self._calculate_mean(X, y, p, sample_weight)
+                else:
+                    self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
             else:
                 self._calculate_mean(X, y, p, sample_weight)
                 
@@ -350,6 +391,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         if self.euclidean_mean:
             self.power_list.append(200)
+            
+        if self.potato_mean:
+            self.power_list.append(300)
             
         self.classes_ = np.unique(y)
 
@@ -555,7 +599,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         metric=self.metric,
                         squared = squared,
                     )
-                
+            
+            #same as "default_metric", but uses inverse mean
             elif self.distance_strategy == "power_distance":
                 
                 dist = power_distance(
