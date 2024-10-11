@@ -182,6 +182,24 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 #                               outliers_max_remove_th = 90)
                 
             self.covmeans_[p] = means_p
+        
+        if p == 301: #potato mean
+            
+            for ll in self.classes_:    
+                means_p[ll] = Potato(metric="riemann", 
+                                      threshold=1.8, 
+                                      n_iter_max=self.potato_mean_iter
+                                      ).fit(X[y == ll]).covmean_
+                
+                # means_p[ll] = mean_covariance(X = X[y == ll],
+                #                               metric="riemann_or",
+                #                               sample_weight=None, 
+                #                               covmats=None,
+                #                               outliers_th = self.potato_mean_th, 
+                #                               outliers_depth = self.potato_mean_iter, 
+                #                               outliers_max_remove_th = 90)
+                
+            self.covmeans_[p] = means_p
             
         else:
             for ll in self.classes_:
@@ -364,7 +382,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             if (self.remove_outliers):
                 
-                if self.potato_mean and p == 300: #do not apply or the potato mean
+                if self.potato_mean and p >= 300: #do not apply or the potato mean
                     self._calculate_mean(X, y, p, sample_weight)
                 else:
                     self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
@@ -394,6 +412,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
         if self.potato_mean:
             self.power_list.append(300)
+            
+        if self.potato_mean:
+            self.power_list.append(301)
             
         self.classes_ = np.unique(y)
 

@@ -44,7 +44,7 @@ from pyriemann.spatialfilters import CSP
 #start configuration
 hb_max_n_subjects = 10
 hb_n_jobs = -1
-hb_overwrite = True #if you change the MDM_MF algorithm you need to se to True
+hb_overwrite = False #if you change the MDM_MF algorithm you need to se to True
 mdm_mf_jobs = 1
 is_on_grid = False
 #end configuration
@@ -97,7 +97,7 @@ power_means12 = [-1, -0.75, -0.5, -0.25, -0.1, 0.001, 0.1, 0.25, 0.5, 0.75, 1]
 # power_means11 = [0]
 
 
-pipelines["RMF_potato"] = make_pipeline(
+pipelines["potatoRMF"] = make_pipeline(
     Covariances("oas"),
     MeanFieldNew(power_list=power_means11,
               # method_label="lda",
@@ -114,7 +114,7 @@ pipelines["RMF_potato"] = make_pipeline(
               # outliers_mean_init     = True,
               # distance_squared       = True
               potato_mean              = True,
-              potato_mean_th           = 1.5,
+              potato_mean_th           = 1.0,
               potato_mean_iter         = 10,
               ),   
 )
