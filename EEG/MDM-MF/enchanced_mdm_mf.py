@@ -112,9 +112,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_method = "zscore",
                  outliers_mean_init = True,
                  reuse_previous_mean = False, #it is not faster
-                 potato_mean = False,
-                 potato_mean_th = 1.5, #default 3, current test with 1.5
-                 potato_mean_iter = 100 #default 100
+                 # potato_mean = False,
+                 # potato_mean_th = 1.5, #default 3, current test with 1.5
+                 # potato_mean_iter = 100 #default 100
+                 outliers_single_zscore = False
                  ):
         """Init."""
         self.power_list = power_list
@@ -133,9 +134,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_mean_init = outliers_mean_init
         self.distance_squared = distance_squared
         self.reuse_previous_mean = reuse_previous_mean
-        self.potato_mean = potato_mean
-        self.potato_mean_th = potato_mean_th
-        self.potato_mean_iter = potato_mean_iter
+        # self.potato_mean = potato_mean
+        # self.potato_mean_th = potato_mean_th
+        # self.potato_mean_iter = potato_mean_iter
+        self.outliers_single_zscore = outliers_single_zscore
         
         '''
         most used: default_metric and power_distance
@@ -165,41 +167,41 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 )
             self.covmeans_[p] = means_p
         
-        if p == 300: #potato mean
+        # if p == 300: #potato mean
             
-            for ll in self.classes_:    
-                means_p[ll] = Potato(metric="riemann", 
-                                      threshold=self.potato_mean_th, 
-                                      n_iter_max=self.potato_mean_iter
-                                      ).fit(X[y == ll]).covmean_
+        #     for ll in self.classes_:    
+        #         means_p[ll] = Potato(metric="riemann", 
+        #                               threshold=self.potato_mean_th, 
+        #                               n_iter_max=self.potato_mean_iter
+        #                               ).fit(X[y == ll]).covmean_
                 
-                # means_p[ll] = mean_covariance(X = X[y == ll],
-                #                               metric="riemann_or",
-                #                               sample_weight=None, 
-                #                               covmats=None,
-                #                               outliers_th = self.potato_mean_th, 
-                #                               outliers_depth = self.potato_mean_iter, 
-                #                               outliers_max_remove_th = 90)
+        #         # means_p[ll] = mean_covariance(X = X[y == ll],
+        #         #                               metric="riemann_or",
+        #         #                               sample_weight=None, 
+        #         #                               covmats=None,
+        #         #                               outliers_th = self.potato_mean_th, 
+        #         #                               outliers_depth = self.potato_mean_iter, 
+        #         #                               outliers_max_remove_th = 90)
                 
-            self.covmeans_[p] = means_p
+        #     self.covmeans_[p] = means_p
         
-        if p == 301: #potato mean
+        # if p == 301: #potato mean
             
-            for ll in self.classes_:    
-                means_p[ll] = Potato(metric="riemann", 
-                                      threshold=1.8, 
-                                      n_iter_max=self.potato_mean_iter
-                                      ).fit(X[y == ll]).covmean_
+        #     for ll in self.classes_:    
+        #         means_p[ll] = Potato(metric="riemann", 
+        #                               threshold=1.8, 
+        #                               n_iter_max=self.potato_mean_iter
+        #                               ).fit(X[y == ll]).covmean_
                 
-                # means_p[ll] = mean_covariance(X = X[y == ll],
-                #                               metric="riemann_or",
-                #                               sample_weight=None, 
-                #                               covmats=None,
-                #                               outliers_th = self.potato_mean_th, 
-                #                               outliers_depth = self.potato_mean_iter, 
-                #                               outliers_max_remove_th = 90)
+        #         # means_p[ll] = mean_covariance(X = X[y == ll],
+        #         #                               metric="riemann_or",
+        #         #                               sample_weight=None, 
+        #         #                               covmats=None,
+        #         #                               outliers_th = self.potato_mean_th, 
+        #         #                               outliers_depth = self.potato_mean_iter, 
+        #         #                               outliers_max_remove_th = 90)
                 
-            self.covmeans_[p] = means_p
+        #     self.covmeans_[p] = means_p
             
         else:
             for ll in self.classes_:
@@ -298,7 +300,10 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     # For the non ll the zscore stays 0, so they won't be removed
                     z_scores[y_no_outliers==ll] = zscore(m)
                 
-                    outliers = (z_scores > self.outliers_th) | (z_scores < -self.outliers_th)
+                    if self.outliers_single_zscore:
+                        outliers = (z_scores > self.outliers_th)
+                    else:
+                        outliers = (z_scores > self.outliers_th) | (z_scores < -self.outliers_th)
                     
                 elif self.outliers_method == "iforest":
                     
@@ -382,9 +387,9 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             
             if (self.remove_outliers):
                 
-                if self.potato_mean and p >= 300: #do not apply or the potato mean
-                    self._calculate_mean(X, y, p, sample_weight)
-                else:
+                # if self.potato_mean and p >= 300: #do not apply or the potato mean
+                #     self._calculate_mean(X, y, p, sample_weight)
+                # else:
                     self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
             else:
                 self._calculate_mean(X, y, p, sample_weight)
@@ -410,11 +415,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         if self.euclidean_mean:
             self.power_list.append(200)
             
-        if self.potato_mean:
-            self.power_list.append(300)
+        # if self.potato_mean:
+        #     self.power_list.append(300)
             
-        if self.potato_mean:
-            self.power_list.append(301)
+        # if self.potato_mean:
+        #     self.power_list.append(301)
             
         self.classes_ = np.unique(y)
 
