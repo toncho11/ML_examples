@@ -112,9 +112,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_method = "zscore",
                  outliers_mean_init = True,
                  reuse_previous_mean = False, #it is not faster
-                 # potato_mean = False,
-                 # potato_mean_th = 1.5, #default 3, current test with 1.5
-                 # potato_mean_iter = 100 #default 100
                  outliers_single_zscore = False
                  ):
         """Init."""
@@ -134,9 +131,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_mean_init = outliers_mean_init
         self.distance_squared = distance_squared
         self.reuse_previous_mean = reuse_previous_mean
-        # self.potato_mean = potato_mean
-        # self.potato_mean_th = potato_mean_th
-        # self.potato_mean_iter = potato_mean_iter
         self.outliers_single_zscore = outliers_single_zscore
         
         '''
@@ -166,43 +160,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                     sample_weight=sample_weight[y == ll]
                 )
             self.covmeans_[p] = means_p
-        
-        # if p == 300: #potato mean
-            
-        #     for ll in self.classes_:    
-        #         means_p[ll] = Potato(metric="riemann", 
-        #                               threshold=self.potato_mean_th, 
-        #                               n_iter_max=self.potato_mean_iter
-        #                               ).fit(X[y == ll]).covmean_
-                
-        #         # means_p[ll] = mean_covariance(X = X[y == ll],
-        #         #                               metric="riemann_or",
-        #         #                               sample_weight=None, 
-        #         #                               covmats=None,
-        #         #                               outliers_th = self.potato_mean_th, 
-        #         #                               outliers_depth = self.potato_mean_iter, 
-        #         #                               outliers_max_remove_th = 90)
-                
-        #     self.covmeans_[p] = means_p
-        
-        # if p == 301: #potato mean
-            
-        #     for ll in self.classes_:    
-        #         means_p[ll] = Potato(metric="riemann", 
-        #                               threshold=1.8, 
-        #                               n_iter_max=self.potato_mean_iter
-        #                               ).fit(X[y == ll]).covmean_
-                
-        #         # means_p[ll] = mean_covariance(X = X[y == ll],
-        #         #                               metric="riemann_or",
-        #         #                               sample_weight=None, 
-        #         #                               covmats=None,
-        #         #                               outliers_th = self.potato_mean_th, 
-        #         #                               outliers_depth = self.potato_mean_iter, 
-        #         #                               outliers_max_remove_th = 90)
-                
-        #     self.covmeans_[p] = means_p
-            
+          
         else:
             for ll in self.classes_:
                 
@@ -261,7 +219,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         for i in range(self.outliers_depth):
             
             if early_stop:
-                print("Early stop")
+                #print("Early stop")
                 break
             
             #print("\nremove outliers iteration: ",i)
@@ -386,11 +344,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         for p in self.power_list:
             
             if (self.remove_outliers):
-                
-                # if self.potato_mean and p >= 300: #do not apply or the potato mean
-                #     self._calculate_mean(X, y, p, sample_weight)
-                # else:
-                    self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
+                self.covmeans_disabled[p] = self._calcualte_mean_remove_outliers(X, y, p, sample_weight)
             else:
                 self._calculate_mean(X, y, p, sample_weight)
                 
@@ -415,12 +369,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         if self.euclidean_mean:
             self.power_list.append(200)
             
-        # if self.potato_mean:
-        #     self.power_list.append(300)
-            
-        # if self.potato_mean:
-        #     self.power_list.append(301)
-            
         self.classes_ = np.unique(y)
 
         if sample_weight is None:
@@ -432,54 +380,11 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         self._calculate_all_means(X,y,sample_weight)
         
-        #start test outliers  init
-        # self.remove_outliers = True
-        # self.reuse_previous_mean = False
-        
-        # self.outliers_mean_init = True
-        # time_start = perf_counter()
-        # self._calculate_all_means(X,y,sample_weight)
-        # time_end = perf_counter()
-        # time_duration1 = time_end - time_start
-        # print("Duration 1:", time_duration1 * 1000)
-        
-        # self.covmeans_ = {}
-        # self.covmeans_disabled = {}
-        # self.covmeans_inv_ = {}
-        
-        # self.outliers_mean_init = False
-        # time_start = perf_counter()
-        # self._calculate_all_means(X,y,sample_weight)
-        # time_end = perf_counter()
-        # time_duration2 = time_end - time_start
-        # print("Duration 2:", time_duration2 * 1000)
-        
-        # # report the duration
-        # print('Time difference for outliers_mean_init in ms:',(time_duration2 - time_duration1) * 1000)
-        #end test
-        
-        #start test init previous mean
-        # self.reuse_previous_mean = True
-        # time_start = perf_counter()
-        # self._calculate_all_means(X,y,sample_weight)
-        # time_end = perf_counter()
-        # time_duration1 = time_end - time_start
-        # print("Duration 1:", time_duration1 * 1000)
-        
-        # self.covmeans_ = {}
-        # self.covmeans_disabled = {}
-        # self.covmeans_inv_ = {}
-        
-        # self.reuse_previous_mean = False
-        # time_start = perf_counter()
-        # self._calculate_all_means(X,y,sample_weight)
-        # time_end = perf_counter()
-        # time_duration2 = time_end - time_start
-        # print("Duration 2:", time_duration2 * 1000)
-        #end test
-        
-        # report the duration
-        #print('Time difference for reuse_previous_mean in ms:',(time_duration2 - time_duration1) * 1000)
+        if len(self.power_list) != len(self.covmeans_.keys()):
+            raise Exception("Problem with number of calculated means!")
+            
+        if self.distance_strategy == "power_distance" and len(self.covmeans_.keys()) != len(self.covmeans_inv_.keys()):
+            raise Exception("Problem with the number of inverse matrices")
         
         if self.method_label == "lda":
             dists = self._predict_distances(X)
@@ -657,28 +562,7 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
             m[p] = []
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
                 if self.distance_strategy == "power_distance":
-                    
-                    #time_start = perf_counter_ns()
                     dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
-                    #time_end = perf_counter_ns()
-                    #time_duration = time_end - time_start
-                    # report the duration
-                    #print(f'Took {time_duration} seconds inverse distance')
-                    
-                    #test code (to be removed)
-                    # self.distance_strategy = "default_metric"
-                    # time_start = perf_counter_ns()
-                    # dist_old = self._calculate_distance(x, self.covmeans_[p][ll], p)
-                    # time_end = perf_counter_ns()
-                    # self.distance_strategy = "power_distance"
-                    # time_duration = time_end - time_start
-                    # # report the duration
-                    # print(f'Took {time_duration} seconds normal distance')
-                    # print(dist_p, dist_old, round(dist_p - dist_old,4))
-                    # if abs(dist_p - dist_old > 0.001):
-                    #     raise Exception("Error distance")
-                    #end test code
-
                 else:
                     dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
                 m[p].append(dist_p)
@@ -689,23 +573,15 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         combined = np.array(combined)
         
+        if len(combined) != (len(self.power_list) * 2):
+            raise Exception("Not enough calculated distances!", len(combined),(len(self.power_list) * 2))
+        
         return combined
         
     def _predict_distances(self, X):
         """Helper to predict the distance. Equivalent to transform."""
         
         #print("predict distances")
-        
-        # if self.ts_enabled:
-            
-        #     self.ts_covmeans_ = copy.deepcopy(self.covmeans_)
-            
-        #     for p in self.power_list:
-        #         for ll in self.classes_:
-        #             #print(np.array([self.covmeans_[p][ll]]).shape)
-        #             self.ts_covmeans_[p][ll] = self.ts.transform(np.array([self.covmeans_[p][ll]]))
-            
-        #     X = self.ts.transform(X)
            
         if (self.n_jobs == 1):
             distances = []
