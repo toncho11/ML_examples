@@ -108,7 +108,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                  outliers_th = 2.5,
                  outliers_depth = 4, #how many times to run the outliers detection on the same data
                  outliers_max_remove_th = 30,
-                 outliers_disable_mean = False,
                  outliers_method = "zscore",
                  outliers_mean_init = True,
                  reuse_previous_mean = False, #it is not faster
@@ -125,7 +124,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         self.outliers_th = outliers_th
         self.outliers_depth = outliers_depth
         self.outliers_max_remove_th = outliers_max_remove_th
-        self.outliers_disable_mean = outliers_disable_mean
         self.outliers_method = outliers_method
         self.power_mean_zeta = power_mean_zeta
         self.outliers_mean_init = outliers_mean_init
@@ -206,8 +204,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         
         for ll in self.classes_:
             total_samples_per_class[ll] = len(y_no_outliers[y_no_outliers==ll])
-            
-        is_disabled = False
         
         if self.outliers_method == "iforest":
             iso = IsolationForest(contamination='auto') #0.1
@@ -300,28 +296,17 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 
                     outliers_count = 0 #0 set outliers removed to 0
                     
-                    if self.outliers_disable_mean:
-                        is_disabled = True
-                        print("WARNING: Power Mean disabled because too many samples were about to be removed for its calculation.")
-                        break
-                    else:
-                        print("WARNING: Skipped full outliers removal because too many samples were about to be removed.")
+                    print("WARNING: Skipped full outliers removal because too many samples were about to be removed.")
                 
                 ouliers_per_iteration_count[ll] = outliers_count
             
             #early stop: if no outliers were removed for both classes then we stop early
             if sum(ouliers_per_iteration_count.values()) == 0:
                 early_stop = True
-                
-            if (is_disabled and self.outliers_disable_mean):
-                early_stop = True
         
         total_outliers_removed = total_outliers_removed_per_class.sum()
-            
-        if self.outliers_disable_mean and is_disabled:
-            pass #no mean generated (disabled)
-            
-        elif total_outliers_removed > 0:
+
+        if total_outliers_removed > 0:
            
             #generate the final power mean (after outliers removal)
             self._calculate_mean(X_no_outliers, y_no_outliers, p, sample_weight)
@@ -336,8 +321,6 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                 raise Exception("Outliers removal algorithm has removed too many samples: ", outliers_removed_for_single_mean_gt, " out of ",X.shape[0])
         else: 
             print("No outliers removed")
-            
-        return is_disabled
     
     def _calculate_all_means(self,X,y,sample_weight):
         
@@ -557,14 +540,15 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
         m = {} #contains a distance to a power mean
         
         for p in self.power_list:
-            if self.outliers_disable_mean and p in self.covmeans_disabled and self.covmeans_disabled[p]:
-                continue
             m[p] = []
+            
             for ll in self.classes_: #add all distances (1 per class) for m[p] power mean
+                
                 if self.distance_strategy == "power_distance":
                     dist_p = self._calculate_distance(x, self.covmeans_inv_[p][ll], p)
                 else:
                     dist_p = self._calculate_distance(x, self.covmeans_[p][ll], p)
+                
                 m[p].append(dist_p)
                 
         combined = [] #combined for all classes
