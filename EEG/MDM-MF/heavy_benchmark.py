@@ -182,7 +182,7 @@ def benchmark_alpha(pipelines, params_grid = None,
     
     datasets_LR = [
         BNCI2014_001(), #D2
-        BNCI2014_004(), #D2
+        BNCI2014_004(), #D2 #only 3 electrodes
         Cho2017(),      #D2
         GrosseWentrup2009(), #D2
         PhysionetMI(), #D2
@@ -290,14 +290,16 @@ def benchmark_alpha(pipelines, params_grid = None,
     if (skip_P300 == False):
         results_P300 = evaluation_P300.process(pipelines,param_grid=params_grid)
 
-    if skip_MI == False and replace_x_dawn_cov_par_cov_for_MI == True: 
-        # replace XDawnCovariances with Covariances when using MI or LeftRightMI
-        for pipe_name in pipelines:
-            pipeline = pipelines[pipe_name]
-            if pipeline.steps[0][0] == "xdawncovariances":
-                pipeline.steps.pop(0)
-                pipeline.steps.insert(0, ["covariances", Covariances("oas")])
-                print("xdawncovariances transformer replaced by covariances")
+    if skip_MI == False: 
+        
+        if replace_x_dawn_cov_par_cov_for_MI == True:
+            # replace XDawnCovariances with Covariances when using MI or LeftRightMI
+            for pipe_name in pipelines:
+                pipeline = pipelines[pipe_name]
+                if pipeline.steps[0][0] == "xdawncovariances":
+                    pipeline.steps.pop(0)
+                    pipeline.steps.insert(0, ["covariances", Covariances("oas")])
+                    print("xdawncovariances transformer replaced by covariances")
     
         results_LR = evaluation_LR.process(pipelines, param_grid=params_grid)
         
@@ -389,7 +391,8 @@ def _AdjustDF(df, removeP300  = False, removeMI = False):
                     'Weibo2014', 
                     'Zhou2016',
                     'Lee2019-MI', #new
-                    'Schirrmeister2017' #new
+                    'Schirrmeister2017', #new
+                    'Liu2024'
                   ]
     for ind in df.index:
         
@@ -480,7 +483,7 @@ def plot_stat(results, removeP300  = False, removeMI = False):
     print(results.groupby("pipeline").mean("score")[["score", "time"]])
     
     print("Evaluation in % per database:")
-    print(results.groupby(["dataset","pipeline"]).mean("score")[["score", "time"]].to_string())
+    print(results.groupby('pipeline').agg({'score': ['mean', 'std'], 'time': 'mean'}))
     #print(results.groupby(["dataset","pipeline"]).describe())
     
     # Summary Plot - provides a significance matrix to compare pipelines.
