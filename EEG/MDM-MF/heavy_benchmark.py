@@ -458,6 +458,7 @@ def plot_stat(results, removeP300  = False, removeMI = False):
     ax.set_ylabel("ROC AUC")
     ax.set_ylim(0.3, 1)
 
+    #1. ROC-AUC - plots all scores, gives an idea of the overall performance
     plt.show()
 
     # Generate statistics for the summary plot
@@ -465,9 +466,10 @@ def plot_stat(results, removeP300  = False, removeMI = False):
     # combined effects methods
     stats = compute_dataset_statistics(results)
     P, T = find_significant_differences(stats)
-    print(stats.to_string())  # not all datasets are in stats
+    
+    #print(stats.to_string())  # not all datasets are in stats
 
-    # Negative SMD value favors the first(left) algorithm, postive SMD the second(right)
+    # 2. Negative SMD value favors the first(left) algorithm, postive SMD the second(right)
     # A meta-analysis style plot that shows the standardized effect with confidence intervals over
     # all datasets for two algorithms. Hypothesis is that alg1 is larger than alg2
     pipelines = results["pipeline"].unique()
@@ -479,14 +481,24 @@ def plot_stat(results, removeP300  = False, removeMI = False):
             )
             plt.show()
     
-    print("Evaluation in %:")
-    print(results.groupby("pipeline").mean("score")[["score", "time"]])
-    
+    #3. mean session score per pipeline: 
     print("Evaluation in % per database:")
     print(results.groupby('pipeline').agg({'score': ['mean', 'std'], 'time': 'mean'}))
-    #print(results.groupby(["dataset","pipeline"]).describe())
     
-    # Summary Plot - provides a significance matrix to compare pipelines.
+    #4. mean session score per dataset and pipeline
+    #results.groupby(['dataset','pipeline']).agg({'score': ['mean', 'std'], 'time': 'mean'})
+    
+    #describe() is provided by Pandas with columns: count, mean, std, min, 25%, 50%, 75% percentiles, max
+    #print(results.groupby(["dataset","pipeline"]).describe()[["Age", "Sex"]])
+    
+    #5. Total number of datasets and subjects processed:
+    print("Number of datasets processed:",len(results.dataset.unique()))
+    
+    subjects_per_datset = results.groupby('dataset')['subject'].nunique().reset_index(name='unique_subject_count')
+    total_unique_subjects = subjects_per_datset['unique_subject_count'].sum()
+    print("Total subjects processed: ",total_unique_subjects)
+    
+    #6. Summary Plot - provides a significance matrix to compare pipelines.
     # Visualizes the significances as a heatmap with green/grey/red for significantly higher/significantly lower.
     moabb_plt.summary_plot(P, T)
     plt.show()
