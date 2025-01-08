@@ -4,8 +4,8 @@ This is a repository for Machine Learning/Data Science code samples.
 
 It includes the following algorithms, frameworks or subdomains of ML/DS:
 
-  * Keras and PyTorch for Deep Learning
-  * Transformers and Chat Bots(with HuggingFace)
+  * Keras and PyTorch for Deep Learning (CNN)
+  * Transformers for Chat Bots and for Image Classfication/Object Detection (Hugging Face, OpenAI)
   * Transfer Learning with PyTorch for Image Classification
   * EEG ERP Classification
   * Decision Trees
