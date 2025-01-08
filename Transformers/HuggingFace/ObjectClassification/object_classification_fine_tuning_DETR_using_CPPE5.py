@@ -1,4 +1,4 @@
-#Finetuning the DETR model using the CPPE-5 dataset to improve its performance for a specific taske of helath mask detection
+#Finetuning the DETR model using the CPPE-5 dataset to improve its performance for a specific domain - detecting if health mask is available on the image
 
 #This example has been adapted to run locally.
 
