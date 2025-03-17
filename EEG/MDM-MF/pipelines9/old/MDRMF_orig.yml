@@ -1,0 +1,19 @@
+name: RMForig
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: "oas"
+
+  - name: MeanField
+    from: pyriemann.classification
+    parameters:
+      power_list: [-1, -0.75, -0.5, -0.25, -0.1, -0.01, 0.01, 0.1, 0.25, 0.5, 0.75, 1]
+      method_label: "inf_means"
+      
+      

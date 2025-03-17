@@ -1,0 +1,28 @@
+name: ADCSP+MDM
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+citations:
+  - https://doi.org/10.1109/NER49283.2021.9441279
+  - https://citeseerx.ist.psu.edu/doc/10.1.1.713.5131
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: oas
+     
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "high_electrodes_count"
+      
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "low_electrodes_count"
+
+  - name: MDM
+    from: pyriemann.classification

@@ -1,0 +1,28 @@
+name: CSP+RMF_or
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: oas
+
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "high_electrodes_count"
+      
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "low_electrodes_count"
+
+  - name: MeanField
+    from: enchanced_mdm_mf
+    parameters:
+      remove_outliers: True
+      
+      

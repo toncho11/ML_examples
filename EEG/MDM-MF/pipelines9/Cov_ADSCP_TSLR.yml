@@ -1,0 +1,34 @@
+name: ADCSP+TS+LR
+
+paradigms:
+  - LeftRightImagery
+  - MotorImagery
+
+citations:
+  - https://doi.org/10.1016/j.neucom.2012.12.039
+
+pipeline:
+  - name: Covariances
+    from: pyriemann.estimation
+    parameters:
+      estimator: oas
+
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "high_electrodes_count"
+      
+  - name: CustomCspTransformer2
+    from: enchanced_mdm_mf_tools
+    parameters:
+      mode: "low_electrodes_count"
+
+  - name: TangentSpace
+    from: pyriemann.tangentspace
+    parameters:
+      metric: "riemann"
+
+  - name: LogisticRegression
+    from: sklearn.linear_model
+    parameters:
+      C: 1.0
