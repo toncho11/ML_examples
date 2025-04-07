@@ -382,6 +382,25 @@ def distance_custom(A, B, k, squared=False):
     return dist
 
 def power_distance(trial, power_mean_inv, squared=False):
+    '''
+    RMF works better with squared=False
+
+    Parameters
+    ----------
+    trial : TYPE
+        DESCRIPTION.
+    power_mean_inv : TYPE
+        DESCRIPTION.
+    squared : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    '''
+    
     
     # _check_inputs(A, B)
     #d2 = (np.log(_recursive(eigvalsh, A, B))**2).sum(axis=-1)
@@ -390,13 +409,78 @@ def power_distance(trial, power_mean_inv, squared=False):
     _check_inputs(power_mean_inv, trial)
     #scipy.linalg.eigvals (general, non symetric)
     #np.linalg.eigvals    (general, non symetric)
-    #but power_mean_inv @ trial is not synetric, scipy.linalg.eigvals is more correct
+    #but power_mean_inv @ trial is not symetric, scipy.linalg.eigvals is more correct
+    #eigvals gives a vector
+    #.sum(axis=-1) = sum()
+    #with np.log and **2 it is still a 1D vector
     d2 = (np.log( np.linalg.eigvals (power_mean_inv @ trial)) **2 ).sum(axis=-1)
+    #same as d2 = (np.power(np.log( np.linalg.eigvals(power_mean_inv @ trial)),2)).sum()
     
     #scipy.linalg.eigvals with real() is slower than numpy
     #d2 = (np.log( np.real(  scipy.linalg.eigvals (power_mean_inv @ trial, check_finite = False) ) ) **2 ).sum(axis=-1)
-    return d2 if squared else np.sqrt(d2)
+    #print("power distance")
+    #return d2 ** 2 if squared else d2
     
+    #correct version:
+    return d2 if squared else np.sqrt(d2)
+    #ADD an extra paramter for the function that does ln(d2) if true after the squared distance above
+
+def vector_distance(trial, power_mean_inv, vector_distance_method = 2):
+    '''
+    The distance output is a vector instead of a single number.
+    '''
+    _check_inputs(power_mean_inv, trial)
+    
+    ev = np.linalg.eigvals (power_mean_inv @ trial)
+    s = (np.log(ev) ** 2).sum(axis=-1)
+    #s = ev.sum(axis=-1)
+    
+    #ev2 = ev[0:10] #very good
+    #ev2 = np.append(ev[0:10],ev[18:22])
+
+    n = trial.shape[0]
+    #print(n)
+    #ev2 = ev[int(n/3):2 * int(n/3) ] #get the middle 1/3
+    #ev2 = ev[int(n/3):int(n/3) + 2 ] 
+    #ev2 = ev[1::2] #good
+    #ev2 = ev[0:int(len(ev2)/2)]
+    ev2 = ev[0:3] 
+    ev3 = ev[0:4]
+    ev4 = ev[0:6]
+    
+    
+    #print(vector_distance_method)
+    #1) ln only
+    if vector_distance_method == 1:
+        return np.log(ev2)
+
+    #2) ln and ** 2
+    if vector_distance_method == 2:
+        #return (np.log(ev2) ** 2).append((np.log(ev) ** 2).sum(axis=-1))
+        #r = np.append(np.ones(1),(np.log(ev) ** 2).sum(axis=-1))
+        
+        #best 0.85
+        #r = np.append(ev,s) # 0.84
+        #r = ev #0.73
+        #r = np.append(ev2,s) # 0.84 ev[-5]. 0.85
+        
+        #good
+        r = np.array(1)
+        r = np.append( r, s )
+        #r = np.append( r,1 )
+        #r = np.append(r, (np.log(ev2) ** 2).sum(axis=-1))
+        #r = np.append(r, (np.log(ev3) ** 2).sum(axis=-1))
+        #r = np.append(r, ev2)
+        
+        #r = np.append(r,(np.log(ev2) ** 2).sum(axis=-1)) # 0.84 ev[0:10]. 0.845
+        #r = np.append(np.log(ev2) ** 2,s) # ev[0:10] 
+        #print(r)
+        return r
+    
+    #3) directly eigvalues, so neither ** 2, neither ln
+    if vector_distance_method == 3:
+        return ev2
+
 def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e-10, maxiter=150, #default = 100
                covmats=None):
     r"""Power mean of SPD/HPD matrices.
@@ -459,10 +543,10 @@ def mean_power_custom(X=None, p=None, *, init=None, sample_weight=None, zeta=10e
     if p == 1:
         return mean_euclid(X, sample_weight=sample_weight)#,0)
     #elif p == 0:
-    elif p == 0 or (p < 0.01 and p > -0.01): #Anton1: added (p < 0.01 and p>-0.01) for when p=0.001 instead of 0
+    elif p == 0:# or (p < 0.01 and p > -0.01): #Anton1: added (p < 0.01 and p>-0.01) for when p=0.001 instead of 0
         return mean_riemann(X, 
                             sample_weight = sample_weight, 
-                            init          = init,   #Anton2: added init
+                            init          = init,   #Anton2: added init, now in pyRiemann
                             tol           = zeta,   #Anton3: added zeta here decreases the number significant digits
                             maxiter       = maxiter #increased from default 50 to 100
                             )
