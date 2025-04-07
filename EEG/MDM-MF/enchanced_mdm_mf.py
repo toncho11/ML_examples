@@ -203,7 +203,8 @@ class MeanField(BaseEstimator, ClassifierMixin, TransformerMixin):
                         p,
                         sample_weight=sample_weight[y == ll],
                         zeta = self.power_mean_zeta,
-                        init = init
+                        init = init,
+                        max_iter=150
                     )
             self.covmeans_[p] = means_p
             
